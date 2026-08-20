@@ -48,3 +48,14 @@ export class ApiError extends Error {
     super(message);
   }
 }
+
+/** Bangun query string dengan param berulang, mis. ?metrics=a&metrics=b. */
+export function repeatedQuery(params: Record<string, string | string[] | number | undefined>): string {
+  const q = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) continue;
+    for (const v of Array.isArray(value) ? value : [value]) q.append(key, String(v));
+  }
+  const s = q.toString();
+  return s ? `?${s}` : "";
+}

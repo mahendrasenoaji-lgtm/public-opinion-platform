@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Route } from "next";
 import { Activity } from "lucide-react";
 
 const NAV = [
@@ -26,7 +27,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <nav>
           {NAV.map(([href, label]) => (
-            <Link key={href} href={href} className="nav-i">{label}</Link>
+            // Sebagian besar rute di sini belum punya halaman — Phase 1 hanya
+            // mewajibkan Command Center + Opinion Index (roadmap.md). Cast ke
+            // Route supaya typedRoutes tidak menolak build sebelum semua
+            // halaman di-port; link yang belum ada akan 404 sampai dibangun.
+            <Link key={href} href={href as Route} className="nav-i">{label}</Link>
           ))}
         </nav>
         <div className="nav-foot">

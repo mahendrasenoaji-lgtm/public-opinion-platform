@@ -136,3 +136,29 @@ class ResponseOut(BaseModel):
     answered_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# --- Post-stratification weighting (services/weighting.py) ---
+
+class WeightingTargets(BaseModel):
+    """Target populasi per variabel, dari sensus/BPS. Tiap variabel harus
+    berjumlah mendekati 1.0. Variabel yang didukung: age_band, gender,
+    education, occupation, province_code, urbanicity (lihat RAKEABLE_VARIABLES
+    di services/weighting.py)."""
+
+    targets: dict[str, dict[str, float]] = Field(
+        description='Contoh: {"gender": {"L": 0.49, "P": 0.51}}',
+    )
+    max_iterations: int = Field(default=25, ge=1, le=100)
+    trim_ratio: float = Field(default=3.0, ge=1.0, le=10.0)
+
+
+class WeightingReport(BaseModel):
+    survey_id: UUID
+    respondent_count: int
+    iterations: int
+    converged: bool
+    trimmed_count: int
+    max_weight: float
+    min_weight: float
+    warnings: list[str]

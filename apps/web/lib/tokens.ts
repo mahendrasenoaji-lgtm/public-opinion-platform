@@ -39,7 +39,8 @@ export const STATUS = {
 export const RISK_RAMP = ["#2FBF71", "#7FB45C", "#F5B301", "#EF8A3C", "#EF4B4B"] as const;
 
 export function riskColor(score: number): string {
-  return RISK_RAMP[Math.min(4, Math.floor(score / 20))];
+  const band = Math.max(0, Math.min(4, Math.floor(score / 20)));
+  return RISK_RAMP[band] ?? RISK_RAMP[0];
 }
 
 export const TYPE = {

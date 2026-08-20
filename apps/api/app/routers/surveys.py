@@ -7,11 +7,11 @@ Ingest respons otomatis menjalankan quality assessment dan menyimpan flag-nya.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import CurrentUser, Role, TenantSession, require_role
 from app.models.survey import Question, QuestionType, Respondent, Response, Survey
@@ -25,7 +25,10 @@ from app.schemas.survey import (
     SurveyCreate,
     SurveyOut,
     SurveyUpdate,
+    WeightingReport,
+    WeightingTargets,
 )
+from app.services import weighting
 from app.services.quality import assess
 
 router = APIRouter(prefix="/surveys", tags=["surveys"])
@@ -128,7 +131,9 @@ async def add_question(
     user: CurrentUser,
 ):
     if body.type not in _VALID_TYPES:
-        raise HTTPException(422, f"Tipe pertanyaan tidak valid. Pilih dari: {', '.join(sorted(_VALID_TYPES))}")
+        raise HTTPException(
+            422, f"Tipe pertanyaan tidak valid. Pilih dari: {', '.join(sorted(_VALID_TYPES))}",
+        )
 
     # Pastikan survei ada (RLS sudah memfilter tenant)
     srv = await session.execute(select(Survey).where(Survey.id == survey_id))
@@ -312,3 +317,74 @@ async def get_responses(
         select(Response).where(Response.respondent_id == respondent_id)
     )
     return [ResponseOut.model_validate(r) for r in result.scalars()]
+
+
+# ── Bobot pasca-stratifikasi ────────────────────────────────────────────────
+
+@router.post(
+    "/{survey_id}/weights/compute",
+    response_model=WeightingReport,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def compute_weights(
+    survey_id: UUID,
+    body: WeightingTargets,
+    session: TenantSession,
+    user: CurrentUser,
+):
+    """Hitung dan simpan bobot pasca-stratifikasi (raking) untuk semua
+    responden survei ini.
+
+    Menimpa `Respondent.weight` yang ada. Logika raking murni ada di
+    services/weighting.py — router ini cuma memuat responden, memanggilnya,
+    dan menyimpan hasilnya. Peringatan dari raking (non-konvergensi, kategori
+    tanpa target, bobot dipangkas) dikembalikan apa adanya; UI wajib
+    menampilkannya, bukan menyembunyikannya.
+    """
+    srv = await session.execute(select(Survey).where(Survey.id == survey_id))
+    survey = srv.scalar_one_or_none()
+    if not survey:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Survei tidak ditemukan.")
+
+    result = await session.execute(select(Respondent).where(Respondent.survey_id == survey_id))
+    respondents = list(result.scalars())
+    if not respondents:
+        raise HTTPException(422, "Survei ini belum punya responden.")
+
+    strata: dict[str, dict[str, str | None]] = {
+        str(r.id): {
+            "age_band": r.age_band,
+            "gender": r.gender,
+            "education": r.education,
+            "occupation": r.occupation,
+            "province_code": r.province_code,
+            "urbanicity": r.urbanicity,
+        }
+        for r in respondents
+    }
+
+    try:
+        raked = weighting.rake_weights(
+            strata,
+            body.targets,
+            max_iterations=body.max_iterations,
+            trim_ratio=body.trim_ratio,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+
+    for r in respondents:
+        r.weight = Decimal(str(raked.weights[str(r.id)])).quantize(Decimal("0.0001"))
+
+    await session.flush()
+
+    return WeightingReport(
+        survey_id=survey_id,
+        respondent_count=len(respondents),
+        iterations=raked.iterations,
+        converged=raked.converged,
+        trimmed_count=raked.trimmed_count,
+        max_weight=raked.max_weight,
+        min_weight=raked.min_weight,
+        warnings=raked.warnings,
+    )

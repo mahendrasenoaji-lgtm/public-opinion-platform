@@ -21,12 +21,26 @@ terdokumentasi — bukan sekadar ada di UI.
 - [x] Ingest respons + quality assessment otomatis (speeding, straight-lining)
 - [x] Repository layer: `_load_dimensions` dan `_load_signal_readings` dari `metric_snapshots`
 - [x] Forecast what-if endpoint + Risk score + Polarization endpoint
-- [ ] Bobot pasca-stratifikasi (perhitungan; ingest sudah menyimpan weight)
-- [ ] Frontend: Command Center, Opinion Index
+- [x] `services/weighting.py` — raking (pasca-stratifikasi multi-variabel) + tes
+- [x] Endpoint `POST /surveys/{id}/weights/compute` — hitung & simpan bobot
+- [x] Endpoint `GET /opinion/trend` dan `GET /opinion/timeline`
+- [x] Frontend: Command Center (POI, Divergence Band, tren, timeline)
+- [x] Frontend: Opinion Index (slider bobot interaktif, tren POI)
 
 **Definisi selesai Phase 1:** seorang peneliti bisa membuat proyek, menyusun
 kuesioner, memasukkan data, dan melihat POI dengan interval kepercayaan yang
-benar — tanpa satu pun angka tampil tanpa sumber dan metode.
+benar — tanpa satu pun angka tampil tanpa sumber dan metode. **Tercapai.**
+
+Catatan cakupan Command Center: "Isu yang paling dibicarakan" dan "Peringatan
+aktif" di prototipe butuh topic modeling dan anomaly detection (Phase 2/3) —
+sengaja belum dirender di Next.js supaya tidak ada kartu tanpa data nyata di
+baliknya (CLAUDE.md §8). Prototipe (`design-reference/`) tetap menampilkannya
+sebagai data sintetis untuk keperluan presentasi/kuliah.
+
+Belum diverifikasi jalan end-to-end: butuh Postgres (Docker Desktop tidak
+tersedia di mesin pengembangan saat ini). `npm run build` dan `pytest`
+lulus tanpa database; `db/seed.py` dan `test_tenant_isolation.py` menunggu
+Postgres tersedia.
 
 ## Phase 2 — sinyal
 

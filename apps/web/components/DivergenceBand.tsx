@@ -20,8 +20,9 @@ export function DivergenceBand({
   explanationLead: string;
 }) {
   const sorted = [...readings].sort((a, b) => a.value - b.value);
-  const lo = sorted[0].value;
-  const hi = sorted[sorted.length - 1].value;
+  if (sorted.length === 0) return null;
+  const lo = sorted[0]!.value;
+  const hi = sorted[sorted.length - 1]!.value;
 
   return (
     <section className="dvg">

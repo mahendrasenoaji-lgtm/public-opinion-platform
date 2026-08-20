@@ -37,6 +37,12 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI memakai Query()/Path()/Body() sebagai default argumen by design —
+# ini bukan mutable default yang sebenarnya (B008), cuma pola dependency
+# injection framework-nya. Depends() sudah dikecualikan bawaan oleh ruff.
+extend-immutable-calls = ["fastapi.Query", "fastapi.Path", "fastapi.Body"]
+
 [tool.mypy]
 python_version = "3.12"
 strict = true

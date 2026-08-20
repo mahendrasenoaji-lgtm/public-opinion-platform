@@ -7,16 +7,17 @@ RLS via TenantSession yang menegakkannya.
 
 from __future__ import annotations
 
+from datetime import date, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.deps import CurrentUser, Role, TenantSession, require_capability
+from app.deps import CurrentUser, TenantSession, require_capability
 from app.models.governance import AuditLog
-from app.models.measurement import MetricSnapshot
+from app.models.measurement import MetricSnapshot, TimelineEvent
 from app.models.project import Project
 from app.schemas.common import Metric, SignalSource
 from app.services import divergence, poi
@@ -31,6 +32,9 @@ class WeightUpdate(BaseModel):
 class IndexResponse(BaseModel):
     index: Metric
     dimensions: list[Metric]
+    weights: dict[str, float] = Field(
+        description="Bobot mentah aktif per dimensi, sebelum dinormalisasi",
+    )
     source_mix: dict[str, float]
     generalisable_share: float
     limitations: list[str]
@@ -70,6 +74,7 @@ async def get_index(project_id: UUID, session: TenantSession, user: CurrentUser)
             )
             for d in dims
         ],
+        weights={d.key: d.weight for d in dims},
         source_mix=result.source_mix,
         generalisable_share=round(result.generalisable_share, 3),
         limitations=result.limitations,
@@ -138,6 +143,101 @@ async def get_divergence(project_id: UUID, session: TenantSession, user: Current
         "explanations": result.explanations,
         "limitations": result.limitations,
     }
+
+
+#: Default kalau caller tidak menentukan metrik. Daftar mutable dilarang
+#: sebagai default argumen (B008) — dipisah ke konstanta modul.
+_DEFAULT_TREND_METRICS = ["poi"]
+
+
+class TrendPoint(BaseModel):
+    metric: str
+    period_end: date
+    source: SignalSource
+    value: float
+
+
+@router.get("/trend", response_model=list[TrendPoint])
+async def get_trend(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    metrics: list[str] = Query(default=_DEFAULT_TREND_METRICS),
+    limit: int = 12,
+) -> list[TrendPoint]:
+    """Deret waktu satu atau beberapa metrik, nasional, seluruh sampel.
+
+    Dipakai untuk grafik tren di Command Center dan Opinion Index. Beberapa
+    metrik bisa diminta sekaligus (mis. survey_positive, social_positive,
+    media_positive) supaya grafik perbandingan tiga sinyal dirender dari satu
+    panggilan. `limit` membatasi jumlah periode terbaru per metrik.
+    """
+    q = (
+        select(MetricSnapshot)
+        .where(
+            MetricSnapshot.project_id == project_id,
+            MetricSnapshot.metric.in_(metrics),
+            MetricSnapshot.province_code.is_(None),
+            MetricSnapshot.segment.is_(None),
+        )
+        .order_by(MetricSnapshot.period_end.desc())
+        .limit(limit * max(1, len(metrics)) * 2)
+    )
+    result = await session.execute(q)
+    rows = sorted(result.scalars(), key=lambda s: s.period_end)
+
+    return [
+        TrendPoint(
+            metric=r.metric,
+            period_end=r.period_end,
+            source=SignalSource(r.source),
+            value=float(r.value),
+        )
+        for r in rows
+    ]
+
+
+class TimelineEventOut(BaseModel):
+    id: UUID
+    occurred_at: datetime
+    kind: str
+    label: str
+    value_note: str | None
+    associated_metric: str | None
+
+
+@router.get("/timeline", response_model=list[TimelineEventOut])
+async def get_timeline(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    limit: int = 20,
+) -> list[TimelineEventOut]:
+    """Rangkaian peristiwa proyek — pengumuman, sinyal, liputan media, alert.
+
+    Urutan waktu menunjukkan keterkaitan, bukan sebab-akibat (CLAUDE.md §3).
+    Frontend wajib menampilkan catatan itu di sebelah komponen ini.
+    """
+    q = (
+        select(TimelineEvent)
+        .where(TimelineEvent.project_id == project_id)
+        .order_by(TimelineEvent.occurred_at.desc())
+        .limit(limit)
+    )
+    result = await session.execute(q)
+    rows = sorted(result.scalars(), key=lambda e: e.occurred_at)
+
+    return [
+        TimelineEventOut(
+            id=e.id,
+            occurred_at=e.occurred_at,
+            kind=e.kind,
+            label=e.label,
+            value_note=e.value_note,
+            associated_metric=e.associated_metric,
+        )
+        for e in rows
+    ]
 
 
 # --- repository (Phase 1 — implemented) --------------------------------------
