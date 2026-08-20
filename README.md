@@ -77,12 +77,13 @@ Fondasi arsitektural selesai; fitur dibangun bertahap.
 | Repository layer (opinion index + divergence) | Selesai |
 | Forecast what-if + risk + polarization endpoints | Selesai |
 | `services/weighting.py` — bobot pasca-stratifikasi (raking) | Selesai, teruji |
-| Frontend — Command Center, Opinion Index (Next.js) | Selesai (build + typecheck lulus) |
+| Frontend — Command Center, Opinion Index (Next.js) | Selesai, **diverifikasi live** dengan data nyata |
 | Frontend — 7 halaman sisanya (Consistency, Narrative, dst.) | Prototipe selesai, di luar cakupan Phase 1 |
 
-Phase 1 selesai menurut definisinya sendiri di `docs/roadmap.md`. Yang belum
-terverifikasi jalan: butuh Postgres (Docker Desktop tidak tersedia di mesin
-pengembangan saat ini) — lihat catatan di `docs/roadmap.md`.
+Phase 1 selesai menurut definisinya sendiri di `docs/roadmap.md`, dan sudah
+diverifikasi end-to-end dengan Postgres nyata (bukan cuma lulus tanpa
+database) — 7 bug ditemukan dan diperbaiki dalam proses itu, detail lengkap
+di `docs/roadmap.md`.
 
 Urutan pengerjaan ada di `docs/roadmap.md`.
 

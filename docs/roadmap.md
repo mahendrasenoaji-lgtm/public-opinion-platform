@@ -37,10 +37,41 @@ sengaja belum dirender di Next.js supaya tidak ada kartu tanpa data nyata di
 baliknya (CLAUDE.md §8). Prototipe (`design-reference/`) tetap menampilkannya
 sebagai data sintetis untuk keperluan presentasi/kuliah.
 
-Belum diverifikasi jalan end-to-end: butuh Postgres (Docker Desktop tidak
-tersedia di mesin pengembangan saat ini). `npm run build` dan `pytest`
-lulus tanpa database; `db/seed.py` dan `test_tenant_isolation.py` menunggu
-Postgres tersedia.
+**Diverifikasi end-to-end (2026-08-20)** dengan Docker Desktop + Postgres
+nyata: `db/seed.py` → API asli → Next.js asli di browser, termasuk
+`test_tenant_isolation.py` yang berjalan untuk pertama kalinya. Verifikasi
+ini menemukan dan memperbaiki 7 bug yang mustahil terlihat tanpa Postgres
+sungguhan:
+
+1. `db/schema.sql` memakai tipe `citext` tanpa `CREATE EXTENSION "citext"`.
+2. `deps.py::tenant_session` — `SET LOCAL app.current_org = :org` dengan bind
+   parameter: Postgres tidak menerima parameter pada `SET`. **Ini di jalur
+   isolasi tenant produksi — mematahkan hampir semua endpoint bertenant.**
+   Diperbaiki dengan `SELECT set_config('app.current_org', :org, true)`.
+3. Bug yang sama di `db/seed.py` dan `tests/test_tenant_isolation.py`.
+4. `MetricSnapshot.source` dipetakan sebagai `String`, padahal kolomnya
+   `signal_source` (enum Postgres native) — `WHERE source = 'SURVEY'` gagal
+   dengan "operator does not exist". Diperbaiki dengan `sqlalchemy.Enum`.
+5. `_load_signal_readings` membaca metric `"poi"` lintas empat source,
+   padahal POI cuma pernah punya source SURVEY — perbandingan tiga sinyal
+   sebenarnya ada di metric `survey_positive`/`social_positive`/
+   `media_positive`. Bug konseptual di repository layer, bukan di seed.
+6. `AuditLog.ip` dipetakan `Text`, padahal kolomnya `inet` — import `INET`
+   sudah ada di file itu tapi tidak dipakai.
+7. `db/seed.py` tidak mengisi `effective_n` untuk snapshot SOCIAL/MEDIA,
+   sehingga Provenance menampilkan "n: 0" yang menyesatkan (melanggar R1).
+
+Juga ditemukan, TIDAK diperbaiki (dormant, tidak ada kode yang menulis ke
+`ai_outputs` sama sekali sehingga tidak bisa diuji): `AIOutput.confidence`
+dan `AIOutput.human_review` kemungkinan besar punya bug yang sama dengan #4
+(dipetakan `String`, kolom aslinya `confidence_band`/`review_status`).
+Perbaiki begitu Phase 2 mulai menulis ke tabel ini.
+
+Frontend belum punya halaman login/sesi (di luar cakupan Phase 1) — server
+component memakai token demo lewat env var (`DEMO_ACCESS_TOKEN`), komponen
+client (slider bobot) lewat `NEXT_PUBLIC_DEMO_ACCESS_TOKEN`. Keduanya cuma
+untuk dev/demo lokal, ditandai TODO di `lib/api.ts`. Ganti dengan sesi
+cookie httpOnly sebelum ada halaman publik.
 
 ## Phase 2 — sinyal
 

@@ -17,6 +17,7 @@ import uuid
 from datetime import date, timedelta
 
 import psycopg
+from psycopg import sql
 
 random.seed(20260820)
 
@@ -101,7 +102,14 @@ def main() -> None:
             "INSERT INTO organizations (id, name, slug, plan) VALUES (%s,%s,%s,'enterprise')",
             (org_id, "Demo Riset Nasional", f"demo-{org_id.hex[:6]}"),
         )
-        cur.execute("SET LOCAL app.current_org = %s", (str(org_id),))
+        # SET tidak menerima bind parameter di Postgres (bukan batasan
+        # psycopg) — nilainya harus literal. org_id di sini dibuat oleh
+        # server (uuid.uuid4()), bukan input pengguna, tapi tetap dikutip
+        # lewat sql.Literal alih-alih f-string supaya polanya tidak
+        # dicontoh untuk nilai yang benar-benar dari luar.
+        cur.execute(
+            sql.SQL("SET LOCAL app.current_org = {}").format(sql.Literal(str(org_id))),
+        )
 
         user_id = uuid.uuid4()
         cur.execute(
@@ -180,11 +188,17 @@ def main() -> None:
         for i in range(12):
             p_end = start + timedelta(days=7 * i + 4)
             p_start = p_end - timedelta(days=4)
-            for metric, series, source, method in (
-                ("poi", POI_SERIES, "SURVEY", "rata-rata tertimbang dimensi"),
-                ("survey_positive", SURVEY_SERIES, "SURVEY", "multistage random sampling, CATI"),
-                ("social_positive", SOCIAL_SERIES, "SOCIAL", "klasifikasi NLP atas mention API resmi"),
-                ("media_positive", MEDIA_SERIES, "MEDIA", "klasifikasi stance tingkat artikel"),
+            for metric, series, source, method, n in (
+                ("poi", POI_SERIES, "SURVEY", "rata-rata tertimbang dimensi", 8940),
+                ("survey_positive", SURVEY_SERIES, "SURVEY",
+                 "multistage random sampling, CATI", 8940),
+                # n untuk sosial/media = mention/artikel yang dianalisis pada gelombang
+                # itu, bukan sampel survei — beda satuan, tapi tetap wajib ada (R1:
+                # tidak ada metrik tanpa n). Jangan disamakan dengan effective_n survei.
+                ("social_positive", SOCIAL_SERIES, "SOCIAL",
+                 "klasifikasi NLP atas mention API resmi", 214_600),
+                ("media_positive", MEDIA_SERIES, "MEDIA",
+                 "klasifikasi stance tingkat artikel", 3_180),
             ):
                 v = series[i]
                 ci = 1.04 if source == "SURVEY" else None
@@ -193,7 +207,7 @@ def main() -> None:
                      p_start, p_end, v,
                      round(v - ci, 3) if ci else None,
                      round(v + ci, 3) if ci else None,
-                     8940 if source == "SURVEY" else None, None, None)
+                     n, None, None)
                 )
 
         # dimensi POI pada periode terakhir

@@ -30,10 +30,24 @@ export interface AIEnvelope<T> {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/v1";
 
+// TODO(frontend-auth): belum ada halaman login/session di Next.js — di luar
+// cakupan Phase 1 (roadmap.md hanya mewajibkan Command Center + Opinion
+// Index). DEMO_ACCESS_TOKEN/NEXT_PUBLIC_DEMO_ACCESS_TOKEN adalah jalan
+// pintas SEMENTARA supaya server component ATAU komponen client (mis. slider
+// bobot yang menyimpan lewat PUT) bisa memanggil API bertenant selama
+// dev/demo lokal. NEXT_PUBLIC_* memang dibundel ke JS client — jangan pernah
+// isi ini dengan token produksi sungguhan. Ganti seluruhnya dengan sesi asli
+// (cookie httpOnly dari /auth/login) sebelum ada halaman publik.
+const DEMO_TOKEN = process.env.DEMO_ACCESS_TOKEN ?? process.env.NEXT_PUBLIC_DEMO_ACCESS_TOKEN;
+
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(DEMO_TOKEN ? { Authorization: `Bearer ${DEMO_TOKEN}` } : {}),
+      ...init?.headers,
+    },
     cache: "no-store",
   });
   if (!res.ok) {

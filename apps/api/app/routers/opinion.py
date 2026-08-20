@@ -252,12 +252,18 @@ _POI_DIMS = {
     "confidence": "Keyakinan",
 }
 
-#: Mapping source string ke enum dan bias deskripsi.
+#: Mapping source -> (nama metric pembanding di metric_snapshots, bias deskripsi).
+#:
+#: PENTING: "poi" bukan metrik yang dibandingkan di sini. POI adalah indeks
+#: komposit yang HANYA disusun dari dimensi survei (lihat services/poi.py —
+#: hanya SURVEY yang generalisable dan masuk perhitungannya); tidak ada
+#: "POI versi media sosial". Perbandingan tiga sinyal memakai tiga metrik
+#: terpisah yang masing-masing memang bersumber tunggal (db/seed.py).
 _SOURCE_META = {
-    "SURVEY": ("SURVEY", "data probabilistik; bisa digeneralisasi ke populasi"),
-    "SOCIAL": ("SOCIAL", "data self-selected; tidak representatif populasi"),
-    "MEDIA": ("MEDIA", "agenda redaksi; bukan opini pembaca"),
-    "DIGITAL": ("DIGITAL", "sinyal digital agregat"),
+    "SURVEY": ("survey_positive", "data probabilistik; bisa digeneralisasi ke populasi"),
+    "SOCIAL": ("social_positive", "data self-selected; tidak representatif populasi"),
+    "MEDIA": ("media_positive", "agenda redaksi; bukan opini pembaca"),
+    "DIGITAL": ("digital_positive", "sinyal digital agregat"),
 }
 
 
@@ -319,12 +325,12 @@ async def _load_signal_readings(
     """Baca satu nilai POI terbaru per SignalSource."""
     readings: list[divergence.SignalReading] = []
 
-    for source_str, (_, bias) in _SOURCE_META.items():
+    for source_str, (metric_name, bias) in _SOURCE_META.items():
         snap_q = (
             select(MetricSnapshot)
             .where(
                 MetricSnapshot.project_id == project_id,
-                MetricSnapshot.metric == "poi",
+                MetricSnapshot.metric == metric_name,
                 MetricSnapshot.source == source_str,
                 MetricSnapshot.province_code.is_(None),
                 MetricSnapshot.segment.is_(None),

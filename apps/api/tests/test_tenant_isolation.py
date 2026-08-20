@@ -29,7 +29,7 @@ async def sessionmaker_app():
 async def _seed_two_orgs(sm) -> tuple[uuid.UUID, uuid.UUID]:
     a, b = uuid.uuid4(), uuid.uuid4()
     async with sm() as s, s.begin():
-        await s.execute(text("SET LOCAL app.current_org = :o"), {"o": str(a)})
+        await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(a)})
         await s.execute(
             text("INSERT INTO organizations (id, name, slug) VALUES (:i,'A',:s)"),
             {"i": str(a), "s": f"a-{a.hex[:6]}"},
@@ -39,7 +39,7 @@ async def _seed_two_orgs(sm) -> tuple[uuid.UUID, uuid.UUID]:
             {"o": str(a)},
         )
     async with sm() as s, s.begin():
-        await s.execute(text("SET LOCAL app.current_org = :o"), {"o": str(b)})
+        await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(b)})
         await s.execute(
             text("INSERT INTO organizations (id, name, slug) VALUES (:i,'B',:s)"),
             {"i": str(b), "s": f"b-{b.hex[:6]}"},
@@ -54,7 +54,7 @@ async def _seed_two_orgs(sm) -> tuple[uuid.UUID, uuid.UUID]:
 async def test_tenant_hanya_melihat_proyeknya_sendiri(sessionmaker_app):
     a, b = await _seed_two_orgs(sessionmaker_app)
     async with sessionmaker_app() as s, s.begin():
-        await s.execute(text("SET LOCAL app.current_org = :o"), {"o": str(a)})
+        await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(a)})
         rows = (await s.execute(text("SELECT name FROM projects"))).scalars().all()
     assert rows == ["Proyek A"]
 
@@ -70,7 +70,7 @@ async def test_insert_lintas_tenant_ditolak(sessionmaker_app):
     a, b = await _seed_two_orgs(sessionmaker_app)
     with pytest.raises(Exception):
         async with sessionmaker_app() as s, s.begin():
-            await s.execute(text("SET LOCAL app.current_org = :o"), {"o": str(a)})
+            await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(a)})
             await s.execute(
                 text("INSERT INTO projects (org_id, name) VALUES (:o,'Selundupan')"),
                 {"o": str(b)},
@@ -81,7 +81,7 @@ async def test_konteks_tidak_bocor_antar_transaksi(sessionmaker_app):
     a, _ = await _seed_two_orgs(sessionmaker_app)
     sm = sessionmaker_app
     async with sm() as s, s.begin():
-        await s.execute(text("SET LOCAL app.current_org = :o"), {"o": str(a)})
+        await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(a)})
         assert (await s.execute(text("SELECT count(*) FROM projects"))).scalar() == 1
     # transaksi baru pada koneksi yang mungkin sama, tanpa SET LOCAL
     async with sm() as s, s.begin():

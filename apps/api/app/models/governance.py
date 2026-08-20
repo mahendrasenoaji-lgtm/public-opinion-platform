@@ -41,7 +41,7 @@ class AuditLog(Base):
     action: Mapped[str] = mapped_column(Text, nullable=False)
     entity: Mapped[str] = mapped_column(Text, nullable=False)
     entity_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True))
-    ip: Mapped[str | None] = mapped_column(Text)
+    ip: Mapped[str | None] = mapped_column(INET)
     metadata_: Mapped[dict] = mapped_column("metadata", JSON, nullable=False, default=dict)
     at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

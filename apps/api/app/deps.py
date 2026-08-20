@@ -103,13 +103,18 @@ async def tenant_session(
     `SET LOCAL` berlaku sampai akhir transaksi, sehingga koneksi yang kembali ke
     pool tidak membawa konteks tenant sebelumnya.
     """
-    async with SessionLocal() as session:
-        async with session.begin():
-            await session.execute(
-                text("SET LOCAL app.current_org = :org"),
-                {"org": str(principal.org_id)},
-            )
-            yield session
+    async with SessionLocal() as session, session.begin():
+        # SET/SET LOCAL tidak menerima bind parameter di Postgres — itu
+        # batasan protokolnya, bukan SQLAlchemy atau asyncpg. set_config()
+        # adalah fungsi biasa, jadi bisa dipanggil dengan parameter seperti
+        # query lain; is_local=true membuatnya berlaku sampai commit,
+        # setara SET LOCAL. Lihat db/rls.sql: current_org() membaca
+        # setting yang sama lewat current_setting().
+        await session.execute(
+            text("SELECT set_config('app.current_org', :org, true)"),
+            {"org": str(principal.org_id)},
+        )
+        yield session
 
 
 def require_role(minimum: Role):

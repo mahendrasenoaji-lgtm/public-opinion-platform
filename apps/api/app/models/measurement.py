@@ -2,17 +2,33 @@
 
 from __future__ import annotations
 
+import enum
 from datetime import date, datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
-    Boolean, Date, DateTime, ForeignKey, Integer, Numeric, String, Text, func,
+    Boolean, Date, DateTime, ForeignKey, Integer, Numeric, Text, func,
 )
-from sqlalchemy.dialects.postgresql import JSON, UUID as PG_UUID
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
+
+
+class SignalSource(str, enum.Enum):
+    """Cocok dengan tipe enum Postgres `signal_source` di schema.sql. Jangan
+    dipetakan sebagai String biasa — perbandingan (`WHERE source = ...`) akan
+    gagal dengan "operator does not exist: signal_source = character varying"
+    karena Postgres tidak melakukan cast implisit enum↔varchar pada operator
+    kesetaraan."""
+
+    SURVEY = "SURVEY"
+    SOCIAL = "SOCIAL"
+    MEDIA = "MEDIA"
+    DIGITAL = "DIGITAL"
 
 
 class MetricSnapshot(Base):
@@ -22,7 +38,13 @@ class MetricSnapshot(Base):
     org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
     project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     metric: Mapped[str] = mapped_column(Text, nullable=False)
-    source: Mapped[str] = mapped_column(String(10), nullable=False)
+    source: Mapped[SignalSource] = mapped_column(
+        SAEnum(
+            SignalSource, name="signal_source", create_type=False,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
     method: Mapped[str] = mapped_column(Text, nullable=False)
     period_start: Mapped[date] = mapped_column(Date, nullable=False)
     period_end: Mapped[date] = mapped_column(Date, nullable=False)
