@@ -48,31 +48,39 @@ Harus `200`, bukan `400 Bad Request` / "Disallowed CORS origin".
   Render, yang ambil data dari Supabase — rantai penuh, bukan potongan
 - `test_tenant_isolation.py` lulus untuk pertama kalinya di database lokal
   (RLS + role `pop_app`, bukan superuser)
+- Domain telanjang (`/`) redirect ke `/command` — sebelumnya 404 karena
+  route App Router tidak punya halaman di root sama sekali (diperbaiki
+  commit `db312b7`)
 
 **Belum diverifikasi di Supabase secara spesifik** (baru di database Docker
 lokal): endpoint weighting compute, endpoint trend/timeline dengan data
 Supabase yang sebenarnya (baru dicek index & divergence). Kemungkinan besar
 sama-sama jalan karena schema & RLS identik, tapi belum benar-benar dicoba.
 
-## Kredensial (JANGAN commit ke repo — ini dicatat di luar git sengaja)
+## Kredensial (SENGAJA tidak ada di repo ini — repo public)
 
-Tersimpan di `.env` (root, lokal) dan `apps/web/.env.local` (lokal) —
-keduanya gitignored. Kalau sesi baru butuh menyentuh Supabase/Render/Vercel
-lagi dan tidak punya akses ke file lokal itu, kredensial berikut perlu
-diminta ulang dari pengguna atau di-generate ulang:
+Bukan di file lokal (pengguna kerja lintas komputer, file lokal tidak
+portable) dan bukan di git (repo public, commit rahasia = kebocoran).
+Disimpan pengguna sendiri di password manager, sudah diberikan lengkap satu
+kali lewat chat 2026-08-20. Kalau sesi baru butuh menyentuhnya dan tidak
+punya nilainya, **minta ke pengguna** — jangan generate ulang tanpa
+ditanya dulu (mengganti `pop_app` password atau `JWT_SECRET` yang sudah
+aktif akan mematahkan token yang sedang dipakai user lain / deployment
+yang jalan).
 
-- Supabase DB password (superuser `postgres`) — pengguna yang generate lewat
-  dashboard, tidak dicatat di sini
-- `pop_app` role password di Supabase — dibuat khusus untuk deployment ini
-  (BUKAN `change-me` default di `db/rls.sql`, itu cuma untuk `docker-compose`
-  lokal)
-- `JWT_SECRET` di Render — auto-generated oleh `render.yaml`
-  (`generateValue: true`), bisa dilihat di Render → Environment
-- `DEMO_ACCESS_TOKEN` / `NEXT_PUBLIC_DEMO_ACCESS_TOKEN` di Vercel — token
-  JWT 30 hari untuk user demo di atas, **kedaluwarsa sekitar 19 September
-  2026**. Setelah itu, generate ulang dengan `create_access_token()` (lihat
-  `apps/api/app/services/auth.py`) pakai `JWT_SECRET` dari Render, lalu
-  `vercel env rm` + `vercel env add` untuk kedua nama env var itu, redeploy.
+Yang perlu diminta kalau dibutuhkan: password Supabase (superuser
+`postgres` dan role `pop_app`, dua-duanya beda), `JWT_SECRET` Render,
+`DEMO_ACCESS_TOKEN` Vercel. Semuanya juga selalu bisa dilihat ulang oleh
+pengguna langsung dari dashboard masing-masing platform (Supabase →
+Settings → Database; Render → Environment; Vercel → Project Settings →
+Environment Variables) — itu sumber kebenaran yang sebenarnya, bukan
+salinan manapun.
+
+`DEMO_ACCESS_TOKEN` / `NEXT_PUBLIC_DEMO_ACCESS_TOKEN` kedaluwarsa
+**sekitar 19 September 2026**. Setelah itu, generate ulang dengan
+`create_access_token()` (lihat `apps/api/app/services/auth.py`) pakai
+`JWT_SECRET` dari Render, lalu `vercel env rm` + `vercel env add` untuk
+kedua nama env var itu, redeploy.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 
