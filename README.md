@@ -7,6 +7,10 @@ analisis — lalu menjelaskan mengapa ketiganya sering tidak sepakat.
 > Kalau Anda agen yang akan menulis kode di repo ini, baca **[CLAUDE.md](CLAUDE.md)**
 > lebih dulu. File itu memuat aturan yang mengikat, bukan sekadar deskripsi.
 
+**Live:** [public-opinion-platform.vercel.app](https://public-opinion-platform.vercel.app)
+(Vercel → Render → Supabase). Status deploy lengkap, langkah yang belum
+selesai, dan kredensial mana yang butuh di-refresh: **[docs/deployment-status.md](docs/deployment-status.md)**.
+
 ## Yang membedakan platform ini
 
 Dashboard survei menampilkan hasil. Platform ini menjawab pertanyaan yang
