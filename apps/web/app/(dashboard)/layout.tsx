@@ -4,7 +4,7 @@ import { Activity } from "lucide-react";
 
 const NAV = [
   ["/command", "Command Center"],
-  ["/index", "Opinion Index"],
+  ["/opinion-index", "Opinion Index"],
   ["/consistency", "Signal Consistency"],
   ["/narrative", "Narrative Map"],
   ["/segments", "Public Segments"],
