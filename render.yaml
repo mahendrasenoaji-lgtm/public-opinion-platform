@@ -1,0 +1,30 @@
+# Render Blueprint — deploy lewat "New > Blueprint" di dashboard Render,
+# arahkan ke repo ini. Render otomatis baca file ini; env var bertanda
+# `sync: false` akan diminta lewat dashboard, tidak pernah disimpan di sini.
+#
+# Database TIDAK didefinisikan di sini — pakai Supabase (lihat README bagian
+# deploy), bukan Postgres milik Render, supaya konsisten dengan pgvector +
+# RLS yang sudah disiapkan di db/schema.sql dan db/rls.sql.
+
+services:
+  - type: web
+    name: pop-api
+    runtime: python
+    plan: free
+    rootDir: apps/api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false # postgresql+asyncpg://pop_app:<password>@<host>:5432/postgres — role pop_app, BUKAN superuser (R3)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LLM_PROVIDER
+        value: echo
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ACCESS_TOKEN_MINUTES
+        value: "43200" # 30 hari — demo publik kuliah, bukan token sesi produksi asli
