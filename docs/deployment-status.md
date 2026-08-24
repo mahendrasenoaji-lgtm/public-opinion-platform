@@ -1,6 +1,10 @@
 # Status Deployment
 
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
+Update 2026-08-24: CORS_ORIGINS diselesaikan, slider bobot Opinion Index
+diverifikasi live (simpan sungguhan, bukan pratinjau), dan gerbang
+`SITE_PASSWORD` (ditambah 2026-08-22 di sesi lain yang tidak tercatat di
+sini saat itu) didokumentasikan.
 Dokumen ini adalah sumber kebenaran untuk sesi berikutnya — jangan andalkan
 riwayat chat, chat lama tidak ikut ter-clone.
 
@@ -18,24 +22,42 @@ Org demo yang sudah di-seed di Supabase:
 - `project_id` = `0a06b813-a1ec-4bba-8de1-38e06b2ac2f1`
 - user demo: `direktur@demo.id` (`user_id` = `23843249-5249-4911-94c8-b609c117fa39`), password_hash sengaja placeholder — tidak bisa login lewat form, token dibuat manual lewat `create_access_token()`.
 
-## ⚠️ Langkah berikutnya yang BELUM selesai (paling prioritas)
+## ✅ CORS_ORIGINS — selesai 2026-08-24
 
-**CORS_ORIGINS di Render belum di-set.** Backend menolak request dari
-`https://public-opinion-platform.vercel.app` dengan "Disallowed CORS origin".
-Akibatnya: halaman render (GET, server-side) sudah jalan sempurna, tapi
-slider bobot di Opinion Index (PUT dari browser) masih gagal.
-
-Perbaikannya satu baris — buka **Render → pop-api → Environment**, tambah:
+`CORS_ORIGINS` sudah di-set di **Render → pop-api → Environment**:
 ```
 CORS_ORIGINS=["https://public-opinion-platform.vercel.app","http://localhost:3000"]
 ```
-Render auto-redeploy (~1-2 menit) setelah disimpan. Verifikasi dengan:
-```bash
-curl -X OPTIONS "https://pop-api-ptug.onrender.com/v1/projects/0a06b813-a1ec-4bba-8de1-38e06b2ac2f1/opinion/weights" \
-  -H "Origin: https://public-opinion-platform.vercel.app" \
-  -H "Access-Control-Request-Method: PUT" -i
-```
-Harus `200`, bukan `400 Bad Request` / "Disallowed CORS origin".
+Preflight `OPTIONS` terverifikasi `200` dengan
+`access-control-allow-origin: https://public-opinion-platform.vercel.app`
+(butuh ~1-2 menit redeploy Render sebelum berlaku — percobaan pertama masih
+`400` karena redeploy belum selesai, percobaan kedua sukses).
+
+Slider bobot di Opinion Index juga sudah diverifikasi live end-to-end:
+geser slider → status "PRATINJAU" (belum tersimpan) → klik "Simpan Bobot" →
+status jadi "Bobot tersimpan" → **hard reload (server component, bukan
+cache client) → nilai bertahan** → konfirmasi PUT benar-benar menulis ke
+Supabase, bukan cuma state React lokal. Diuji dengan mengubah bobot
+Sentimen 20%→30% lalu dikembalikan ke nilai semula (20/25/25/12/10/8) di
+akhir supaya data demo tidak tertinggal berubah.
+
+## ⚠️ Gerbang `SITE_PASSWORD` — sengaja, tapi belum tercatat sebelumnya
+
+Commit `97c336f` (2026-08-22, sesi terpisah yang tidak tercatat di memori
+sesi ini saat itu) menambah site-wide password gate di frontend:
+`apps/web/middleware.ts` + `apps/web/lib/auth.ts` — cookie sesi HMAC-SHA256
+(`pop_gate_session`, 7 hari), pola yang sama dipakai di situs pre-launch
+lain milik pengguna. Env var yang dibutuhkan di Vercel: `SITE_PASSWORD`
+(ditandai *Sensitive* — nilainya tidak bisa dilihat ulang lewat dashboard
+Vercel setelah disimpan, cuma ada di password manager pengguna) dan
+`SESSION_SECRET`. Keduanya sudah terkonfigurasi dan berfungsi (login
+terverifikasi 2026-08-24).
+
+Dampak: **situs production sekarang butuh login `SITE_PASSWORD` dulu**
+sebelum halaman apa pun bisa diakses — termasuk untuk verifikasi otomatis
+sesi mendatang. Kalau perlu browsing terautomasi ke situs ini, sesi harus
+login manual dulu (Claude tidak boleh mengetik password walau pengguna
+menawarkan memberikannya langsung — lihat aturan boundary kredensial).
 
 ## Yang sudah diverifikasi live (bukan cuma "harusnya jalan")
 
@@ -51,10 +73,14 @@ Harus `200`, bukan `400 Bad Request` / "Disallowed CORS origin".
 - Domain telanjang (`/`) redirect ke `/command` — sebelumnya 404 karena
   route App Router tidak punya halaman di root sama sekali (diperbaiki
   commit `db312b7`)
+- `PUT .../opinion/weights` (bobot dimensi Opinion Index, beda dengan
+  weighting compute raking survei di bawah) — diverifikasi 2026-08-24
+  langsung terhadap Supabase produksi lewat slider di browser, termasuk
+  hard-reload untuk membuktikan tulisan persisten, bukan cuma state client
 
 **Belum diverifikasi di Supabase secara spesifik** (baru di database Docker
-lokal): endpoint weighting compute, endpoint trend/timeline dengan data
-Supabase yang sebenarnya (baru dicek index & divergence). Kemungkinan besar
+lokal): endpoint weighting compute (raking survei), endpoint trend/timeline
+dengan data Supabase yang sebenarnya (baru dicek index & divergence). Kemungkinan besar
 sama-sama jalan karena schema & RLS identik, tapi belum benar-benar dicoba.
 
 ## Kredensial (SENGAJA tidak ada di repo ini — repo public)
