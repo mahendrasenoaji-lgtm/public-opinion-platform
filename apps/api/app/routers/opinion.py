@@ -320,7 +320,8 @@ async def _load_dimensions(session: AsyncSession, project_id: UUID) -> list[poi.
 
 
 async def _load_signal_readings(
-    session: AsyncSession, project_id: UUID,
+    session: AsyncSession,
+    project_id: UUID,
 ) -> list[divergence.SignalReading]:
     """Baca satu nilai POI terbaru per SignalSource."""
     readings: list[divergence.SignalReading] = []

@@ -54,8 +54,7 @@ class ReviewAgent:
         if thin and env.confidence is not Confidence.LOW:
             updates["confidence"] = Confidence.LOW
             updates["limitations"] = (
-                env.limitations
-                + " Sebagian bukti berasal dari agregat dengan sampel kecil."
+                env.limitations + " Sebagian bukti berasal dari agregat dengan sampel kecil."
             )
 
         text = " ".join(e.label for e in env.evidence).lower()

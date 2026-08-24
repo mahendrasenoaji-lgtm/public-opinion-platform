@@ -73,10 +73,10 @@ class Principal(BaseModel):
 def decode_token(token: str) -> Principal:
     try:
         claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sesi berakhir. Masuk kembali.")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak valid.")
+    except jwt.ExpiredSignatureError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sesi berakhir. Masuk kembali.") from e
+    except jwt.InvalidTokenError as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak valid.") from e
 
     try:
         return Principal(
@@ -85,8 +85,8 @@ def decode_token(token: str) -> Principal:
             role=Role(claims["role"]),
             email=claims["email"],
         )
-    except (KeyError, ValueError):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak lengkap.")
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak lengkap.") from e
 
 
 async def current_principal(

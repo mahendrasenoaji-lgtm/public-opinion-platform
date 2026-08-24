@@ -81,14 +81,11 @@ def analyse(readings: list[SignalReading]) -> DivergenceResult:
     m = by_source.get(SignalSource.MEDIA, (s + so) / 2)
 
     explanations = [
-        {"factor": name, "text": text}
-        for name, text, cond in _EXPLANATIONS
-        if cond(s, so, m)
+        {"factor": name, "text": text} for name, text, cond in _EXPLANATIONS if cond(s, so, m)
     ]
 
     limitations = [
-        "Kontribusi tiap faktor adalah estimasi kualitatif, bukan dekomposisi "
-        "varians yang eksak.",
+        "Kontribusi tiap faktor adalah estimasi kualitatif, bukan dekomposisi varians yang eksak.",
         "Angka media sosial tidak dapat dibobot ke populasi nasional.",
     ]
     small = [r for r in readings if r.source is SignalSource.SURVEY and r.n < 400]

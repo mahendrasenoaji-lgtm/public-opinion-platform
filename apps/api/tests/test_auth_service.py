@@ -4,6 +4,7 @@ Berjalan tanpa database; hanya menguji fungsi murni.
 """
 
 import os
+
 import pytest
 
 # Auth service perlu JWT_SECRET dari environment
@@ -43,7 +44,10 @@ def test_access_token_bisa_didecode():
     uid = uuid4()
     oid = uuid4()
     token = create_access_token(
-        user_id=uid, org_id=oid, role="RESEARCHER", email="test@example.com",
+        user_id=uid,
+        org_id=oid,
+        role="RESEARCHER",
+        email="test@example.com",
     )
     claims = pyjwt.decode(token, "test-secret-for-unit-tests", algorithms=["HS256"])
     assert claims["sub"] == str(uid)
@@ -65,7 +69,10 @@ def test_access_token_ditolak_sebagai_refresh():
     uid = uuid4()
     oid = uuid4()
     token = create_access_token(
-        user_id=uid, org_id=oid, role="VIEWER", email="x@y.com",
+        user_id=uid,
+        org_id=oid,
+        role="VIEWER",
+        email="x@y.com",
     )
     with pytest.raises(ValueError, match="bukan refresh"):
         decode_refresh_token(token)

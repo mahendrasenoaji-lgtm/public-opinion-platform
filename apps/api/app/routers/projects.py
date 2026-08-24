@@ -6,7 +6,6 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import CurrentUser, Role, TenantSession, require_role
 from app.models.project import Project
@@ -18,9 +17,7 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 @router.get("", response_model=list[ProjectOut])
 async def list_projects(session: TenantSession, user: CurrentUser):
     """Daftar proyek dalam organisasi user (RLS otomatis)."""
-    result = await session.execute(
-        select(Project).order_by(Project.created_at.desc())
-    )
+    result = await session.execute(select(Project).order_by(Project.created_at.desc()))
     return [ProjectOut.model_validate(p) for p in result.scalars()]
 
 

@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.divergence import SignalReading, analyse, NOTABLE_GAP
+from app.services.divergence import NOTABLE_GAP, SignalReading, analyse
 from app.services.poi import SignalSource
 
 

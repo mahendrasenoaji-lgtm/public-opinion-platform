@@ -68,7 +68,10 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_session
 
     return TokenPair(
         access_token=create_access_token(
-            user_id=row["user_id"], org_id=row["org_id"], role=row["role"], email=body.email,
+            user_id=row["user_id"],
+            org_id=row["org_id"],
+            role=row["role"],
+            email=body.email,
         ),
         refresh_token=create_refresh_token(user_id=row["user_id"], org_id=row["org_id"]),
     )
@@ -103,7 +106,10 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_session)):
 
     return TokenPair(
         access_token=create_access_token(
-            user_id=row["id"], org_id=row["org_id"], role=row["role"], email=row["email"],
+            user_id=row["id"],
+            org_id=row["org_id"],
+            role=row["role"],
+            email=row["email"],
         ),
         refresh_token=create_refresh_token(user_id=row["id"], org_id=row["org_id"]),
     )
@@ -119,8 +125,8 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_session))
     """
     try:
         claims = decode_refresh_token(body.refresh_token)
-    except (jwt.InvalidTokenError, ValueError):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh token tidak valid.")
+    except (jwt.InvalidTokenError, ValueError) as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Refresh token tidak valid.") from e
 
     user_id = UUID(claims["sub"])
     lookup_sql = text("SELECT * FROM auth_lookup_user_by_id(:user_id)")
@@ -132,7 +138,10 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_session))
 
     return TokenPair(
         access_token=create_access_token(
-            user_id=row["id"], org_id=row["org_id"], role=row["role"], email=row["email"],
+            user_id=row["id"],
+            org_id=row["org_id"],
+            role=row["role"],
+            email=row["email"],
         ),
         refresh_token=create_refresh_token(user_id=row["id"], org_id=row["org_id"]),
     )

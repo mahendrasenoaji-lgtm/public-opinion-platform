@@ -1,9 +1,10 @@
 import pytest
 
 from app.services.forecast import (
-    DEFAULT_SPREAD, Driver, ForecastResult, project,
+    DEFAULT_SPREAD,
+    Driver,
+    project,
 )
-
 
 SPREAD = DEFAULT_SPREAD
 
@@ -48,9 +49,7 @@ def test_interval_tidak_menyempit_dengan_skenario_ekstrem():
     extreme = project(baseline=70, base_spread=SPREAD, scenario={"food_price": 10})
     last_mild = mild.points[-1]
     last_extreme = extreme.points[-1]
-    assert (last_extreme.pi_high - last_extreme.pi_low) >= (
-        last_mild.pi_high - last_mild.pi_low
-    )
+    assert (last_extreme.pi_high - last_extreme.pi_low) >= (last_mild.pi_high - last_mild.pi_low)
 
 
 def test_driver_tidak_dikenal_ditolak():
@@ -75,7 +74,7 @@ def test_ramp_efek_bertahap():
 def test_skenario_nol_sama_dengan_tanpa_skenario():
     tanpa = project(baseline=70, base_spread=SPREAD)
     dengan = project(baseline=70, base_spread=SPREAD, scenario={"food_price": 0})
-    for a, b in zip(tanpa.points, dengan.points):
+    for a, b in zip(tanpa.points, dengan.points, strict=True):
         assert a.expected == b.expected
 
 

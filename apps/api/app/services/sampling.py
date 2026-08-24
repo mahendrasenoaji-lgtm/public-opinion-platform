@@ -94,8 +94,7 @@ def sample_size(
         )
     if p == 0.5:
         warnings.append(
-            "proporsi harapan 0,5 dipakai sebagai asumsi paling konservatif "
-            "(varians maksimum)"
+            "proporsi harapan 0,5 dipakai sebagai asumsi paling konservatif (varians maksimum)"
         )
     if population and n > population * 0.1:
         warnings.append("sampel melebihi 10% populasi; pertimbangkan sensus parsial")

@@ -22,7 +22,12 @@ from statistics import median
 #: Variabel yang boleh dipakai untuk raking. Harus cocok dengan kolom
 #: kategorikal di model Respondent (survey.py).
 RAKEABLE_VARIABLES = {
-    "age_band", "gender", "education", "occupation", "province_code", "urbanicity",
+    "age_band",
+    "gender",
+    "education",
+    "occupation",
+    "province_code",
+    "urbanicity",
 }
 
 

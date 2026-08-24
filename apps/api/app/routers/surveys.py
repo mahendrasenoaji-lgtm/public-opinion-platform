@@ -38,6 +38,7 @@ _VALID_TYPES = {t.value for t in QuestionType}
 
 # ── Survey CRUD ─────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=list[SurveyOut])
 async def list_surveys(
     project_id: UUID | None = None,
@@ -108,12 +109,11 @@ async def update_survey(survey_id: UUID, body: SurveyUpdate, session: TenantSess
 
 # ── Question builder ────────────────────────────────────────────────────────
 
+
 @router.get("/{survey_id}/questions", response_model=list[QuestionOut])
 async def list_questions(survey_id: UUID, session: TenantSession, user: CurrentUser):
     result = await session.execute(
-        select(Question)
-        .where(Question.survey_id == survey_id)
-        .order_by(Question.position)
+        select(Question).where(Question.survey_id == survey_id).order_by(Question.position)
     )
     return [QuestionOut.model_validate(q) for q in result.scalars()]
 
@@ -132,7 +132,8 @@ async def add_question(
 ):
     if body.type not in _VALID_TYPES:
         raise HTTPException(
-            422, f"Tipe pertanyaan tidak valid. Pilih dari: {', '.join(sorted(_VALID_TYPES))}",
+            422,
+            f"Tipe pertanyaan tidak valid. Pilih dari: {', '.join(sorted(_VALID_TYPES))}",
         )
 
     # Pastikan survei ada (RLS sudah memfilter tenant)
@@ -170,9 +171,7 @@ async def reorder_questions(
     session: TenantSession,
     user: CurrentUser,
 ):
-    result = await session.execute(
-        select(Question).where(Question.survey_id == survey_id)
-    )
+    result = await session.execute(select(Question).where(Question.survey_id == survey_id))
     by_id = {q.id: q for q in result.scalars()}
 
     for pos, qid in enumerate(body.question_ids):
@@ -181,10 +180,7 @@ async def reorder_questions(
         by_id[qid].position = pos
 
     await session.flush()
-    return [
-        QuestionOut.model_validate(by_id[qid])
-        for qid in body.question_ids
-    ]
+    return [QuestionOut.model_validate(by_id[qid]) for qid in body.question_ids]
 
 
 @router.delete(
@@ -194,8 +190,7 @@ async def reorder_questions(
 )
 async def delete_question(survey_id: UUID, question_id: UUID, session: TenantSession):
     result = await session.execute(
-        select(Question)
-        .where(Question.survey_id == survey_id, Question.id == question_id)
+        select(Question).where(Question.survey_id == survey_id, Question.id == question_id)
     )
     q = result.scalar_one_or_none()
     if not q:
@@ -204,6 +199,7 @@ async def delete_question(survey_id: UUID, question_id: UUID, session: TenantSes
 
 
 # ── Response ingest ─────────────────────────────────────────────────────────
+
 
 @router.post(
     "/{survey_id}/responses",
@@ -261,8 +257,7 @@ async def ingest_responses(
 
     # Quality assessment — compute median duration from existing respondents
     median_q = await session.execute(
-        select(func.percentile_cont(0.5).within_group(Respondent.duration_sec))
-        .where(
+        select(func.percentile_cont(0.5).within_group(Respondent.duration_sec)).where(
             Respondent.survey_id == survey_id,
             Respondent.duration_sec.is_not(None),
         )
@@ -313,13 +308,12 @@ async def get_responses(
     session: TenantSession,
     user: CurrentUser,
 ):
-    result = await session.execute(
-        select(Response).where(Response.respondent_id == respondent_id)
-    )
+    result = await session.execute(select(Response).where(Response.respondent_id == respondent_id))
     return [ResponseOut.model_validate(r) for r in result.scalars()]
 
 
 # ── Bobot pasca-stratifikasi ────────────────────────────────────────────────
+
 
 @router.post(
     "/{survey_id}/weights/compute",

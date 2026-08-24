@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from app.deps import CurrentUser, Role, TenantSession, require_capability, require_role
-from app.services.risk import risk_score, polarization
+from app.deps import CurrentUser, TenantSession
+from app.services.risk import polarization, risk_score
 
 router = APIRouter(prefix="/projects/{project_id}/governance", tags=["governance"])
 
@@ -37,7 +37,7 @@ async def compute_risk(
     try:
         result = risk_score(body.components, body.weights)
     except ValueError as e:
-        raise HTTPException(422, str(e))
+        raise HTTPException(422, str(e)) from e
 
     return RiskResponse(
         score=result.score,
@@ -64,5 +64,5 @@ async def compute_polarization(
         positions = [(s[0], float(s[1]), float(s[2])) for s in body.segments]
         result = polarization(positions)
     except (ValueError, IndexError) as e:
-        raise HTTPException(422, str(e))
+        raise HTTPException(422, str(e)) from e
     return result

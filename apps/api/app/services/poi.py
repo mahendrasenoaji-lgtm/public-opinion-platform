@@ -143,9 +143,7 @@ def compute_index(
             "digeneralisasi ke populasi"
         )
     if n_eff is not None and n_eff < MIN_EFFECTIVE_N:
-        limitations.append(
-            f"sampel efektif {n_eff} di bawah ambang publikasi {MIN_EFFECTIVE_N}"
-        )
+        limitations.append(f"sampel efektif {n_eff} di bawah ambang publikasi {MIN_EFFECTIVE_N}")
     if ci_low is None:
         limitations.append("tidak ada komponen probabilistik; interval kepercayaan tidak dihitung")
 

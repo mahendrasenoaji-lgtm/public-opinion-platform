@@ -1,7 +1,10 @@
 import pytest
 
 from app.services.risk import (
-    DEFAULT_RISK_WEIGHTS, RISK_BANDS, band_for, polarization, risk_score,
+    DEFAULT_RISK_WEIGHTS,
+    band_for,
+    polarization,
+    risk_score,
 )
 
 
@@ -73,6 +76,7 @@ def test_band_for_di_atas_seratus_fallback_critical():
 
 
 # === Polarization ===
+
 
 def test_konsensus_kuat():
     segments = [

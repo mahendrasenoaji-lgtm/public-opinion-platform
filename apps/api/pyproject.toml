@@ -38,10 +38,13 @@ target-version = "py312"
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.ruff.lint.flake8-bugbear]
-# FastAPI memakai Query()/Path()/Body() sebagai default argumen by design —
-# ini bukan mutable default yang sebenarnya (B008), cuma pola dependency
-# injection framework-nya. Depends() sudah dikecualikan bawaan oleh ruff.
-extend-immutable-calls = ["fastapi.Query", "fastapi.Path", "fastapi.Body"]
+# FastAPI memakai Query()/Path()/Body()/Depends() sebagai default argumen by
+# design — ini bukan mutable default yang sebenarnya (B008), cuma pola
+# dependency injection framework-nya. Koreksi 2026-08-24: komentar lama di
+# sini bilang Depends() "sudah dikecualikan bawaan oleh ruff" — itu keliru,
+# B008 terbukti tetap menyala di semua endpoint yang pakai
+# `= Depends(get_session)` sebelum baris ini ditambah.
+extend-immutable-calls = ["fastapi.Query", "fastapi.Path", "fastapi.Body", "fastapi.Depends"]
 
 [tool.mypy]
 python_version = "3.12"

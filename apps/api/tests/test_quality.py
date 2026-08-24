@@ -1,5 +1,3 @@
-import pytest
-
 from app.services.quality import QualityFlag, assess, dataset_quality
 
 
@@ -149,11 +147,21 @@ def test_dataset_quality_deviasi_strata_besar_menekan_balance_ke_nol():
 
 def test_dataset_quality_sample_balance_dibobot_lebih_berat_dari_metadata():
     turun_balance = dataset_quality(
-        total=100, complete=100, duplicates=0, flagged=0, inconsistent=0,
-        max_stratum_deviation_pp=10, metadata_fields_filled=1.0,
+        total=100,
+        complete=100,
+        duplicates=0,
+        flagged=0,
+        inconsistent=0,
+        max_stratum_deviation_pp=10,
+        metadata_fields_filled=1.0,
     )
     turun_metadata = dataset_quality(
-        total=100, complete=100, duplicates=0, flagged=0, inconsistent=0,
-        max_stratum_deviation_pp=0, metadata_fields_filled=0.5,
+        total=100,
+        complete=100,
+        duplicates=0,
+        flagged=0,
+        inconsistent=0,
+        max_stratum_deviation_pp=0,
+        metadata_fields_filled=0.5,
     )
     assert turun_balance["overall"] < turun_metadata["overall"]

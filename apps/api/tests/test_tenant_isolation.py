@@ -35,7 +35,9 @@ async def _seed_two_orgs(sm) -> tuple[uuid.UUID, uuid.UUID]:
             {"i": str(a), "s": f"a-{a.hex[:6]}"},
         )
         await s.execute(
-            text("INSERT INTO projects (id, org_id, name) VALUES (gen_random_uuid(),:o,'Proyek A')"),
+            text(
+                "INSERT INTO projects (id, org_id, name) VALUES (gen_random_uuid(),:o,'Proyek A')"
+            ),
             {"o": str(a)},
         )
     async with sm() as s, s.begin():
@@ -45,7 +47,9 @@ async def _seed_two_orgs(sm) -> tuple[uuid.UUID, uuid.UUID]:
             {"i": str(b), "s": f"b-{b.hex[:6]}"},
         )
         await s.execute(
-            text("INSERT INTO projects (id, org_id, name) VALUES (gen_random_uuid(),:o,'Proyek B')"),
+            text(
+                "INSERT INTO projects (id, org_id, name) VALUES (gen_random_uuid(),:o,'Proyek B')"
+            ),
             {"o": str(b)},
         )
     return a, b
@@ -68,7 +72,12 @@ async def test_tanpa_konteks_org_tidak_ada_baris_yang_terbaca(sessionmaker_app):
 
 async def test_insert_lintas_tenant_ditolak(sessionmaker_app):
     a, b = await _seed_two_orgs(sessionmaker_app)
-    with pytest.raises(Exception):
+    # Exception generik disengaja (bukan noqa demi kepatuhan linter semata):
+    # driver Postgres yang sebenarnya melempar bisa beda kelas tergantung
+    # versi asyncpg/SQLAlchemy (IntegrityError vs DBAPIError vs
+    # InsufficientPrivilege) — yang ditegakkan tes ini adalah "pelanggaran
+    # RLS ditolak", bukan tipe exception spesifiknya.
+    with pytest.raises(Exception):  # noqa: B017
         async with sessionmaker_app() as s, s.begin():
             await s.execute(text("SELECT set_config('app.current_org', :o, true)"), {"o": str(a)})
             await s.execute(

@@ -31,7 +31,11 @@ def prompt_hash(system: str, user: str) -> str:
 class LLMProvider(ABC):
     @abstractmethod
     async def complete(
-        self, *, system: str, user: str, schema: dict[str, Any] | None = None,
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: dict[str, Any] | None = None,
         max_tokens: int = 2000,
     ) -> LLMResponse: ...
 
@@ -47,7 +51,11 @@ class AnthropicProvider(LLMProvider):
         self._model = model
 
     async def complete(
-        self, *, system: str, user: str, schema: dict[str, Any] | None = None,
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: dict[str, Any] | None = None,
         max_tokens: int = 2000,
     ) -> LLMResponse:
         if schema:
@@ -77,7 +85,11 @@ class EchoProvider(LLMProvider):
     """Provider untuk tes dan mode demo offline. Deterministik, tanpa jaringan."""
 
     async def complete(
-        self, *, system: str, user: str, schema: dict[str, Any] | None = None,
+        self,
+        *,
+        system: str,
+        user: str,
+        schema: dict[str, Any] | None = None,
         max_tokens: int = 2000,
     ) -> LLMResponse:
         return LLMResponse(

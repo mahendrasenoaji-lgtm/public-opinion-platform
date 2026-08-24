@@ -1,6 +1,6 @@
 import pytest
 
-from app.services.poi import Dimension, SignalSource, compute_index, compute_change, publishable
+from app.services.poi import Dimension, SignalSource, compute_change, compute_index, publishable
 
 
 def survey_dims():
@@ -55,7 +55,10 @@ def test_skor_di_luar_rentang_ditolak():
 def test_perubahan_menandai_interval_bertumpang_tindih():
     cur = compute_index(survey_dims())
     prev = compute_index(
-        [Dimension(d.key, d.label, d.score - 0.2, d.weight, d.source, d.effective_n) for d in survey_dims()]
+        [
+            Dimension(d.key, d.label, d.score - 0.2, d.weight, d.source, d.effective_n)
+            for d in survey_dims()
+        ]
     )
     change = compute_change(cur, prev)
     assert change["intervals_separated"] is False

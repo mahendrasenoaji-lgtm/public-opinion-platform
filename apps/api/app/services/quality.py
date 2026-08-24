@@ -111,8 +111,14 @@ def dataset_quality(
     }
     # Keseimbangan sampel dibobot lebih tinggi: ia yang paling menentukan
     # apakah estimasi boleh digeneralisasi.
-    weights = {"completeness": 1, "duplicate": 1, "response_qual": 1.5,
-               "consistency": 1, "sample_balance": 2, "metadata_score": 0.5}
+    weights = {
+        "completeness": 1,
+        "duplicate": 1,
+        "response_qual": 1.5,
+        "consistency": 1,
+        "sample_balance": 2,
+        "metadata_score": 0.5,
+    }
     total_w = sum(weights.values())
     parts["overall"] = round(sum(parts[k] * weights[k] for k in weights) / total_w)
     return parts

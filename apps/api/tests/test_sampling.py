@@ -1,7 +1,10 @@
 import pytest
 
 from app.services.sampling import (
-    SamplingMethod, margin_from_n, sample_size, stratum_balance,
+    SamplingMethod,
+    margin_from_n,
+    sample_size,
+    stratum_balance,
 )
 
 

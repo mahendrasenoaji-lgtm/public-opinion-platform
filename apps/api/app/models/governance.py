@@ -6,7 +6,8 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import INET, JSON, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import INET, JSON
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -16,8 +17,12 @@ class AIOutput(Base):
     __tablename__ = "ai_outputs"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
     kind: Mapped[str] = mapped_column(Text, nullable=False)
     model_version: Mapped[str] = mapped_column(Text, nullable=False)
     method: Mapped[str] = mapped_column(Text, nullable=False)
@@ -36,7 +41,9 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
     actor_id: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
     action: Mapped[str] = mapped_column(Text, nullable=False)
     entity: Mapped[str] = mapped_column(Text, nullable=False)
@@ -50,8 +57,12 @@ class DataQualityScore(Base):
     __tablename__ = "data_quality_scores"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
-    project_id: Mapped[UUID] = mapped_column(ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
     dataset: Mapped[str] = mapped_column(Text, nullable=False)
     completeness: Mapped[int] = mapped_column(Integer, nullable=False)
     duplicate: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -60,4 +71,6 @@ class DataQualityScore(Base):
     sample_balance: Mapped[int] = mapped_column(Integer, nullable=False)
     metadata_score: Mapped[int] = mapped_column(Integer, nullable=False)
     overall: Mapped[int] = mapped_column(Integer, nullable=False)
-    computed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    computed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

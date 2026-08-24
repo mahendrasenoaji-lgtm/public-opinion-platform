@@ -31,7 +31,11 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(
-    *, user_id: UUID, org_id: UUID, role: str, email: str,
+    *,
+    user_id: UUID,
+    org_id: UUID,
+    role: str,
+    email: str,
 ) -> str:
     settings = get_settings()
     now = datetime.now(UTC)

@@ -7,13 +7,15 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import CITEXT, UUID as PG_UUID
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db import Base
 
 
-class UserRole(str, enum.Enum):
+# noqa UP042 sengaja tidak diikuti (str+Enum vs enum.StrEnum) — lihat
+# penjelasan lengkap di app/models/measurement.py:SignalSource.
+class UserRole(str, enum.Enum):  # noqa: UP042
     SUPER_ADMIN = "SUPER_ADMIN"
     RESEARCH_DIRECTOR = "RESEARCH_DIRECTOR"
     RESEARCHER = "RESEARCHER"
@@ -34,15 +36,21 @@ class Organization(Base):
     retention_days: Mapped[int] = mapped_column(Integer, nullable=False, default=730)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    users: Mapped[list["User"]] = relationship(back_populates="organization", cascade="all, delete-orphan")
-    projects: Mapped[list] = relationship("Project", back_populates="organization", cascade="all, delete-orphan")
+    users: Mapped[list[User]] = relationship(
+        back_populates="organization", cascade="all, delete-orphan"
+    )
+    projects: Mapped[list] = relationship(
+        "Project", back_populates="organization", cascade="all, delete-orphan"
+    )
 
 
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
     email: Mapped[str | None] = mapped_column(Text)
     full_name: Mapped[str] = mapped_column(Text, nullable=False)
     password_hash: Mapped[str | None] = mapped_column(Text)

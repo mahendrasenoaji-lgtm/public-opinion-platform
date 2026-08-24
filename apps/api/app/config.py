@@ -1,6 +1,7 @@
 """Konfigurasi aplikasi. Semua rahasia lewat environment, tidak ada default produksi."""
 
 from functools import lru_cache
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 

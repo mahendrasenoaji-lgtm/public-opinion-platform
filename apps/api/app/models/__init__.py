@@ -5,9 +5,9 @@ from app.models.measurement import Forecast, MetricSnapshot, Segment, TimelineEv
 from app.models.org import Organization, User, UserRole
 from app.models.project import Project
 from app.models.survey import (
+    QualityFlagEnum,
     Question,
     QuestionType,
-    QualityFlagEnum,
     Respondent,
     RespondentIdentity,
     Response,

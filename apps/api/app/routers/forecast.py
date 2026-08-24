@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from app.deps import CurrentUser, TenantSession
-from app.services.forecast import DEFAULT_SPREAD, ForecastResult, project
+from app.services.forecast import DEFAULT_SPREAD, project
 
 router = APIRouter(prefix="/projects/{project_id}/forecast", tags=["forecast"])
 
@@ -57,7 +57,7 @@ async def what_if(
             pi_level=body.pi_level,
         )
     except ValueError as e:
-        raise HTTPException(422, str(e))
+        raise HTTPException(422, str(e)) from e
 
     return ForecastResponse(
         points=[

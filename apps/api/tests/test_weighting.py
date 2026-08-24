@@ -66,8 +66,10 @@ def test_dua_variabel_konvergen():
     # Sampel dengan korelasi antara gender dan age_band supaya raking dua
     # variabel benar-benar diuji, bukan cuma satu variabel dominan.
     for gender, age, count in [
-        ("L", "muda", 60), ("L", "tua", 10),
-        ("P", "muda", 10), ("P", "tua", 20),
+        ("L", "muda", 60),
+        ("L", "tua", 10),
+        ("P", "muda", 10),
+        ("P", "tua", 20),
     ]:
         for _ in range(count):
             respondents[f"r{i}"] = {"gender": gender, "age_band": age}
@@ -81,12 +83,13 @@ def test_dua_variabel_konvergen():
     assert result.converged is True
 
     total_w = sum(result.weights.values())
-    gender_l_share = sum(
-        w for rid, w in result.weights.items() if respondents[rid]["gender"] == "L"
-    ) / total_w
-    age_muda_share = sum(
-        w for rid, w in result.weights.items() if respondents[rid]["age_band"] == "muda"
-    ) / total_w
+    gender_l_share = (
+        sum(w for rid, w in result.weights.items() if respondents[rid]["gender"] == "L") / total_w
+    )
+    age_muda_share = (
+        sum(w for rid, w in result.weights.items() if respondents[rid]["age_band"] == "muda")
+        / total_w
+    )
 
     assert abs(gender_l_share - 0.5) < 0.01
     assert abs(age_muda_share - 0.5) < 0.01
@@ -124,7 +127,10 @@ def test_tidak_konvergen_masih_mengembalikan_hasil():
     respondents: dict[str, dict[str, str | None]] = {}
     i = 0
     for gender, age, count in [
-        ("L", "muda", 70), ("L", "tua", 5), ("P", "muda", 5), ("P", "tua", 20),
+        ("L", "muda", 70),
+        ("L", "tua", 5),
+        ("P", "muda", 5),
+        ("P", "tua", 20),
     ]:
         for _ in range(count):
             respondents[f"r{i}"] = {"gender": gender, "age_band": age}

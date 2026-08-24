@@ -8,8 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
-
 # --- Survey ---
+
 
 class SurveyCreate(BaseModel):
     project_id: UUID
@@ -46,11 +46,15 @@ class SurveyUpdate(BaseModel):
     fielded_to: date | None = None
 
 
-# --- Question (9 tipe: SINGLE, MULTI, LIKERT, SEMANTIC_DIFF, RANKING, MATRIX, OPEN, DEMOGRAPHIC, SCREENING) ---
+# --- Question (9 tipe: SINGLE, MULTI, LIKERT, SEMANTIC_DIFF, RANKING, MATRIX,
+# OPEN, DEMOGRAPHIC, SCREENING) ---
+
 
 class QuestionCreate(BaseModel):
     code: str = Field(min_length=1, max_length=30)
-    type: str  # SINGLE | MULTI | LIKERT | SEMANTIC_DIFF | RANKING | MATRIX | OPEN | DEMOGRAPHIC | SCREENING
+    # SINGLE | MULTI | LIKERT | SEMANTIC_DIFF | RANKING | MATRIX | OPEN |
+    # DEMOGRAPHIC | SCREENING
+    type: str
     text: str = Field(min_length=1)
     position: int = Field(ge=0)
     options: list | None = None
@@ -76,10 +80,12 @@ class QuestionOut(BaseModel):
 
 class QuestionReorder(BaseModel):
     """Reorder questions by passing question IDs in desired order."""
+
     question_ids: list[UUID]
 
 
 # --- Respondent ---
+
 
 class RespondentCreate(BaseModel):
     anon_code: str = Field(min_length=1)
@@ -113,6 +119,7 @@ class RespondentOut(BaseModel):
 
 # --- Response ---
 
+
 class ResponseCreate(BaseModel):
     question_id: UUID
     value_num: Decimal | None = None
@@ -122,6 +129,7 @@ class ResponseCreate(BaseModel):
 
 class ResponseBulk(BaseModel):
     """Ingest all responses for one respondent in one call."""
+
     respondent: RespondentCreate
     answers: list[ResponseCreate]
 
@@ -139,6 +147,7 @@ class ResponseOut(BaseModel):
 
 
 # --- Post-stratification weighting (services/weighting.py) ---
+
 
 class WeightingTargets(BaseModel):
     """Target populasi per variabel, dari sensus/BPS. Tiap variabel harus
