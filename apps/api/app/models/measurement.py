@@ -1,4 +1,4 @@
-"""MetricSnapshot, Segment, TimelineEvent, Forecast models."""
+"""MetricSnapshot, Segment, Narrative, TimelineEvent, Forecast models."""
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from sqlalchemy import (
     Integer,
     Numeric,
     Text,
+    UniqueConstraint,
     func,
 )
 from sqlalchemy import Enum as SAEnum
@@ -94,6 +95,40 @@ class Segment(Base):
     profile: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     method: Mapped[str] = mapped_column(Text, nullable=False, default="latent_class")
     entropy: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
+
+
+class Narrative(Base):
+    __tablename__ = "narratives"
+    __table_args__ = (UniqueConstraint("project_id", "code"),)
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    code: Mapped[str] = mapped_column(Text, nullable=False)
+    statement: Mapped[str] = mapped_column(Text, nullable=False)
+    origin_source: Mapped[SignalSource] = mapped_column(
+        SAEnum(
+            SignalSource,
+            name="signal_source",
+            create_type=False,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
+    volume_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    momentum_7d: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
+    sentiment: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
+    media_pickup: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    #: Persentase mention yang tidak masuk klaster manapun — batasan wajib
+    #: ditampilkan (README design-reference / CLAUDE.md R2 semangat yang sama).
+    unclustered_pct: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False, default=0)
+    detected_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
 
 class TimelineEvent(Base):

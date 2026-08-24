@@ -197,6 +197,106 @@ async def get_trend(
     ]
 
 
+#: Kode BPS -> nama provinsi, terbatas pada provinsi yang di-seed
+#: (db/seed.py:PROVINCES). Bukan data fabrikasi — kode & nama sama persis
+#: dengan yang dipakai seed. Tambah entri di sini kalau seed menambah
+#: provinsi baru.
+_PROVINCE_NAMES = {
+    "31": "DKI Jakarta",
+    "32": "Jawa Barat",
+    "33": "Jawa Tengah",
+    "34": "DI Yogyakarta",
+    "35": "Jawa Timur",
+    "36": "Banten",
+    "51": "Bali",
+    "12": "Sumatera Utara",
+    "16": "Sumatera Selatan",
+    "14": "Riau",
+    "64": "Kalimantan Timur",
+    "73": "Sulawesi Selatan",
+    "52": "Nusa Tenggara Barat",
+    "53": "Nusa Tenggara Timur",
+    "94": "Papua",
+    "81": "Maluku",
+}
+
+_GEO_METRICS = ("poi", "trust", "approval")
+
+
+class ProvinceMetrics(BaseModel):
+    province_code: str
+    province_name: str
+    poi: Metric
+    trust: Metric
+    approval: Metric
+
+
+@router.get("/geo", response_model=list[ProvinceMetrics])
+async def get_geo(
+    project_id: UUID, session: TenantSession, user: CurrentUser
+) -> list[ProvinceMetrics]:
+    """Opini per provinsi — grid berperingkat, bukan peta geografis.
+
+    CLAUDE.md §6: MapLibre cuma dipakai kalau data punya georeferensi asli;
+    sampai ada itu, pakai grid provinsi berperingkat seperti di prototipe.
+    Provinsi dengan sampel di bawah ambang (CLAUDE.md §3, achieved_n < 250)
+    ditampilkan sebagai "data tidak cukup", bukan angka dengan CI lebar.
+    """
+    q = select(MetricSnapshot).where(
+        MetricSnapshot.project_id == project_id,
+        MetricSnapshot.metric.in_(_GEO_METRICS),
+        MetricSnapshot.province_code.is_not(None),
+        MetricSnapshot.segment.is_(None),
+    )
+    result = await session.execute(q)
+    rows = result.scalars().all()
+
+    # Snapshot terbaru per (province_code, metric).
+    latest: dict[tuple[str, str], MetricSnapshot] = {}
+    for r in rows:
+        assert r.province_code is not None  # dijamin filter is_not(None) di atas
+        key = (r.province_code, r.metric)
+        current = latest.get(key)
+        if current is None or r.period_end > current.period_end:
+            latest[key] = r
+
+    provinces = sorted({code for code, _ in latest})
+    out: list[ProvinceMetrics] = []
+    for code in provinces:
+        metrics: dict[str, Metric] = {}
+        for metric_key in _GEO_METRICS:
+            snap = latest.get((code, metric_key))
+            publish = bool(snap and snap.effective_n and snap.effective_n >= poi.MIN_EFFECTIVE_N)
+            default_method = "estimasi area kecil, pembobotan pasca-stratifikasi"
+            metrics[metric_key] = Metric(
+                key=metric_key,
+                label=metric_key,
+                value=float(snap.value) if snap and publish else None,
+                source=SignalSource(snap.source) if snap else SignalSource.SURVEY,
+                method=snap.method if snap else default_method,
+                ci_low=(
+                    float(snap.ci_low) if snap and publish and snap.ci_low is not None else None
+                ),
+                ci_high=(
+                    float(snap.ci_high) if snap and publish and snap.ci_high is not None else None
+                ),
+                effective_n=snap.effective_n if snap else None,
+                insufficient_data=not publish,
+                note=None if publish else "Sampel tercapai di bawah ambang publikasi (n < 250).",
+            )
+        out.append(
+            ProvinceMetrics(
+                province_code=code,
+                province_name=_PROVINCE_NAMES.get(code, code),
+                poi=metrics["poi"],
+                trust=metrics["trust"],
+                approval=metrics["approval"],
+            )
+        )
+
+    return sorted(out, key=lambda p: (p.poi.value is None, -(p.poi.value or 0)))
+
+
 class TimelineEventOut(BaseModel):
     id: UUID
     occurred_at: datetime

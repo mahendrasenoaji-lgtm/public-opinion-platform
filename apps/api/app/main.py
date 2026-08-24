@@ -7,7 +7,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
-from app.routers import auth, copilot, forecast, governance, opinion, projects, signals, surveys
+from app.routers import (
+    auth,
+    copilot,
+    forecast,
+    governance,
+    narratives,
+    opinion,
+    projects,
+    segments,
+    signals,
+    surveys,
+)
 
 settings = get_settings()
 
@@ -48,5 +59,16 @@ async def health() -> dict[str, str]:
     return {"status": "ok", "env": settings.env}
 
 
-for r in (auth, projects, surveys, opinion, signals, forecast, copilot, governance):
+for r in (
+    auth,
+    projects,
+    surveys,
+    opinion,
+    signals,
+    forecast,
+    copilot,
+    governance,
+    segments,
+    narratives,
+):
     app.include_router(r.router, prefix="/v1")
