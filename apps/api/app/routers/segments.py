@@ -7,7 +7,6 @@ bukan keluaran generatif — angka statistik murni, tidak perlu AIEnvelope
 
 from __future__ import annotations
 
-from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -22,15 +21,18 @@ router = APIRouter(prefix="/projects/{project_id}/segments", tags=["segments"])
 
 class SegmentOut(BaseModel):
     name: str
-    size_pct: Decimal
-    sentiment: Decimal | None
-    trust: Decimal | None
+    #: float, bukan Decimal — Decimal ter-serialize JSON sebagai string
+    #: presisi-tetap ("24.00"), bikin frontend tampil "24.00%" ganjil. Data
+    #: ini presentasi, bukan angka finansial yang butuh presisi eksak.
+    size_pct: float
+    sentiment: float | None
+    trust: float | None
     #: Isi bebas per segmen (mis. age/geo/concern) — apa adanya dari seed/
     #: pipeline segmentasi, tidak ditegakkan skema tetap karena bisa beda
     #: per metodologi.
     profile: dict
     method: str
-    entropy: Decimal | None
+    entropy: float | None
 
 
 @router.get("", response_model=list[SegmentOut])

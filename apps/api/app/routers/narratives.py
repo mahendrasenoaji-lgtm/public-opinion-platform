@@ -9,7 +9,6 @@ tidak menjalankan pipeline apa pun.
 from __future__ import annotations
 
 from datetime import datetime
-from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter
@@ -28,11 +27,12 @@ class NarrativeOut(BaseModel):
     code: str
     statement: str
     origin_source: SignalSource
-    volume_pct: Decimal
-    momentum_7d: Decimal
-    sentiment: Decimal | None
+    #: float, bukan Decimal — lihat catatan di routers/segments.py:SegmentOut.
+    volume_pct: float
+    momentum_7d: float
+    sentiment: float | None
     media_pickup: int
-    unclustered_pct: Decimal
+    unclustered_pct: float
     detected_at: datetime
 
 
