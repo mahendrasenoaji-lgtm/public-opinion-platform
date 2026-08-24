@@ -1,16 +1,20 @@
 # Status Deployment
 
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
-Update 2026-08-24 (sesi panjang, 9 commit ke main): CORS_ORIGINS
+Update 2026-08-24 (sesi panjang, 11 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
 `SITE_PASSWORD` didokumentasikan, login user asli dibangun (menggantikan
 `DEMO_ACCESS_TOKEN`), bug RLS di `/auth/login|register|refresh`
 diperbaiki, Phase 1 dikeraskan (`ruff`+`mypy` bersih 100%, CI hijau di
-GitHub Actions), lalu 5 dari 7 halaman dashboard sisa di-port ke Next.js
-dengan data asli dari Supabase. Lihat bagian "Pengerasan Phase 1" dan "5
-dari 7 halaman dashboard sisa" di bawah untuk detail lengkap.
-Dokumen ini adalah sumber kebenaran untuk sesi berikutnya — jangan andalkan
-riwayat chat, chat lama tidak ikut ter-clone.
+GitHub Actions), lalu **semua 9/9 halaman dashboard** di-port ke Next.js
+dengan data asli — 5 halaman data (Consistency/Segments/Narrative/Geo/
+Forecast) plus Executive Brief (fitur AI generatif pertama di proyek ini,
+LLM + `AIEnvelope` + `ai_outputs`) dan AI Governance. **Executive Brief
+kodenya sudah live tapi generate sungguhan BELUM diverifikasi** — nunggu
+`ANTHROPIC_API_KEY` aktif di Render (lihat bagian paling bawah untuk
+detail & langkah verifikasi lanjutan). Dokumen ini adalah sumber
+kebenaran untuk sesi berikutnya — jangan andalkan riwayat chat, chat
+lama tidak ikut ter-clone.
 
 ## Live sekarang
 
@@ -289,11 +293,51 @@ sebagian bisa dibangun sekarang (Data Quality Score dari
 model AI"-nya kosong sampai ada fitur yang benar-benar menulis ke
 `ai_outputs` — terkait langsung dengan keputusan Brief.
 
+## ⚠️ Executive Brief (AI generatif) — kode selesai, generate BELUM diverifikasi live
+
+Fitur AI generatif pertama di proyek ini. User eksplisit minta dibangun
+beneran (bukan versi data-saja) — lihat riwayat sesi. Infrastrukturnya
+(`app/ai/prompts.py:EXECUTIVE_BRIEF`, `app/ai/agents.py`) sudah ada dari
+awal proyek, belum pernah dipakai; sesi ini menambah agent konkret
+(`app/ai/brief.py:ExecutiveBriefAgent`), router (`app/routers/brief.py`),
+dan 2 halaman baru (`/brief`, `/governance`) — **9/9 halaman dashboard
+sekarang lengkap**, definisi selesai Phase 1 di `docs/roadmap.md` tercapai
+penuh.
+
+**Bug dorman yang dicurigai sejak 2026-08-20 dikonfirmasi & diperbaiki**:
+`AIOutput.confidence`/`human_review` memang punya bug pemetaan yang sama
+seperti `MetricSnapshot.source` dulu — `String` biasa padahal kolomnya
+`confidence_band`/`review_status` (enum Postgres native). Diperbaiki
+dengan pola yang sama (enum lokal + `SAEnum(..., create_type=False)`).
+Migrasi **tidak diperlukan** — kolom DB-nya dari awal sudah benar
+(`db/schema.sql`), cuma mapping SQLAlchemy-nya yang salah.
+
+**Yang sudah diverifikasi live**: `/brief` menampilkan CTA "Buat
+ringkasan" dengan benar (404 ditangani, bukan error), `/governance`
+menampilkan Data Quality Score asli dari seed + "belum ada keluaran AI"
+yang jujur (bukan bug — memang belum ada yang generate).
+
+**Yang BELUM diverifikasi live**: generate Executive Brief sungguhan.
+`get_provider()` (`app/ai/provider.py`) butuh `LLM_PROVIDER=anthropic` +
+`ANTHROPIC_API_KEY` valid di Render — kalau belum di-set, endpoint
+`POST .../brief/generate` akan balas `503` dengan pesan jelas (bukan
+gagal senyap, sudah ditest). **Langkah lanjutan untuk sesi berikutnya**:
+1. Konfirmasi `LLM_PROVIDER=anthropic` + `ANTHROPIC_API_KEY` aktif di
+   Render → pop-api → Environment (tanya user, jangan generate ulang
+   API key yang sudah aktif tanpa tanya — sama aturan kredensial seperti
+   di bagian atas dokumen ini).
+2. Login ke `/brief`, klik "Buat Ringkasan", verifikasi 6 bagian terisi
+   masuk akal dan TIDAK memuat klaim yang tidak ada di fakta yang dikirim
+   (baca `apps/api/app/routers/brief.py:_gather_facts` untuk tahu fakta
+   apa saja yang dikirim — sengaja TIDAK ada klaim delta index spesifik,
+   cuma satu periode snapshot yang ada).
+3. Approve, cek `/governance` menampilkan baris audit yang baru dibuat.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
-- 2 halaman dashboard tersisa yang belum di-port: **Executive Brief** dan
-  **AI Governance** — lihat penjelasan keputusan di atas.
+- ~~2 halaman dashboard tersisa~~ — **selesai**, lihat bagian "Executive
+  Brief" di atas. 9/9 halaman dashboard sudah di-port.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
   Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
   ada.
