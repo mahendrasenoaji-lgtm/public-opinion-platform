@@ -1,11 +1,13 @@
 # Status Deployment
 
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
-Update 2026-08-24: CORS_ORIGINS diselesaikan, slider bobot Opinion Index
-diverifikasi live (simpan sungguhan, bukan pratinjau), gerbang
-`SITE_PASSWORD` (ditambah 2026-08-22 di sesi lain yang tidak tercatat di
-sini saat itu) didokumentasikan, dan login user asli (sesi cookie httpOnly,
-menggantikan `DEMO_ACCESS_TOKEN`) dibangun dan diverifikasi live.
+Update 2026-08-24 (sesi panjang, 6 commit ke main): CORS_ORIGINS
+diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
+`SITE_PASSWORD` didokumentasikan, login user asli dibangun (menggantikan
+`DEMO_ACCESS_TOKEN`), bug RLS di `/auth/login|register|refresh`
+diperbaiki, dan Phase 1 dikeraskan: `ruff check app tests` + `mypy
+app/services app/ai` bersih 100%, CI (GitHub Actions) terpasang dan
+hijau. Lihat bagian "Pengerasan Phase 1" di bawah untuk detail lengkap.
 Dokumen ini adalah sumber kebenaran untuk sesi berikutnya — jangan andalkan
 riwayat chat, chat lama tidak ikut ter-clone.
 
@@ -134,6 +136,55 @@ ke semula → tombol Keluar → cookie hilang → akses halaman lagi balik ke
 dari `direktur@demo.id` atas permintaan pengguna), password ada di
 password manager pengguna — lihat cara reset di bagian atas kalau perlu.
 
+## ✅ Pengerasan Phase 1 — selesai 2026-08-24
+
+Atas instruksi eksplisit pengguna ("kerjakan bertahap... sebelum semua
+dapat running... akan digunakan secara real time") — bukan inisiatif
+sendiri. Urutan mengikuti CLAUDE.md §5 ("jangan lompat ke Phase 2 sebelum
+Phase 1 punya tes").
+
+- **`/auth/register` dan `/auth/refresh` diperbaiki** — akar masalah RLS
+  identik dengan bug login di atas. Dua fungsi `SECURITY DEFINER` baru
+  (`auth_lookup_user_by_id`, `auth_register`) di `db/rls.sql`, migrasi
+  sudah diterapkan ke Supabase. `/auth/register` masih tidak punya UI
+  (di luar cakupan, sesuai keputusan desain login asli di atas) — jadi
+  cuma diverifikasi lewat CI/tes, belum dicoba live ke Supabase produksi
+  secara terpisah (beda dengan login+refresh yang sudah, lihat di bawah).
+- **`apps/api/tests/test_auth_router.py` baru** — tes end-to-end HTTP asli
+  (httpx.AsyncClient) untuk ketiga endpoint auth, terhadap Postgres nyata
+  dengan role `pop_app` (RLS aktif, bukan superuser — superuser akan
+  membuat tes ini lulus palsu). Kelas tes yang seharusnya menangkap kedua
+  bug RLS di atas sebelum sampai production.
+- **`ruff check app tests` + `mypy app/services app/ai` bersih 100%** di
+  seluruh backend (sebelumnya 96 pelanggaran ruff pra-ada + 6 mypy-strict
+  di scope yang CLAUDE.md §6 wajibkan bersih, tidak pernah ketahuan karena
+  tidak ada yang menjalankannya otomatis). 6 pelanggaran SENGAJA diberi
+  `noqa` eksplisit + alasan di kode, bukan diperbaiki: 5x `UP042`
+  (str+Enum di `app/models/*.py` — area yang sudah punya bug dorman
+  tercatat soal pemetaan enum Postgres native, tidak diubah tanpa
+  verifikasi eksplisit) dan 1x `B017` (exception generik di tes RLS,
+  disengaja karena kelas exception driver Postgres bisa beda tergantung
+  versi asyncpg/SQLAlchemy).
+- **`.github/workflows/ci.yml` baru** — `pytest` (role `pop_app`, RLS
+  aktif) + `ruff` + `mypy` untuk backend, `typecheck` + `next build` untuk
+  frontend, jalan tiap push/PR ke `main`. **Hijau, sudah diverifikasi**
+  (bukan cuma ditulis) — sempat merah 2x di run pertama (89 pelanggaran
+  ruff pra-ada yang di atas, lalu `JWT_SECRET` workflow bentrok dengan
+  nilai yang di-hardcode `test_auth_service.py`), keduanya diperbaiki dan
+  run berikutnya hijau penuh.
+- **Makefile target `test-db` baru** — provisioning database `pop_test`
+  (schema+RLS) yang sebelumnya langkah manual tidak terdokumentasi di
+  mana pun (baru ketahuan sesi ini saat mencoba `make test` dari nol).
+- Login + refresh **diverifikasi live lagi terhadap Supabase produksi**
+  setelah semua perubahan di atas (bukan cuma lewat CI) — login
+  `user@publicopinion.id`, lalu tukar refresh token, keduanya `200`.
+
+**Yang sengaja TIDAK dikerjakan di tahap ini** — di luar "Phase 1 harus
+punya tes" dan butuh keputusan/kredensial yang bukan wewenang Claude
+sendiri (lihat Phase 2/3/4 di bawah): konektor media sosial, model
+forecast nyata, SSO, billing, dll. Kalau ragu diselesaikan diam-diam,
+lebih baik berhenti dan tanya — sesuai prinsip CLAUDE.md §8.
+
 ## Yang sudah diverifikasi live (bukan cuma "harusnya jalan")
 
 - `db/seed.py` dijalankan langsung ke Supabase — 780 responden, 102 metric
@@ -203,9 +254,9 @@ kedua nama env var itu, redeploy.
 ### Infrastruktur & operasional
 - Render free tier: server tidur setelah 15 menit tidak dipakai, request
   pertama setelah itu lambat 30-60 detik.
-- Belum ada CI (GitHub Actions) yang menjalankan `pytest`/`ruff`/`mypy`/
-  `next build` otomatis tiap push — semua verifikasi sesi ini manual.
 - Belum ada custom domain — masih `.vercel.app` dan `.onrender.com`.
+- ~~Belum ada CI~~ — selesai 2026-08-24, lihat bagian "Pengerasan Phase 1"
+  di atas.
 
 ### Phase 2 — sinyal (belum dimulai sama sekali)
 Konektor sosial (YouTube/X/Meta/TikTok), pipeline ingestion (dedup, bahasa,
