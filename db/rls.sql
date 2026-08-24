@@ -47,6 +47,36 @@ GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO pop_app;
 ALTER DEFAULT PRIVILEGES IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO pop_app;
 
+-- ============================================================================
+-- Bootstrap RLS untuk /auth/login — ditemukan 2026-08-24.
+--
+-- /auth/login mencari user lewat email SEBELUM org_id-nya diketahui (ayam-
+-- telur: org_id baru ketahuan SETELAH user ditemukan). Karena `users`
+-- FORCE ROW LEVEL SECURITY dan endpoint ini memakai get_session() biasa
+-- (bukan TenantSession yang men-set app.current_org), current_org() selalu
+-- NULL saat query ini jalan -> policy users_tenant (org_id = current_org())
+-- menyaring HABIS semua baris -> login selalu balas 401 "salah" apa pun
+-- passwordnya. Bug lama, baru ketahuan sekarang karena baru sekarang ada
+-- yang benar-benar coba login pakai password asli (bukan token demo).
+--
+-- Perbaikannya BUKAN melonggarkan policy users_tenant (itu akan membocorkan
+-- seluruh tabel users lintas tenant untuk SETIAP query tanpa app.current_org
+-- ter-set, bukan cuma untuk login). Polanya: fungsi SECURITY DEFINER yang
+-- SEMPIT — cuma kolom yang dibutuhkan alur auth, dipanggil lewat GRANT
+-- EXECUTE eksplisit ke pop_app, bukan akses tabel langsung.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION auth_lookup_user(p_email text)
+RETURNS TABLE (
+  id uuid, org_id uuid, email text, password_hash text,
+  role text, is_active boolean
+)
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT id, org_id, email, password_hash, role, is_active
+  FROM users WHERE email = p_email
+$$;
+REVOKE ALL ON FUNCTION auth_lookup_user(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_lookup_user(text) TO pop_app;
+
 -- PII hanya untuk peran tertentu. Ditegakkan lagi di lapisan aplikasi.
 REVOKE ALL ON respondent_identities FROM pop_app;
 GRANT SELECT, INSERT, DELETE ON respondent_identities TO pop_app;

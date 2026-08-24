@@ -6,12 +6,11 @@ Login mengembalikan access + refresh token.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from uuid import UUID
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -73,24 +72,35 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_session
 
 @router.post("/login", response_model=TokenPair)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_session)):
-    """Login dengan email + password. Mengembalikan access + refresh token."""
-    result = await db.execute(select(User).where(User.email == body.email))
-    user = result.scalar_one_or_none()
+    """Login dengan email + password. Mengembalikan access + refresh token.
 
-    if not user or not user.password_hash or not verify_password(body.password, user.password_hash):
+    Lookup lewat auth_lookup_user() (SECURITY DEFINER), bukan select(User)
+    langsung: org_id user belum diketahui di titik ini (ayam-telur — org_id
+    baru ketahuan SETELAH user ditemukan), dan get_session() tidak men-set
+    app.current_org, jadi query ORM biasa kena FORCE ROW LEVEL SECURITY dan
+    selalu kosong. Lihat db/rls.sql untuk penjelasan lengkap & kenapa bukan
+    melonggarkan policy tenant-nya.
+    """
+    result = await db.execute(text("SELECT * FROM auth_lookup_user(:email)"), {"email": body.email})
+    row = result.mappings().first()
+
+    password_hash = row["password_hash"] if row else None
+    if not password_hash or not verify_password(body.password, password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email atau password salah.")
 
-    if not user.is_active:
+    if not row["is_active"]:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Akun dinonaktifkan.")
 
-    user.last_login_at = datetime.now(UTC)
-    await db.commit()
+    # last_login_at sengaja tidak diupdate di sini: UPDATE lewat sesi tanpa
+    # app.current_org akan kena RLS yang sama (0 baris terpengaruh, senyap).
+    # Bukan bug baru — field ini memang belum pernah tertulis. Perbaiki
+    # bersamaan kalau auth_lookup_user() suatu saat diperluas.
 
     return TokenPair(
         access_token=create_access_token(
-            user_id=user.id, org_id=user.org_id, role=user.role, email=user.email,
+            user_id=row["id"], org_id=row["org_id"], role=row["role"], email=row["email"],
         ),
-        refresh_token=create_refresh_token(user_id=user.id, org_id=user.org_id),
+        refresh_token=create_refresh_token(user_id=row["id"], org_id=row["org_id"]),
     )
 
 
