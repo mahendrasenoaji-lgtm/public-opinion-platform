@@ -7,6 +7,7 @@ Token: JWT HS256, access + refresh pair.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from uuid import UUID
 
 import jwt
@@ -59,7 +60,7 @@ def create_refresh_token(*, user_id: UUID, org_id: UUID) -> str:
     return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm)
 
 
-def decode_refresh_token(token: str) -> dict:
+def decode_refresh_token(token: str) -> dict[str, Any]:
     """Decode a refresh token; raises on expiry or invalid."""
     settings = get_settings()
     claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])

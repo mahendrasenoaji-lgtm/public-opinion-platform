@@ -105,13 +105,13 @@ def compute_index(
         raise ValueError("tidak ada dimensi untuk dihitung")
 
     norm = normalise_weights(dims)
-    value = sum(d.score * w for d, w in zip(dims, norm))
+    value = sum(d.score * w for d, w in zip(dims, norm, strict=True))
 
     mix: dict[str, float] = {}
-    for d, w in zip(dims, norm):
+    for d, w in zip(dims, norm, strict=True):
         mix[d.source.value] = round(mix.get(d.source.value, 0.0) + w, 4)
 
-    survey_dims = [(d, w) for d, w in zip(dims, norm) if d.source in GENERALISABLE]
+    survey_dims = [(d, w) for d, w in zip(dims, norm, strict=True) if d.source in GENERALISABLE]
     survey_share = sum(w for _, w in survey_dims)
 
     n_eff: int | None = None

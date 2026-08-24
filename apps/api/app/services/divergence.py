@@ -6,6 +6,7 @@ untuk pertanyaan yang sama, dan seberapa besar bedanya patut dikhawatirkan.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from app.services.poi import SignalSource
@@ -37,7 +38,7 @@ class DivergenceResult:
 
 #: Penjelasan kandidat. Yang dipilih hanya yang kondisinya terpenuhi — bukan
 #: semuanya ditempel setiap saat.
-_EXPLANATIONS = [
+_EXPLANATIONS: list[tuple[str, str, Callable[[float, float, float], bool]]] = [
     (
         "Self-selection",
         "Yang menulis di media sosial cenderung yang punya keluhan. Kelompok "
@@ -92,7 +93,9 @@ def analyse(readings: list[SignalReading]) -> DivergenceResult:
     ]
     small = [r for r in readings if r.source is SignalSource.SURVEY and r.n < 400]
     if small:
-        limitations.append("Sampel survei di bawah 400; selisih sebagian bisa berasal dari galat sampling.")
+        limitations.append(
+            "Sampel survei di bawah 400; selisih sebagian bisa berasal dari galat sampling."
+        )
 
     return DivergenceResult(
         readings=readings,

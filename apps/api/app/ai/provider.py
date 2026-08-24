@@ -46,7 +46,10 @@ class AnthropicProvider(LLMProvider):
         self._client = AsyncAnthropic(api_key=api_key)
         self._model = model
 
-    async def complete(self, *, system, user, schema=None, max_tokens=2000) -> LLMResponse:
+    async def complete(
+        self, *, system: str, user: str, schema: dict[str, Any] | None = None,
+        max_tokens: int = 2000,
+    ) -> LLMResponse:
         if schema:
             system = (
                 f"{system}\n\nBalas HANYA dengan JSON valid sesuai skema berikut, "
@@ -73,7 +76,10 @@ class AnthropicProvider(LLMProvider):
 class EchoProvider(LLMProvider):
     """Provider untuk tes dan mode demo offline. Deterministik, tanpa jaringan."""
 
-    async def complete(self, *, system, user, schema=None, max_tokens=2000) -> LLMResponse:
+    async def complete(
+        self, *, system: str, user: str, schema: dict[str, Any] | None = None,
+        max_tokens: int = 2000,
+    ) -> LLMResponse:
         return LLMResponse(
             text=json.dumps({"echo": user[:200]}),
             model_version="echo-1",

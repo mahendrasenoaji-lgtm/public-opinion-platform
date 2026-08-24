@@ -46,3 +46,7 @@ extend-immutable-calls = ["fastapi.Query", "fastapi.Path", "fastapi.Body"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
+# Tanpa ini, mypy menganggap Settings() (BaseSettings, field wajib dibaca
+# dari env, bukan argumen konstruktor) kurang argumen — false positive.
+# Ditemukan 2026-08-24 saat mengeraskan CI.
+plugins = ["pydantic.mypy"]

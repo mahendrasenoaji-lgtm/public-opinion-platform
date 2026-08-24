@@ -1,0 +1,98 @@
+name: CI
+
+# Ditambahkan 2026-08-24 — sebelumnya semua verifikasi manual per sesi.
+# Bug RLS di /auth/login|register|refresh dan Root Directory Vercel yang
+# kosong (lihat docs/deployment-status.md) lolos karena tidak ada yang
+# memaksa jalur ini benar-benar dites tiap push. Job `backend` di sini
+# memakai role pop_app (bukan superuser) supaya RLS betul-betul aktif saat
+# tes jalan — superuser mengabaikan RLS dan akan membuat CI lulus palsu,
+# sama seperti peringatan di apps/api/tests/test_tenant_isolation.py.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        # pgvector/pgvector:pg16, bukan image postgres polos — schema.sql
+        # butuh extension "vector" (db/schema.sql baris 8).
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: pop
+          POSTGRES_PASSWORD: pop
+          POSTGRES_DB: pop
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U pop"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGPASSWORD: pop
+      # pop_app, BUKAN superuser pop — R3 CLAUDE.md: RLS harus aktif saat
+      # aplikasi & tes jalan. ADMIN_DATABASE_URL (superuser) cuma untuk
+      # menerapkan schema+RLS di langkah migrasi.
+      DATABASE_URL: postgresql+asyncpg://pop_app:change-me@localhost:5432/pop
+      TEST_DATABASE_URL_APP: postgresql+asyncpg://pop_app:change-me@localhost:5432/pop
+      ADMIN_DATABASE_URL: postgresql://pop:pop@localhost:5432/pop
+      JWT_SECRET: ci-test-secret-not-for-production
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio ruff mypy
+
+      - name: Terapkan schema + RLS (role pop_app dibuat oleh rls.sql sendiri)
+        run: |
+          psql -h localhost -U pop -d pop -v ON_ERROR_STOP=1 -f ../../db/schema.sql
+          psql -h localhost -U pop -d pop -v ON_ERROR_STOP=1 -f ../../db/rls.sql
+
+      - name: ruff
+        run: ruff check app tests
+
+      - name: mypy (app/services + app/ai — cakupan strict sesuai CLAUDE.md §6)
+        run: mypy app/services app/ai
+
+      - name: pytest
+        run: python -m pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: apps/web/package-lock.json
+
+      - run: npm ci
+
+      - name: typecheck
+        run: npm run typecheck
+
+      - name: next build
+        env:
+          # Nilai dummy — cukup untuk build statis lolos (route handler &
+          # server component memanggilnya saat runtime request, bukan saat
+          # build). Tidak menyentuh backend/database sungguhan.
+          NEXT_PUBLIC_API_URL: http://localhost:8000/v1
+          DEMO_PROJECT_ID: 00000000-0000-0000-0000-000000000000
+        run: npm run build

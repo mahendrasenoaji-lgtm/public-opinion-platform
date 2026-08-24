@@ -74,7 +74,11 @@ CAUSAL_TERMS = (
 OVERCLAIM_TERMS = ("dipastikan", "pasti akan", "mengendalikan opini", "menjamin")
 
 
-class AIEnvelope(BaseModel, Generic[T]):
+# noqa: UP046 sengaja tidak diterapkan di sini — sintaks generic class PEP 695
+# belum diverifikasi stabil dengan model_validator generik Pydantic v2 untuk
+# file R2 CLAUDE.md ini (kontrak wajib tiap keluaran AI); tidak ikut
+# modernisasi otomatis tanpa pengujian eksplisit.
+class AIEnvelope(BaseModel, Generic[T]):  # noqa: UP046
     """Pembungkus wajib untuk setiap keluaran AI."""
 
     payload: T
@@ -91,7 +95,7 @@ class AIEnvelope(BaseModel, Generic[T]):
     model_config = {"protected_namespaces": ()}
 
     @model_validator(mode="after")
-    def _guard(self) -> "AIEnvelope[T]":
+    def _guard(self) -> AIEnvelope[T]:
         text = _flatten(self.payload).lower()
 
         found = [t for t in CAUSAL_TERMS if t in text]
@@ -127,7 +131,7 @@ class AIEnvelope(BaseModel, Generic[T]):
             for k in ("difference-in-differences", "did", "rct", "synthetic control", "eksperimen")
         )
 
-    def approve(self, reviewer: UUID) -> "AIEnvelope[T]":
+    def approve(self, reviewer: UUID) -> AIEnvelope[T]:
         return self.model_copy(update={"human_review": ReviewStatus.APPROVED})
 
 
