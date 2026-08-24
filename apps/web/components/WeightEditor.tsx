@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { SOURCE, type SignalSource } from "@/lib/tokens";
-import { api } from "@/lib/api";
+import { saveOpinionWeights } from "@/app/(dashboard)/opinion-index/actions";
 
 export interface WeightDim {
   key: string;
@@ -46,15 +46,12 @@ export function WeightEditor({
   function save() {
     setError(null);
     startTransition(async () => {
-      try {
-        await api(`/projects/${projectId}/opinion/weights`, {
-          method: "PUT",
-          body: JSON.stringify({ weights: Object.fromEntries(dims.map((d) => [d.key, d.weight])) }),
-        });
-        setSaved(true);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Gagal menyimpan bobot.");
-      }
+      const result = await saveOpinionWeights(
+        projectId,
+        Object.fromEntries(dims.map((d) => [d.key, d.weight])),
+      );
+      if (result.ok) setSaved(true);
+      else setError(result.error);
     });
   }
 

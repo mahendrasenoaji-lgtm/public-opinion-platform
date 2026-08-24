@@ -2,9 +2,10 @@
 
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
 Update 2026-08-24: CORS_ORIGINS diselesaikan, slider bobot Opinion Index
-diverifikasi live (simpan sungguhan, bukan pratinjau), dan gerbang
+diverifikasi live (simpan sungguhan, bukan pratinjau), gerbang
 `SITE_PASSWORD` (ditambah 2026-08-22 di sesi lain yang tidak tercatat di
-sini saat itu) didokumentasikan.
+sini saat itu) didokumentasikan, dan login user asli (sesi cookie httpOnly,
+menggantikan `DEMO_ACCESS_TOKEN`) dibangun dan diverifikasi live.
 Dokumen ini adalah sumber kebenaran untuk sesi berikutnya — jangan andalkan
 riwayat chat, chat lama tidak ikut ter-clone.
 
@@ -20,7 +21,7 @@ riwayat chat, chat lama tidak ikut ter-clone.
 Org demo yang sudah di-seed di Supabase:
 - `org_id` = `19a872b1-1a32-49d6-a168-c46d8b4eb79b`
 - `project_id` = `0a06b813-a1ec-4bba-8de1-38e06b2ac2f1`
-- user demo: `direktur@demo.id` (`user_id` = `23843249-5249-4911-94c8-b609c117fa39`), password_hash sengaja placeholder — tidak bisa login lewat form, token dibuat manual lewat `create_access_token()`.
+- user demo: `direktur@demo.id` (`user_id` = `23843249-5249-4911-94c8-b609c117fa39`, role `RESEARCH_DIRECTOR`). Password_hash **sudah diganti 2026-08-24** dari placeholder ke argon2 asli — bisa login lewat form `/masuk` sekarang. Password plaintext-nya sengaja tidak ditulis di sini (repo public) — ada di password manager pengguna; kalau perlu reset lagi, jalankan `UPDATE users SET password_hash = ... WHERE email = 'direktur@demo.id'` dengan hash dari `argon2.PasswordHasher().hash(...)` (lib yang sama dipakai `apps/api/app/services/auth.py`).
 
 ## ✅ CORS_ORIGINS — selesai 2026-08-24
 
@@ -58,6 +59,46 @@ sebelum halaman apa pun bisa diakses — termasuk untuk verifikasi otomatis
 sesi mendatang. Kalau perlu browsing terautomasi ke situs ini, sesi harus
 login manual dulu (Claude tidak boleh mengetik password walau pengguna
 menawarkan memberikannya langsung — lihat aturan boundary kredensial).
+
+## ✅ Login asli — selesai 2026-08-24
+
+`DEMO_ACCESS_TOKEN`/`NEXT_PUBLIC_DEMO_ACCESS_TOKEN` diganti sesi cookie
+httpOnly. Ringkasannya (detail desain lengkap ada di riwayat sesi, bukan di
+sini — cari kalau perlu):
+
+- Halaman login: `/masuk` (email+password) — **beda** dari `/login` yang
+  dipakai gerbang `SITE_PASSWORD` di atas. Route handler:
+  `/api/session/login`, `/api/session/logout`.
+- Cookie `pop_session` (access token) + `pop_refresh` (refresh token),
+  httpOnly, `maxAge` mengikuti klaim `exp` token masing-masing.
+  `lib/api.ts` baca cookie ini lewat `next/headers` — cuma bisa dipanggil
+  dari konteks server (Server Component/Action/Route Handler), bukan dari
+  client langsung.
+- `middleware.ts` sekarang dua lapis: cek `SITE_PASSWORD` dulu (tidak
+  diubah), baru cek sesi `pop_session` ada & belum expired (cek cepat,
+  **tanpa** verifikasi tanda tangan — bukan batas keamanan, cuma
+  convenience redirect ke `/masuk`). Batas keamanan sungguhan tetap di
+  FastAPI (`decode_token` verifikasi HS256 penuh) + RLS Postgres.
+- **Sengaja tidak ada auto-refresh token** di iterasi ini — kalau access
+  token expired, `api()` dapat 401 dari backend lalu redirect ke `/masuk`,
+  user login ulang manual. `ACCESS_TOKEN_MINUTES=43200` (30 hari) di Render
+  bikin ini jarang kejadian untuk skala kuliah. Endpoint
+  `/v1/auth/refresh` sudah ada di backend kalau nanti mau dikeraskan.
+  `refresh_token_days` default 14 (lebih pendek dari access token 30
+  hari — pengaturan yang sudah ada sebelum sesi ini, FYI kalau mau
+  diselaraskan nanti).
+- `WeightEditor.tsx` (client component, satu-satunya yang tadinya panggil
+  `api()` langsung dari browser) sekarang lewat Server Action
+  `saveOpinionWeights()` di `app/(dashboard)/opinion-index/actions.ts`.
+- **Tidak ada env var Vercel baru** yang dibutuhkan (sengaja — lihat
+  keputusan desain "middleware convenience check" di atas, tidak perlu
+  `JWT_SECRET` disinkronkan ke Vercel).
+- `DEMO_ACCESS_TOKEN`/`NEXT_PUBLIC_DEMO_ACCESS_TOKEN` di Vercel jadi tidak
+  terpakai lagi — aman dihapus kapan saja, tidak memblokir apa pun.
+- Password demo user diganti dari placeholder ke argon2 asli — lihat
+  catatan di atas.
+- Tidak ada halaman registrasi (di luar cakupan — org/user diprovisikan
+  manual).
 
 ## Yang sudah diverifikasi live (bukan cuma "harusnya jalan")
 
@@ -111,12 +152,6 @@ kedua nama env var itu, redeploy.
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
-- **Belum ada halaman login/sesi asli** — `lib/api.ts` pakai token demo
-  lewat env var (`DEMO_ACCESS_TOKEN` server, `NEXT_PUBLIC_...` client).
-  `NEXT_PUBLIC_*` berarti token itu **terlihat oleh siapa pun** yang buka
-  devtools di situs publik. Diterima untuk demo kuliah dengan data sintetis;
-  wajib diganti sesi cookie httpOnly sebelum dipakai untuk apa pun yang
-  serius.
 - Cuma 2 dari 9 halaman dashboard yang di-port ke Next.js (Command Center,
   Opinion Index) — sesuai definisi selesai Phase 1 di `docs/roadmap.md`.
   7 halaman lain (Consistency, Narrative, Segments, Geo, Forecast, Brief,

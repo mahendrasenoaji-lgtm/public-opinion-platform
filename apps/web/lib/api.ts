@@ -1,4 +1,15 @@
-/** Klien API. Semua metrik yang masuk sudah membawa sumber dan metodenya. */
+/**
+ * Klien API. Semua metrik yang masuk sudah membawa sumber dan metodenya.
+ *
+ * Cuma dipakai dari konteks server (Server Component, Server Action, Route
+ * Handler) — import next/headers di bawah membuat modul ini gagal dibundel
+ * kalau ada client component yang mengimpornya langsung, dan itu memang
+ * sengaja (lihat lib/session.ts).
+ */
+import type { Route } from "next";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { SESSION_COOKIE } from "@/lib/session";
 
 export type SignalSource = "SURVEY" | "SOCIAL" | "MEDIA" | "DIGITAL";
 
@@ -30,26 +41,29 @@ export interface AIEnvelope<T> {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/v1";
 
-// TODO(frontend-auth): belum ada halaman login/session di Next.js — di luar
-// cakupan Phase 1 (roadmap.md hanya mewajibkan Command Center + Opinion
-// Index). DEMO_ACCESS_TOKEN/NEXT_PUBLIC_DEMO_ACCESS_TOKEN adalah jalan
-// pintas SEMENTARA supaya server component ATAU komponen client (mis. slider
-// bobot yang menyimpan lewat PUT) bisa memanggil API bertenant selama
-// dev/demo lokal. NEXT_PUBLIC_* memang dibundel ke JS client — jangan pernah
-// isi ini dengan token produksi sungguhan. Ganti seluruhnya dengan sesi asli
-// (cookie httpOnly dari /auth/login) sebelum ada halaman publik.
-const DEMO_TOKEN = process.env.DEMO_ACCESS_TOKEN ?? process.env.NEXT_PUBLIC_DEMO_ACCESS_TOKEN;
-
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
-      ...(DEMO_TOKEN ? { Authorization: `Bearer ${DEMO_TOKEN}` } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...init?.headers,
     },
     cache: "no-store",
   });
+
+  if (res.status === 401) {
+    // Sesi tidak ada/tidak valid/kadaluarsa — backend jadi otoritas
+    // tunggal untuk itu (lihat lib/session.ts). Tidak ada auto-refresh di
+    // sini, cuma lempar balik ke halaman login.
+    // typedRoutes belum "melihat" /masuk sampai typegen jalan ulang; sama
+    // seperti cast Route di (dashboard)/layout.tsx untuk rute yang belum
+    // ada saat build pertama.
+    redirect("/masuk" as Route);
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, body.detail ?? "Permintaan gagal.");
