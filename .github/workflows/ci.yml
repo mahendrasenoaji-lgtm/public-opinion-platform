@@ -39,7 +39,13 @@ jobs:
       DATABASE_URL: postgresql+asyncpg://pop_app:change-me@localhost:5432/pop
       TEST_DATABASE_URL_APP: postgresql+asyncpg://pop_app:change-me@localhost:5432/pop
       ADMIN_DATABASE_URL: postgresql://pop:pop@localhost:5432/pop
-      JWT_SECRET: ci-test-secret-not-for-production
+      # Nilai ini HARUS sama dengan yang di-hardcode tests/test_auth_service.py
+      # (verifikasi manual pyjwt.decode(token, "test-secret-for-unit-tests",
+      # ...)). os.environ.setdefault() di tests/test_auth_router.py cuma
+      # berlaku kalau var ini BELUM diset — begitu CI mengeset nilai lain di
+      # sini, setdefault jadi no-op dan test_auth_service.py gagal verifikasi
+      # tanda tangan token (ketahuan di run CI pertama, 2026-08-24).
+      JWT_SECRET: test-secret-for-unit-tests
     defaults:
       run:
         working-directory: apps/api
