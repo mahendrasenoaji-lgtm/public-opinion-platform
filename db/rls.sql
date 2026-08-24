@@ -77,6 +77,49 @@ $$;
 REVOKE ALL ON FUNCTION auth_lookup_user(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_lookup_user(text) TO pop_app;
 
+-- Sama seperti auth_lookup_user() di atas, tapi lookup by id — dipakai
+-- /auth/refresh, yang cuma punya user_id dari klaim refresh token, belum
+-- ada app.current_org tersedia. Ditemukan bersamaan (2026-08-24): bug yang
+-- persis sama, /auth/refresh juga selalu balas 401 sebelum ini.
+CREATE OR REPLACE FUNCTION auth_lookup_user_by_id(p_user_id uuid)
+RETURNS TABLE (id uuid, org_id uuid, email text, role text, is_active boolean)
+LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+  SELECT id, org_id, email, role, is_active FROM users WHERE id = p_user_id
+$$;
+REVOKE ALL ON FUNCTION auth_lookup_user_by_id(uuid) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_lookup_user_by_id(uuid) TO pop_app;
+
+-- /auth/register: sama akar masalahnya, tapi lebih parah — INSERT ke
+-- organizations/users lewat sesi tanpa app.current_org melanggar WITH CHECK
+-- (org_id = current_org()) dan GAGAL TOTAL (bukan cuma diam-diam kosong
+-- seperti SELECT). Belum ada UI yang memakai endpoint ini, jadi baru
+-- ketahuan lewat pembacaan kode, belum ada laporan pengguna nyata.
+-- Uniqueness slug dicek di dalam fungsi (bukan pre-check terpisah di
+-- Python yang juga akan kena RLS yang sama), lalu dilempar sebagai
+-- unique_violation supaya app layer bisa tangkap jadi 409 yang rapi.
+CREATE OR REPLACE FUNCTION auth_register(
+  p_org_name text, p_org_slug text, p_full_name text,
+  p_email text, p_password_hash text
+) RETURNS TABLE (org_id uuid, user_id uuid, role text)
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_org_id uuid; v_user_id uuid;
+BEGIN
+  IF EXISTS (SELECT 1 FROM organizations WHERE slug = p_org_slug) THEN
+    RAISE EXCEPTION 'Slug organisasi sudah dipakai.' USING ERRCODE = 'unique_violation';
+  END IF;
+
+  INSERT INTO organizations (name, slug) VALUES (p_org_name, p_org_slug)
+    RETURNING id INTO v_org_id;
+  INSERT INTO users (org_id, email, full_name, password_hash, role)
+    VALUES (v_org_id, p_email, p_full_name, p_password_hash, 'SUPER_ADMIN')
+    RETURNING id INTO v_user_id;
+
+  RETURN QUERY SELECT v_org_id, v_user_id, 'SUPER_ADMIN'::text;
+END;
+$$;
+REVOKE ALL ON FUNCTION auth_register(text, text, text, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION auth_register(text, text, text, text, text) TO pop_app;
+
 -- PII hanya untuk peran tertentu. Ditegakkan lagi di lapisan aplikasi.
 REVOKE ALL ON respondent_identities FROM pop_app;
 GRANT SELECT, INSERT, DELETE ON respondent_identities TO pop_app;
