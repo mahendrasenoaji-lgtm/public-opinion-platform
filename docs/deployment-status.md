@@ -1,13 +1,14 @@
 # Status Deployment
 
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
-Update 2026-08-24 (sesi panjang, 6 commit ke main): CORS_ORIGINS
+Update 2026-08-24 (sesi panjang, 9 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
 `SITE_PASSWORD` didokumentasikan, login user asli dibangun (menggantikan
 `DEMO_ACCESS_TOKEN`), bug RLS di `/auth/login|register|refresh`
-diperbaiki, dan Phase 1 dikeraskan: `ruff check app tests` + `mypy
-app/services app/ai` bersih 100%, CI (GitHub Actions) terpasang dan
-hijau. Lihat bagian "Pengerasan Phase 1" di bawah untuk detail lengkap.
+diperbaiki, Phase 1 dikeraskan (`ruff`+`mypy` bersih 100%, CI hijau di
+GitHub Actions), lalu 5 dari 7 halaman dashboard sisa di-port ke Next.js
+dengan data asli dari Supabase. Lihat bagian "Pengerasan Phase 1" dan "5
+dari 7 halaman dashboard sisa" di bawah untuk detail lengkap.
 Dokumen ini adalah sumber kebenaran untuk sesi berikutnya — jangan andalkan
 riwayat chat, chat lama tidak ikut ter-clone.
 
@@ -234,13 +235,65 @@ salinan manapun.
 `JWT_SECRET` dari Render, lalu `vercel env rm` + `vercel env add` untuk
 kedua nama env var itu, redeploy.
 
+## ✅ 5 dari 7 halaman dashboard sisa — selesai 2026-08-24
+
+Batch pertama porting dari prototipe statis (`design-reference/`) ke
+Next.js: **Signal Consistency, Public Segments, Narrative Map, Geographic
+Map, Forecast & Simulator**. Semua pakai data asli yang sudah di-seed di
+Supabase (6 segments, 4 narratives, 48 metric_snapshots per-provinsi) —
+bukan data sintetis prototipe (`design-reference/README.md` sendiri
+melarang menyalin data prototipe).
+
+Backend baru: `GET /projects/{id}/segments`, `GET /projects/{id}/narratives`,
+`GET /projects/{id}/opinion/geo` (agregasi per provinsi). `POST
+/forecast/what-if` dan `GET /opinion/divergence` sudah ada sebelumnya,
+tinggal dipakai. Model SQLAlchemy `Narrative` baru ditambah ke
+`app/models/measurement.py` (tabel `narratives` sendiri sudah ada dari
+schema.sql awal, cuma belum ada mapping-nya).
+
+**Diverifikasi live di production** (bukan cuma lolos build) — termasuk
+lewat interaksi nyata di browser, bukan cuma render awal:
+- Consistency: 4 penjelasan (`explanations`) yang tampil adalah hasil
+  komputasi `services/divergence.py` sungguhan, bukan teks statis
+  prototipe.
+- Segments: 6 segmen dari seed tampil terurut benar, klik memilih narasi
+  di Narrative Map diverifikasi mengubah panel detail (state React jalan).
+- **Geo membuktikan gating publikasi CLAUDE.md §3 jalan otomatis dari
+  data asli**: 8 dari 16 provinsi (yang share populasinya kecil, jadi
+  `effective_n` hasil hitung asli jatuh di bawah 250) tampil "data tidak
+  cukup" tanpa perlu skenario buatan — bukan cuma lolos tes unit dengan
+  data rekayasa.
+- Forecast: slider "Kenaikan harga pangan" ke 6% memicu Server Action
+  sungguhan ke `/forecast/what-if`, hasilnya bergeser dari 67.3 ke 63
+  (cocok dengan koefisien asli -0.72/% di `services/forecast.py`), bukan
+  angka statis.
+- Satu bug kosmetik ketahuan & diperbaiki lewat verifikasi ini:
+  `Decimal` di `SegmentOut`/`NarrativeOut` ter-serialize JSON sebagai
+  string presisi-tetap ("24.00" bukan "24"), diganti ke `float`.
+
+Dua field dari prototipe SENGAJA tidak dipindahkan (bukan lupa) — tidak
+ada data nyata yang mendukungnya: "isu teratas" & "perubahan periode" di
+Geo (metric_snapshots per provinsi cuma simpan satu periode), dan
+"volatilitas" di Segments.
+
+Tes baru: `apps/api/tests/test_dashboard_reads.py` — 4 tes end-to-end HTTP
+asli (role `pop_app`, RLS aktif), termasuk kasus inti gating publikasi
+provinsi n-rendah.
+
+**2 halaman sisa (Executive Brief, AI Governance) sengaja di luar batch
+ini** — beda kelas pekerjaan, butuh keputusan yang belum ditanyakan ke
+pengguna: Brief perlu narasi AI-generated (`AIEnvelope` + tulis ke
+`ai_outputs`, backend `copilot` masih stub 501/Phase 2); Governance
+sebagian bisa dibangun sekarang (Data Quality Score dari
+`data_quality_scores` yang sudah seeded) tapi tabel "Jejak keputusan
+model AI"-nya kosong sampai ada fitur yang benar-benar menulis ke
+`ai_outputs` — terkait langsung dengan keputusan Brief.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
-- Cuma 2 dari 9 halaman dashboard yang di-port ke Next.js (Command Center,
-  Opinion Index) — sesuai definisi selesai Phase 1 di `docs/roadmap.md`.
-  7 halaman lain (Consistency, Narrative, Segments, Geo, Forecast, Brief,
-  Governance) cuma ada di prototipe statis (`design-reference/`).
+- 2 halaman dashboard tersisa yang belum di-port: **Executive Brief** dan
+  **AI Governance** — lihat penjelasan keputusan di atas.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
   Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
   ada.
