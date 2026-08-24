@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, Text, func
+from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import INET, JSON
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -13,7 +15,28 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db import Base
 
 
+class ConfidenceBand(str, enum.Enum):  # noqa: UP042 — lihat catatan di
+    # app/models/measurement.py:SignalSource. Sama alasannya: cocok dengan
+    # tipe enum Postgres native `confidence_band` (db/schema.sql), bukan
+    # String biasa. Enum lokal di sini (bukan impor app.ai.envelope.Confidence)
+    # supaya app/models tidak bergantung ke app/ai.
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+
+
+class ReviewStatus(str, enum.Enum):  # noqa: UP042
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+
+
 class AIOutput(Base):
+    """Satu baris per keluaran AI (CLAUDE.md R2). Ditulis pertama kali oleh
+    ExecutiveBriefAgent (app/ai/brief.py) — sebelum itu tabel ini memang
+    kosong, bukan bug."""
+
     __tablename__ = "ai_outputs"
 
     id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
@@ -29,9 +52,26 @@ class AIOutput(Base):
     prompt_hash: Mapped[str] = mapped_column(Text, nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False)
     evidence: Mapped[list] = mapped_column(JSON, nullable=False)
-    confidence: Mapped[str] = mapped_column(String(10), nullable=False)
+    confidence: Mapped[ConfidenceBand] = mapped_column(
+        SAEnum(
+            ConfidenceBand,
+            name="confidence_band",
+            create_type=False,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+    )
     limitations: Mapped[str] = mapped_column(Text, nullable=False)
-    human_review: Mapped[str] = mapped_column(String(15), nullable=False, default="PENDING")
+    human_review: Mapped[ReviewStatus] = mapped_column(
+        SAEnum(
+            ReviewStatus,
+            name="review_status",
+            create_type=False,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=ReviewStatus.PENDING,
+    )
     reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

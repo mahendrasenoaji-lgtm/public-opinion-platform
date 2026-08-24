@@ -9,6 +9,7 @@ from fastapi.responses import JSONResponse
 from app.config import get_settings
 from app.routers import (
     auth,
+    brief,
     copilot,
     forecast,
     governance,
@@ -70,5 +71,6 @@ for r in (
     governance,
     segments,
     narratives,
+    brief,
 ):
     app.include_router(r.router, prefix="/v1")
