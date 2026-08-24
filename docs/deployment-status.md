@@ -21,7 +21,7 @@ riwayat chat, chat lama tidak ikut ter-clone.
 Org demo yang sudah di-seed di Supabase:
 - `org_id` = `19a872b1-1a32-49d6-a168-c46d8b4eb79b`
 - `project_id` = `0a06b813-a1ec-4bba-8de1-38e06b2ac2f1`
-- user demo: `direktur@demo.id` (`user_id` = `23843249-5249-4911-94c8-b609c117fa39`, role `RESEARCH_DIRECTOR`). Password_hash **sudah diganti 2026-08-24** dari placeholder ke argon2 asli — bisa login lewat form `/masuk` sekarang. Password plaintext-nya sengaja tidak ditulis di sini (repo public) — ada di password manager pengguna; kalau perlu reset lagi, jalankan `UPDATE users SET password_hash = ... WHERE email = 'direktur@demo.id'` dengan hash dari `argon2.PasswordHasher().hash(...)` (lib yang sama dipakai `apps/api/app/services/auth.py`).
+- user demo: `user@publicopinion.id` (`user_id` = `23843249-5249-4911-94c8-b609c117fa39`, role `RESEARCH_DIRECTOR`) — email & password_hash **diganti 2026-08-24** dari `direktur@demo.id`/placeholder ke email sekarang + argon2 asli, atas permintaan pengguna. Login lewat form `/masuk` sudah diverifikasi jalan (lihat bagian "Login asli" di bawah — sempat gagal duluan gara-gara bug RLS di `/auth/login`, sudah diperbaiki). Password plaintext-nya sengaja tidak ditulis di sini (repo public) — ada di password manager pengguna; kalau perlu reset lagi, jalankan `UPDATE users SET email = ..., password_hash = ... WHERE email = 'user@publicopinion.id'` dengan hash dari `argon2.PasswordHasher().hash(...)` (lib yang sama dipakai `apps/api/app/services/auth.py`).
 
 ## ✅ CORS_ORIGINS — selesai 2026-08-24
 
@@ -99,6 +99,40 @@ sini — cari kalau perlu):
   catatan di atas.
 - Tidak ada halaman registrasi (di luar cakupan — org/user diprovisikan
   manual).
+
+**Dua bug infrastruktur ditemukan & diperbaiki di sesi yang sama, keduanya
+baru ketahuan karena baru sekarang ada yang benar-benar coba jalur login
+end-to-end:**
+
+1. **Vercel Root Directory kosong.** Project Settings → Build and
+   Deployment → Root Directory ternyata kosong (bukan `apps/web`), bikin
+   dua deploy berturut-turut gagal (`Couldn't find any 'pages' or 'app'
+   directory`, lalu `No Next.js version detected`). Sudah diisi `apps/web`
+   dan disimpan. Kalau ini kosong lagi entah kenapa di masa depan, itu
+   sebabnya build tiba-tiba gagal padahal kode lokal build mulus.
+2. **`/auth/login` selalu balas 401 apa pun passwordnya.** Query user lewat
+   email butuh akses ke tabel `users` SEBELUM org_id-nya diketahui
+   (ayam-telur), tapi `get_session()` tidak pernah men-set
+   `app.current_org` — jadi kena `FORCE ROW LEVEL SECURITY` dan selalu
+   kosong. Diperbaiki dengan fungsi Postgres `SECURITY DEFINER` sempit
+   (`auth_lookup_user`, di `db/rls.sql`, migrasi sudah diterapkan manual ke
+   Supabase — proyek ini belum punya tooling migrasi otomatis) — **bukan**
+   melonggarkan policy `users_tenant` secara umum, itu akan membocorkan
+   users lintas tenant untuk semua query tanpa `app.current_org`. Efek
+   samping: `last_login_at` sekarang sengaja tidak diupdate lagi (kena RLS
+   yang sama, sudah senyap gagal sejak awal — bukan regresi). `/auth/register`
+   punya akar masalah identik (INSERT ke `organizations`/`users` tanpa
+   org_id) dan **masih belum diperbaiki** — tidak ada UI yang memakainya
+   sekarang jadi sengaja dilewati, tapi kalau nanti ada halaman registrasi,
+   ingat perbaiki ini dulu.
+
+**Login end-to-end sudah diverifikasi live** (bukan cuma lolos build):
+login lewat `/masuk` → redirect ke `/command` → slider bobot Opinion Index
+lewat Server Action → simpan → hard reload → nilai bertahan → dikembalikan
+ke semula → tombol Keluar → cookie hilang → akses halaman lagi balik ke
+`/masuk`. Kredensial demo saat ini: email `user@publicopinion.id` (diganti
+dari `direktur@demo.id` atas permintaan pengguna), password ada di
+password manager pengguna — lihat cara reset di bagian atas kalau perlu.
 
 ## Yang sudah diverifikasi live (bukan cuma "harusnya jalan")
 
