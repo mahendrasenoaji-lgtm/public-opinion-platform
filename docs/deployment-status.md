@@ -533,6 +533,31 @@ bukan cache basi atau tercampur.
 sama sekali sesi ini (`pytest` 115 tetap lulus, dijalankan ulang untuk
 memastikan). **Belum di-push/di-deploy ke production.**
 
+## ✅ Edit/hapus proyek di `/proyek` — selesai 2026-08-27
+
+Kelanjutan langsung dari project switcher di atas — endpoint `PATCH` dan
+`DELETE /projects/{id}` sudah ada di backend sejak awal, tinggal butuh UI.
+
+- `app/(dashboard)/proyek/ProjectRow.tsx` (client component baru) —
+  setiap baris proyek sekarang punya tombol "Ubah nama" dan "Hapus" (di
+  samping tombol Aktifkan/badge Aktif yang sudah ada). Proyek demo (`is_demo`)
+  tetap read-only — tidak bisa diubah/dihapus.
+- **Inline rename**: klik "Ubah nama" → nama jadi input teks → Enter atau
+  "Simpan" memanggil `PATCH /projects/{id}` lewat server action
+  `renameProject()` → Escape atau "Batal" membatalkan. Validasi sisi klien
+  + pesan error dari backend ditampilkan di bawah baris.
+- **Hapus dengan konfirmasi ganda**: klik "Hapus" → muncul "Ya, hapus" +
+  "Batal" (bukan langsung hapus!) → "Ya, hapus" memanggil
+  `DELETE /projects/{id}` lewat server action `deleteProject()`. Kalau proyek
+  yang dihapus adalah proyek yang sedang aktif (cookie `pop_project_id`),
+  cookie di-clear supaya fallback ke `DEMO_PROJECT_ID`.
+- Backend `DELETE` butuh role `RESEARCH_DIRECTOR` — user demo punya role
+  ini. Kalau user hanya `RESEARCHER`, backend akan menolak dan pesan error
+  tampil di UI.
+
+Build bersih 100% (`npm run typecheck` + `next build`). Backend tidak
+disentuh sama sekali.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
@@ -542,8 +567,8 @@ memastikan). **Belum di-push/di-deploy ke production.**
   bagian "Registrasi self-service" di atas.
 - ~~Belum ada project switcher~~ — **selesai 2026-08-27**, lihat bagian
   "Project switcher" di atas.
-- Belum ada UI edit/hapus proyek, meski endpoint `PATCH`/
-  `DELETE /projects/{id}` sudah ada sejak awal.
+- ~~Belum ada UI edit/hapus proyek~~ — **selesai 2026-08-27**, lihat
+  bagian "Edit/hapus proyek" di atas.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
   Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
   ada.
