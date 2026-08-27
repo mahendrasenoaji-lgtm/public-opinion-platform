@@ -481,8 +481,14 @@ mencakup dua akun berbeda di Postgres Docker lokal yang sama:
 tidak ada yang berubah di backend — perubahan sesi ini murni frontend),
 `npm run typecheck`, dan `next build` semuanya bersih 100%.
 
-**Belum diverifikasi di Supabase/Render/Vercel produksi** — sama seperti
-Polarization Index di atas, baru lokal.
+**Deploy ke production dikonfirmasi 2026-08-27** — push memicu build
+Vercel baru (`dpl_J3SETfbxuQEPe4RB7f7VkMQzHKDh`, alias
+`public-opinion-platform.vercel.app` mengarah ke situ, output build
+mencantumkan route `daftar`) dan CI GitHub Actions hijau penuh. **Belum
+dicoba langsung di Supabase produksi** (login manual lewat gerbang
+`SITE_PASSWORD` dibutuhkan, di luar kemampuan Claude — lihat aturan
+boundary kredensial) — baru diverifikasi end-to-end di Postgres Docker
+lokal seperti dijelaskan di atas.
 
 **Batasan yang sengaja belum diselesaikan** (di luar cakupan permintaan
 "item termudah"): belum ada UI pilih-ganti proyek untuk org yang punya
@@ -496,6 +502,12 @@ ada.
 ### Residual Phase 1
 - ~~2 halaman dashboard tersisa~~ — **selesai**, lihat bagian "Executive
   Brief" di atas. 9/9 halaman dashboard sudah di-port.
+- ~~`/auth/register` tidak punya UI~~ — **selesai 2026-08-27**, lihat
+  bagian "Registrasi self-service" di atas.
+- **Belum ada project switcher** — org dengan >1 proyek tidak punya UI
+  ganti-ganti proyek aktif (`pop_project_id` cuma diset sekali oleh
+  `/proyek-baru`). Belum ada UI edit/hapus proyek juga, meski endpoint
+  `PATCH`/`DELETE /projects/{id}` sudah ada sejak awal.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
   Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
   ada.
