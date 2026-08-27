@@ -5,7 +5,7 @@ import { Panel } from "@/components/Panel";
 import { InsufficientData } from "@/components/Provenance";
 import { api } from "@/lib/api";
 import { getCurrentProjectId } from "@/lib/currentProject";
-import { activateProject } from "./actions";
+import { ProjectRow } from "./ProjectRow";
 
 export const dynamic = "force-dynamic";
 
@@ -45,38 +45,20 @@ export default async function ProyekPage() {
                   <th>Nama</th>
                   <th>Jenis</th>
                   <th>Dibuat</th>
-                  <th></th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {projects.map((p) => {
-                  const isActive = p.id === currentId;
-                  const activate = activateProject.bind(null, p.id);
-                  return (
-                    <tr key={p.id}>
-                      <td className="strong">{p.name}</td>
-                      <td className="dim">{p.is_demo ? "Demo" : "Asli"}</td>
-                      <td className="dim">
-                        {new Date(p.created_at).toLocaleDateString("id-ID", {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                      <td>
-                        {isActive ? (
-                          <span className="pill pill-ok">Aktif</span>
-                        ) : (
-                          <form action={activate}>
-                            <button type="submit" className="pill pill-warn" style={{ border: "none", cursor: "pointer" }}>
-                              Aktifkan
-                            </button>
-                          </form>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {projects.map((p) => (
+                  <ProjectRow
+                    key={p.id}
+                    id={p.id}
+                    name={p.name}
+                    isDemo={p.is_demo}
+                    createdAt={p.created_at}
+                    isActive={p.id === currentId}
+                  />
+                ))}
               </tbody>
             </table>
           )}
