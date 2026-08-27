@@ -16,6 +16,22 @@ interface SegmentOut {
   entropy: number | null;
 }
 
+interface PolarizationOut {
+  polarization_score: number | null;
+  state: string | null;
+  method: string;
+  segments_used: number;
+  insufficient_data: boolean;
+  note: string | null;
+  limitations: string | null;
+}
+
+const POLARIZATION_TONE: Record<string, string> = {
+  "menuju konsensus": "var(--pos)",
+  terfragmentasi: "var(--warn)",
+  terpolarisasi: "var(--neg)",
+};
+
 const SEG_COLOR = (sent: number | null) => {
   if (sent === null) return "var(--txt3)";
   if (sent > 30) return "var(--pos)";
@@ -26,12 +42,42 @@ const SEG_COLOR = (sent: number | null) => {
 
 export default async function SegmentsPage() {
   const projectId = process.env.DEMO_PROJECT_ID!;
-  const segments = await api<SegmentOut[]>(`/projects/${projectId}/segments`);
+  const [segments, polarization] = await Promise.all([
+    api<SegmentOut[]>(`/projects/${projectId}/segments`),
+    api<PolarizationOut>(`/projects/${projectId}/risk/polarization`),
+  ]);
 
   return (
     <>
       <PageHeader kicker="Public Segments" title="Persepsi Kebijakan Nasional 2026" />
       <div className="body">
+        <section className="stat-row">
+          <div className="stat">
+            <div className="kicker">Polarization Index</div>
+            {polarization.insufficient_data || polarization.polarization_score === null ? (
+              <InsufficientData
+                reason={polarization.note ?? "Sampel segmen belum cukup untuk dihitung."}
+              />
+            ) : (
+              <>
+                <div
+                  className="stat-v"
+                  style={{ color: POLARIZATION_TONE[polarization.state ?? ""] ?? "var(--txt)" }}
+                >
+                  {polarization.polarization_score}
+                  <span className="stat-u">/100 · {polarization.state}</span>
+                </div>
+                <Provenance
+                  method={polarization.method}
+                  n={`${polarization.segments_used} segmen`}
+                  confidence="Sedang"
+                  limits={polarization.limitations ?? "Mengukur jarak posisi, bukan intensitas permusuhan."}
+                />
+              </>
+            )}
+          </div>
+        </section>
+
         <Panel kicker="Enam kelompok, bukan positif/negatif" title="Public Segments">
           {segments.length === 0 ? (
             <InsufficientData reason="Belum ada segmentasi untuk proyek ini." />

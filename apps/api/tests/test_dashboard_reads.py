@@ -1,6 +1,7 @@
 """Tes end-to-end untuk endpoint baca dashboard baru: /segments, /narratives,
-/opinion/geo. Sama seperti test_auth_router.py: httpx.AsyncClient asli
-terhadap Postgres nyata dengan role pop_app (RLS aktif) -- bukan mock.
+/opinion/geo, /risk/polarization. Sama seperti test_auth_router.py:
+httpx.AsyncClient asli terhadap Postgres nyata dengan role pop_app (RLS
+aktif) -- bukan mock.
 
 Data segments/narratives/metric_snapshots di sini di-INSERT langsung lewat
 SQL dalam sesi yang sudah men-set app.current_org (pola sama dengan
@@ -180,3 +181,105 @@ async def test_geo_provinsi_n_rendah_ditandai_data_tidak_cukup(client):
     assert papua["poi"]["value"] is None
     assert papua["poi"]["insufficient_data"] is True
     assert papua["poi"]["note"] is not None
+
+
+# === /risk/polarization ===
+# Router baru (routers/risk.py) yang membaca ulang tabel segments yang sama
+# dengan tes di atas -- lihat modul itu untuk kenapa Opinion Risk Score
+# (9 komponen) belum diekspos, cuma Polarization Index.
+
+
+async def test_polarization_kosong_ditandai_data_tidak_cukup(client):
+    token, _org_id, project_id = await _register_and_create_project(client)
+    res = await client.get(
+        f"/v1/projects/{project_id}/risk/polarization",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["insufficient_data"] is True
+    assert body["segments_used"] == 0
+    assert body["polarization_score"] is None
+
+
+async def test_polarization_satu_segmen_ditandai_data_tidak_cukup(client):
+    token, org_id, project_id = await _register_and_create_project(client)
+    await _insert_as_org(
+        org_id,
+        """INSERT INTO segments (id, org_id, project_id, name, size_pct,
+           sentiment, trust, profile, method, entropy)
+           VALUES (gen_random_uuid(), :org, :proj, 'Satu-satunya', 100, 20,
+                   50, '{}', 'latent_class', 0.5)""",
+        {"org": org_id, "proj": project_id},
+    )
+
+    res = await client.get(
+        f"/v1/projects/{project_id}/risk/polarization",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["insufficient_data"] is True
+    assert body["segments_used"] == 1
+
+
+async def test_polarization_dua_kutub_terhitung_dari_data_segmen_asli(client):
+    """Sama seperti tests/test_risk.py:test_terpolarisasi_dua_kutub, tapi
+    lewat HTTP dari data yang sungguh disimpan di tabel segments -- membuktikan
+    router beneran memetakan (sentiment, size_pct) segmen ke input
+    polarization(), bukan cuma memanggilnya dengan data statis."""
+    token, org_id, project_id = await _register_and_create_project(client)
+    await _insert_as_org(
+        org_id,
+        """INSERT INTO segments (id, org_id, project_id, name, size_pct,
+           sentiment, trust, profile, method, entropy)
+           VALUES
+           (gen_random_uuid(), :org, :proj, 'Pro', 45, 70, 60, '{}',
+            'latent_class', 0.4),
+           (gen_random_uuid(), :org, :proj, 'Kontra', 45, -60, 40, '{}',
+            'latent_class', 0.4),
+           (gen_random_uuid(), :org, :proj, 'Netral', 10, 0, 50, '{}',
+            'latent_class', 0.4)""",
+        {"org": org_id, "proj": project_id},
+    )
+
+    res = await client.get(
+        f"/v1/projects/{project_id}/risk/polarization",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["insufficient_data"] is False
+    assert body["segments_used"] == 3
+    assert body["state"] == "terpolarisasi"
+    assert body["polarization_score"] > 50
+    assert "sentimen" in body["limitations"]
+
+
+async def test_polarization_segmen_tanpa_sentimen_diabaikan(client):
+    """Segmen dengan sentiment NULL tidak boleh ikut dihitung sebagai posisi
+    -- services/risk.py:polarization() tidak menerima None, dan menyamakannya
+    dengan 0 akan diam-diam menyuntikkan posisi "netral" palsu."""
+    token, org_id, project_id = await _register_and_create_project(client)
+    await _insert_as_org(
+        org_id,
+        """INSERT INTO segments (id, org_id, project_id, name, size_pct,
+           sentiment, trust, profile, method, entropy)
+           VALUES
+           (gen_random_uuid(), :org, :proj, 'Terukur A', 40, 50, 60, '{}',
+            'latent_class', 0.4),
+           (gen_random_uuid(), :org, :proj, 'Terukur B', 40, -40, 40, '{}',
+            'latent_class', 0.4),
+           (gen_random_uuid(), :org, :proj, 'Belum Terukur', 20, NULL, NULL,
+            '{}', 'latent_class', 0.4)""",
+        {"org": org_id, "proj": project_id},
+    )
+
+    res = await client.get(
+        f"/v1/projects/{project_id}/risk/polarization",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200, res.text
+    body = res.json()
+    assert body["insufficient_data"] is False
+    assert body["segments_used"] == 2
