@@ -1,6 +1,8 @@
 "use client";
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import type { Route } from "next";
 
 function LoginForm() {
   const router = useRouter();
@@ -71,6 +73,12 @@ function LoginForm() {
       >
         {loading ? "Memeriksa…" : "Masuk"}
       </button>
+      <p style={{ fontSize: 12, color: "#888", textAlign: "center", marginTop: 12 }}>
+        Belum punya organisasi?{" "}
+        <Link href={"/daftar" as Route} style={{ color: "#111", fontWeight: 600 }}>
+          Daftar
+        </Link>
+      </p>
     </div>
   );
 }

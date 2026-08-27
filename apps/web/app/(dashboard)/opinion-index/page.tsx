@@ -3,7 +3,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { TrendChart } from "@/components/TrendChart";
 import { WeightEditor, type WeightDim } from "@/components/WeightEditor";
-import { api, repeatedQuery, type Metric, type SignalSource } from "@/lib/api";
+import { api, apiOrNull, repeatedQuery, type Metric, type SignalSource } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +32,36 @@ const DIM_NOTES: Record<string, string> = {
   confidence: "Keyakinan terhadap arah kebijakan",
 };
 
+// Bentuk fallback saat proyek belum punya data dimensi POI sama sekali
+// (404 backend, lihat lib/api.ts:apiOrNull) -- insufficient_data:true di
+// sini membuat JSX di bawah otomatis merender InsufficientData lewat jalur
+// yang sama seperti "di bawah ambang publikasi", tidak perlu cabang baru.
+const EMPTY_INDEX: IndexResponse = {
+  index: {
+    key: "poi",
+    label: "Public Opinion Index",
+    value: null,
+    unit: "index",
+    source: "SURVEY",
+    method: "—",
+    ci_low: null,
+    ci_high: null,
+    effective_n: null,
+    insufficient_data: true,
+    note: "Proyek ini belum punya data dimensi POI sama sekali.",
+  },
+  dimensions: [],
+  weights: {},
+  limitations: [],
+};
+
 export default async function IndexPage() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
   const [index, trend] = await Promise.all([
-    api<IndexResponse>(`/projects/${projectId}/opinion/index`),
+    apiOrNull<IndexResponse>(`/projects/${projectId}/opinion/index`),
     api<TrendPoint[]>(`/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: ["poi"], limit: 12 })}`),
-  ]);
+  ]).then(([idx, tr]) => [idx ?? EMPTY_INDEX, tr] as const);
 
   const dims: WeightDim[] = index.dimensions.map((d) => ({
     key: d.key,
@@ -50,7 +74,7 @@ export default async function IndexPage() {
 
   return (
     <>
-      <PageHeader kicker="Opinion Index" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="Opinion Index" title={projectName} isDemo={isDemo} />
       <div className="body">
         <Panel kicker="Indeks komposit — bobot dapat dikonfigurasi per proyek" title="Public Opinion Index">
           {index.index.insufficient_data || index.index.value === null ? (

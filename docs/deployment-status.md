@@ -161,6 +161,8 @@ Phase 1 punya tes").
   (di luar cakupan, sesuai keputusan desain login asli di atas) — jadi
   cuma diverifikasi lewat CI/tes, belum dicoba live ke Supabase produksi
   secara terpisah (beda dengan login+refresh yang sudah, lihat di bawah).
+  **UI-nya dibangun 2026-08-27 — lihat bagian "Registrasi self-service" di
+  bawah untuk kenapa itu ternyata bukan sekadar tambah form.**
 - **`apps/api/tests/test_auth_router.py` baru** — tes end-to-end HTTP asli
   (httpx.AsyncClient) untuk ketiga endpoint auth, terhadap Postgres nyata
   dengan role `pop_app` (RLS aktif, bukan superuser — superuser akan
@@ -403,6 +405,91 @@ di-deploy, baru diverifikasi di Postgres Docker lokal + `npm run dev`
 lokal. Langkah lanjutan: push ke `main`, tunggu Render+Vercel redeploy,
 lalu ulangi verifikasi manual di atas terhadap production (pola sama
 seperti disclaimer bagian lain dokumen ini).
+
+## ✅ Registrasi self-service (`/daftar`) — selesai 2026-08-27
+
+Diminta sebagai "item termudah" dari daftar residual Phase 1 — endpoint
+`/auth/register` sudah ada+teruji sejak 2026-08-24, tinggal butuh form.
+**Ternyata bukan sekadar tambah form**: SEMUA 9 halaman dashboard
+hardcode `process.env.DEMO_PROJECT_ID` di server component-nya
+masing-masing — tidak ada UI pemilihan/pembuatan proyek sama sekali,
+padahal backend-nya (`GET/POST/PATCH/DELETE /projects`) sudah lengkap
+sejak awal. Org yang baru daftar otomatis nol proyek (`auth_register()`
+di `db/rls.sql` cuma bikin organizations+users, bukan projects), jadi
+kalau langsung diarahkan ke `/command` dia akan mendarat di dashboard
+yang mengambil data proyek ORG LAIN (RLS mengosongkan semuanya) —
+ditemukan dengan benar-benar mendaftar lewat browser, bukan dari baca
+kode. Ditanyakan dulu ke pengguna sebelum lanjut (3 opsi: perluas scope,
+batalkan, atau ship apa adanya) — dipilih **perluas scope**.
+
+**Yang dibangun:**
+- `app/daftar/page.tsx` + `app/api/session/register/route.ts` — form
+  (nama organisasi, slug dengan auto-slugify dari nama, nama lengkap,
+  email, password), validasi klien cermin persis
+  `schemas/auth.py:RegisterRequest`. Link silang dengan `/masuk`.
+- `app/proyek-baru/page.tsx` + `actions.ts` — halaman berdiri sendiri
+  (di luar `(dashboard)/layout.tsx`, sengaja: layout itu sendiri butuh
+  proyek aktif untuk dirender) yang membuat proyek pertama lewat
+  `POST /projects` yang sudah ada, lalu set cookie `pop_project_id`.
+- `lib/currentProject.ts` (baru) — `getCurrentProjectId()`/
+  `getCurrentProject()`, baca cookie `pop_project_id` kalau ada, fallback
+  ke `DEMO_PROJECT_ID` kalau tidak (user demo lama TIDAK terpengaruh sama
+  sekali — cookie itu belum pernah diset untuk mereka). **Kesembilan
+  halaman dashboard + layout.tsx diganti dari
+  `process.env.DEMO_PROJECT_ID!` langsung ke helper ini.**
+- `PageHeader.tsx` dapat prop `isDemo` baru — sebelumnya SETIAP halaman
+  hardcode judul `"Persepsi Kebijakan Nasional 2026"` dan badge
+  `"Data demo sintetis"` apa pun proyeknya. Ketemu pas verifikasi live:
+  proyek baru yang asli (non-demo) tetap diberi label "Demo data
+  sintetis" — pelanggaran R1 (sumber data harus jujur), bukan cuma
+  kosmetik. Sekarang `title`/`isDemo` diisi dari `project.name`/
+  `project.is_demo` asli lewat `getCurrentProject()`.
+- **Bug kelas baru ketemu & diperbaiki**: 3 halaman (`command`,
+  `consistency`, `forecast`, plus `opinion-index`) memanggil
+  `/opinion/index` atau `/opinion/divergence` tanpa `try/catch` — kedua
+  endpoint itu melempar `404` (bukan `insufficient_data:true`) kalau
+  proyek belum punya data dimensi/sinyal SAMA SEKALI. Sebelum proyek bisa
+  dibuat lewat UI sendiri, ini tidak pernah kejadian (satu-satunya
+  proyek yang ada selalu proyek demo yang di-seed penuh) — begitu
+  `/proyek-baru` ada, SETIAP halaman itu langsung jatuh dengan
+  "Application error" polos untuk proyek yang benar-benar kosong.
+  Diperbaiki dengan `lib/api.ts:apiOrNull()` (baru, wrapper `api()` yang
+  mengubah 404 jadi `null`) + tiap halaman merender `InsufficientData`
+  yang sesuai alih-alih menjatuhkan Server Component.
+- **Bug kedua ketemu & diperbaiki**: `api/session/logout/route.ts` cuma
+  menghapus `pop_session`/`pop_refresh`, bukan `pop_project_id` —
+  ketahuan pas mencoba login sebagai akun BERBEDA di browser yang sama
+  setelah logout: akun kedua (yang punya proyeknya sendiri) malah
+  mewarisi cookie proyek akun PERTAMA. RLS mencegah kebocoran DATA (akun
+  kedua cuma dapat 404 dari proyek asing → `apiOrNull` → tampil "belum
+  ada proyek"), tapi akibatnya akun yang sebenarnya punya proyek sendiri
+  terlihat kosong keliru. Sudah diperbaiki, diverifikasi ulang: logout →
+  login akun lain → proyeknya sendiri tampil benar.
+
+**Diverifikasi end-to-end live di browser** (bukan cuma lolos tes),
+mencakup dua akun berbeda di Postgres Docker lokal yang sama:
+1. Daftar org baru → mendarat di "Buat Proyek Pertama" (bukan dashboard
+   rusak) → buat proyek → `/command` menampilkan nama proyek asli +
+   "Data proyek Anda sendiri" + semua kartu kosong menampilkan
+   `InsufficientData` yang benar (bukan crash) di `/command`,
+   `/opinion-index`, `/consistency`, `/forecast`, `/segments`, `/brief`.
+2. Logout → login akun lain yang SUDAH punya proyek dengan data asli →
+   proyeknya sendiri (nama + segments + Polarization Index) tampil
+   benar, bukan tercemar cookie akun pertama.
+
+`ruff check app tests`, `mypy app/services app/ai`, `pytest` (115 lulus,
+tidak ada yang berubah di backend — perubahan sesi ini murni frontend),
+`npm run typecheck`, dan `next build` semuanya bersih 100%.
+
+**Belum diverifikasi di Supabase/Render/Vercel produksi** — sama seperti
+Polarization Index di atas, baru lokal.
+
+**Batasan yang sengaja belum diselesaikan** (di luar cakupan permintaan
+"item termudah"): belum ada UI pilih-ganti proyek untuk org yang punya
+lebih dari satu (`pop_project_id` cuma diset sekali oleh
+`/proyek-baru`, tidak ada project switcher); belum ada halaman
+edit/hapus proyek meski endpoint `PATCH`/`DELETE /projects/{id}` sudah
+ada.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 

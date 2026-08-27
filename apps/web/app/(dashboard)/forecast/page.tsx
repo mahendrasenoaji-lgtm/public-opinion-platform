@@ -1,19 +1,23 @@
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
 import { ForecastSimulator } from "@/components/ForecastSimulator";
-import { api, type Metric } from "@/lib/api";
+import { apiOrNull, type Metric } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 import { runWhatIf } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ForecastPage() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
-  const index = await api<{ index: Metric }>(`/projects/${projectId}/opinion/index`);
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
+  // null kalau proyek belum punya data dimensi POI sama sekali (404
+  // backend) -- diperlakukan sama seperti index.value === null di bawah,
+  // keduanya berujung "belum ada baseline yang valid untuk forecast".
+  const index = await apiOrNull<{ index: Metric }>(`/projects/${projectId}/opinion/index`);
 
-  if (index.index.value === null) {
+  if (index === null || index.index.value === null) {
     return (
       <>
-        <PageHeader kicker="Forecast & Simulator" title="Persepsi Kebijakan Nasional 2026" />
+        <PageHeader kicker="Forecast & Simulator" title={projectName} isDemo={isDemo} />
         <div className="body">
           <InsufficientData reason="Indeks belum bisa diterbitkan, forecast butuh baseline yang valid." />
         </div>
@@ -26,7 +30,7 @@ export default async function ForecastPage() {
   if (!initial.ok) {
     return (
       <>
-        <PageHeader kicker="Forecast & Simulator" title="Persepsi Kebijakan Nasional 2026" />
+        <PageHeader kicker="Forecast & Simulator" title={projectName} isDemo={isDemo} />
         <div className="body">
           <InsufficientData reason={initial.error} />
         </div>
@@ -36,7 +40,7 @@ export default async function ForecastPage() {
 
   return (
     <>
-      <PageHeader kicker="Forecast & Simulator" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="Forecast & Simulator" title={projectName} isDemo={isDemo} />
       <div className="body">
         <ForecastSimulator projectId={projectId} baseline={baseline} initial={initial.result} />
       </div>

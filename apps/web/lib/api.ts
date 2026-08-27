@@ -71,6 +71,25 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+/**
+ * Bungkus api() untuk endpoint yang sengaja 404 kalau proyek belum punya
+ * data sama sekali (mis. GET .../opinion/index tanpa metric_snapshots
+ * apapun, GET .../opinion/divergence dengan <2 sumber sinyal) -- beda dari
+ * `insufficient_data:true` (Metric, di bawah ambang publikasi tapi
+ * dimensinya ada). Dipakai halaman dashboard yang harus tetap merender
+ * status "belum ada data" alih-alih menjatuhkan seluruh Server Component
+ * dengan Application Error -- baru jadi kasus nyata sejak proyek bisa
+ * dibuat lewat UI sendiri (app/proyek-baru) dan mulai kosong sama sekali.
+ */
+export async function apiOrNull<T>(path: string, init?: RequestInit): Promise<T | null> {
+  try {
+    return await api<T>(path, init);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

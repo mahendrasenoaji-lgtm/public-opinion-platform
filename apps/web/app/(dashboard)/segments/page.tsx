@@ -3,6 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { api } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ const SEG_COLOR = (sent: number | null) => {
 };
 
 export default async function SegmentsPage() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
   const [segments, polarization] = await Promise.all([
     api<SegmentOut[]>(`/projects/${projectId}/segments`),
     api<PolarizationOut>(`/projects/${projectId}/risk/polarization`),
@@ -49,7 +50,7 @@ export default async function SegmentsPage() {
 
   return (
     <>
-      <PageHeader kicker="Public Segments" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="Public Segments" title={projectName} isDemo={isDemo} />
       <div className="body">
         <section className="stat-row">
           <div className="stat">

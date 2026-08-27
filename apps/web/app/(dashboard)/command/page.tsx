@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { Timeline, type TimelineEvent } from "@/components/Timeline";
 import { TrendChart } from "@/components/TrendChart";
-import { api, repeatedQuery, type Metric } from "@/lib/api";
+import { apiOrNull, api, repeatedQuery, type Metric } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
@@ -30,11 +31,11 @@ const TREND_SERIES = [
 ];
 
 export default async function CommandCenter() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
   const [index, divergence, trend, timeline] = await Promise.all([
-    api<{ index: Metric; limitations: string[] }>(`/projects/${projectId}/opinion/index`),
-    api<Divergence>(`/projects/${projectId}/opinion/divergence`),
+    apiOrNull<{ index: Metric; limitations: string[] }>(`/projects/${projectId}/opinion/index`),
+    apiOrNull<Divergence>(`/projects/${projectId}/opinion/divergence`),
     api<TrendPoint[]>(
       `/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: [...TREND_METRICS], limit: 12 })}`,
     ),
@@ -43,12 +44,14 @@ export default async function CommandCenter() {
 
   return (
     <>
-      <PageHeader kicker="Command Center" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="Command Center" title={projectName} isDemo={isDemo} />
       <div className="body">
         <section className="stat-row">
           <div className="stat stat-big">
-            <div className="kicker">{index.index.label}</div>
-            {index.index.insufficient_data || index.index.value === null ? (
+            <div className="kicker">{index?.index.label ?? "Public Opinion Index"}</div>
+            {index === null ? (
+              <InsufficientData reason="Proyek ini belum punya data dimensi POI sama sekali — belum ada survei yang di-ingest." />
+            ) : index.index.insufficient_data || index.index.value === null ? (
               <InsufficientData reason={index.index.note ?? "Sampel di bawah ambang publikasi."} />
             ) : (
               <>
@@ -72,14 +75,20 @@ export default async function CommandCenter() {
           </div>
         </section>
 
-        <DivergenceBand
-          readings={divergence.readings}
-          gap={divergence.gap}
-          explanationLead={
-            divergence.explanations[0]?.text ??
-            "Selisih antar sumber masih dalam rentang wajar untuk instrumen yang berbeda."
-          }
-        />
+        {divergence === null ? (
+          <Panel kicker="Fitur pembeda utama" title="Signal Consistency">
+            <InsufficientData reason="Perlu minimal dua sumber sinyal (survei/sosial/media) untuk dibandingkan." />
+          </Panel>
+        ) : (
+          <DivergenceBand
+            readings={divergence.readings}
+            gap={divergence.gap}
+            explanationLead={
+              divergence.explanations[0]?.text ??
+              "Selisih antar sumber masih dalam rentang wajar untuk instrumen yang berbeda."
+            }
+          />
+        )}
 
         <div className="grid-2">
           <Panel kicker={`${trend.length ? "Data tersedia" : "Belum ada data"} · periode terbaru`} title="Pergerakan tiap sinyal">

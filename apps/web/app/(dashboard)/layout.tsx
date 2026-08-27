@@ -2,7 +2,14 @@ import Link from "next/link";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import { Activity } from "lucide-react";
+import { api, ApiError } from "@/lib/api";
+import { getCurrentProjectId } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
+
+interface ActiveProject {
+  name: string;
+  is_demo: boolean;
+}
 
 const NAV = [
   ["/command", "Command Center"],
@@ -19,6 +26,23 @@ const NAV = [
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
   const email = sessionToken ? decodeJwtPayload(sessionToken)?.email : undefined;
+
+  // Gagal-aman ke null kalau proyeknya sendiri bermasalah (mis. cookie
+  // pop_project_id basi menunjuk proyek yang sudah dihapus) -- layout ini
+  // membungkus SEMUA halaman dashboard, satu label proyek yang hilang tidak
+  // boleh menjatuhkan seluruh shell, halaman anak yang menampilkan alasan
+  // sebenarnya (mis. InsufficientData). TAPI cuma tangkap ApiError -- 401
+  // dari api() jalan lewat redirect() (next/navigation), yang melempar
+  // sinyal internal Next.js, BUKAN ApiError; catch generik di sini akan
+  // diam-diam meredam redirect itu dan membuat pop_session yang
+  // kadaluarsa gagal senyap alih-alih lempar ke /masuk.
+  const projectId = await getCurrentProjectId();
+  let project: ActiveProject | null = null;
+  try {
+    project = await api<ActiveProject>(`/projects/${projectId}`);
+  } catch (e) {
+    if (!(e instanceof ApiError)) throw e;
+  }
 
   return (
     <div className="app">
@@ -41,9 +65,18 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </nav>
         <div className="nav-foot">
           <div className="kicker">Proyek aktif</div>
-          <div className="proj">Persepsi Kebijakan Nasional 2026</div>
-          {/* Penanda wajib selama berjalan di atas seed (CLAUDE.md §7) */}
-          <div className="proj-s">Gelombang 12 · Demo data sintetis</div>
+          <div className="proj">{project?.name ?? "Proyek"}</div>
+          {/* "Gelombang 12" cuma benar untuk proyek demo asli -- itu fakta
+              spesifik seed (db/seed.py), bukan sesuatu yang bisa
+              digeneralisasi ke proyek baru siapa pun. Penanda "Demo data
+              sintetis" wajib selama proyeknya memang demo (CLAUDE.md §7). */}
+          <div className="proj-s">
+            {project === null
+              ? "—"
+              : project.is_demo
+                ? "Gelombang 12 · Demo data sintetis"
+                : "Proyek Anda sendiri"}
+          </div>
           {email && (
             <form action="/api/session/logout" method="post" style={{ marginTop: 12 }}>
               <div className="proj-s" style={{ marginBottom: 6 }}>{email}</div>

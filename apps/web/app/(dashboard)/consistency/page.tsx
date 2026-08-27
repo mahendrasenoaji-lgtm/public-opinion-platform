@@ -2,7 +2,8 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE, type SignalSource } from "@/lib/tokens";
-import { api } from "@/lib/api";
+import { apiOrNull } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +24,17 @@ interface DivergenceResponse {
 }
 
 export default async function ConsistencyPage() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
-  const divergence = await api<DivergenceResponse>(`/projects/${projectId}/opinion/divergence`);
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
+  // null saat proyek belum punya >=2 sumber sinyal sama sekali (404 backend,
+  // lihat lib/api.ts:apiOrNull) -- diperlakukan sama seperti readings kosong,
+  // UI di bawah sudah menampilkan InsufficientData untuk kedua kasus itu.
+  const divergence = (await apiOrNull<DivergenceResponse>(
+    `/projects/${projectId}/opinion/divergence`,
+  )) ?? { gap: 0, is_notable: false, readings: [], explanations: [], limitations: [] };
 
   return (
     <>
-      <PageHeader kicker="Signal Consistency" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="Signal Consistency" title={projectName} isDemo={isDemo} />
       <div className="body">
         <Panel kicker="Fitur pembeda utama" title="Tiga sumber, tiga jawaban berbeda">
           {divergence.readings.length === 0 ? (

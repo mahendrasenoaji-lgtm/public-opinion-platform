@@ -2,6 +2,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
 import { api } from "@/lib/api";
+import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ const REVIEW_LABEL: Record<AIOutputRow["human_review"], string> = {
 };
 
 export default async function GovernancePage() {
-  const projectId = process.env.DEMO_PROJECT_ID!;
+  const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
   const [aiOutputs, dataQuality] = await Promise.all([
     api<AIOutputRow[]>(`/projects/${projectId}/governance/ai-outputs`),
     api<DataQualityRow[]>(`/projects/${projectId}/governance/data-quality`),
@@ -56,7 +57,7 @@ export default async function GovernancePage() {
 
   return (
     <>
-      <PageHeader kicker="AI Governance" title="Persepsi Kebijakan Nasional 2026" />
+      <PageHeader kicker="AI Governance" title={projectName} isDemo={isDemo} />
       <div className="body">
         <Panel kicker="Wajib pada setiap keluaran AI" title="Jejak keputusan model">
           {aiOutputs.length === 0 ? (

@@ -6,7 +6,7 @@ import { SESSION_COOKIE, decodeJwtPayload, isExpired } from "@/lib/session";
 // 1) Gerbang password situs (pre-launch, satu password bersama semua orang).
 // 2) Sesi user asli (JWT per-user dari backend, RBAC).
 const SITE_GATE_PUBLIC = ["/login", "/api/auth"];
-const APP_SESSION_PUBLIC = ["/login", "/api/auth", "/masuk", "/api/session"];
+const APP_SESSION_PUBLIC = ["/login", "/api/auth", "/masuk", "/daftar", "/api/session"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
