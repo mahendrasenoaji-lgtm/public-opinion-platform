@@ -7,6 +7,11 @@ import { createFirstProject } from "./actions";
 // dashboard itu sendiri butuh proyek aktif untuk dirender (lihat
 // (dashboard)/layout.tsx) -- lingkaran setan kalau halaman "belum punya
 // proyek" dipaksa masuk ke layout yang mengasumsikan proyek sudah ada.
+//
+// Dipakai dua alur: org yang baru daftar (app/daftar, nol proyek) DAN org
+// lama yang sudah punya proyek tapi mau tambah lagi (link "+ Buat proyek
+// baru" di app/(dashboard)/proyek) -- makanya copy di bawah sengaja netral,
+// tidak berasumsi ini proyek pertama.
 export default function ProyekBaruPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -51,11 +56,11 @@ export default function ProyekBaruPage() {
     >
       <div style={{ width: "100%", maxWidth: 340 }}>
         <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, textAlign: "center" }}>
-          Buat Proyek Pertama
+          Buat Proyek Baru
         </h1>
         <p style={{ fontSize: 12, color: "#888", marginBottom: 16, textAlign: "center" }}>
-          Organisasi Anda belum punya proyek. Dashboard butuh satu proyek
-          untuk dilihat — beri nama dulu, isinya bisa ditambah nanti.
+          Beri nama dulu — isinya (survei, segmen, narasi) bisa ditambah
+          nanti. Proyek ini langsung jadi proyek aktif Anda.
         </p>
 
         <input

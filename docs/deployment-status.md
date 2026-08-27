@@ -491,11 +491,47 @@ boundary kredensial) — baru diverifikasi end-to-end di Postgres Docker
 lokal seperti dijelaskan di atas.
 
 **Batasan yang sengaja belum diselesaikan** (di luar cakupan permintaan
-"item termudah"): belum ada UI pilih-ganti proyek untuk org yang punya
-lebih dari satu (`pop_project_id` cuma diset sekali oleh
-`/proyek-baru`, tidak ada project switcher); belum ada halaman
-edit/hapus proyek meski endpoint `PATCH`/`DELETE /projects/{id}` sudah
-ada.
+"item termudah"): belum ada halaman edit/hapus proyek meski endpoint
+`PATCH`/`DELETE /projects/{id}` sudah ada. ~~Belum ada UI pilih-ganti
+proyek~~ — **selesai sesi yang sama, lihat bagian "Project switcher" di
+bawah** (ditulis sesudahnya, jadi urutannya kebalik — cek judul, bukan
+urutan baca linear kalau bingung).
+
+## ✅ Project switcher (`/proyek`) — selesai 2026-08-27
+
+Kelanjutan langsung dari registrasi self-service di atas — begitu org
+bisa punya lebih dari satu proyek (`/proyek-baru` bisa dipakai berkali-
+kali, bukan cuma sekali di awal), jelas dibutuhkan UI pilih proyek aktif
+mana yang mau dilihat, bukan cuma diset sekali dan macet di situ.
+
+- `app/(dashboard)/proyek/page.tsx` — daftar semua proyek org (`GET
+  /projects`, sudah ada sejak awal), baris yang aktif ditandai badge
+  "Aktif", baris lain dapat tombol "Aktifkan". Link "+ Buat proyek baru"
+  ke `/proyek-baru` (sekarang dipakai dua alur: org baru daftar nol
+  proyek, ATAU org lama nambah proyek lain — copy halamannya diubah dari
+  "Buat Proyek Pertama" ke "Buat Proyek Baru" supaya tidak salah konteks).
+- `app/(dashboard)/proyek/actions.ts` — `activateProject(id)`, action
+  ter-bind per baris (`activateProject.bind(null, p.id)`, pola form
+  action Next.js untuk daftar dengan satu tombol per item, tanpa client
+  component). Validasi ulang lewat `GET /projects/{id}` sebelum menyimpan
+  cookie `pop_project_id` — bukan lubang keamanan kalau dilewati (RLS
+  tetap menegakkan batas tenant), cuma supaya id yang keliru gagal jelas,
+  bukan diam-diam tersimpan.
+- Link "Ganti proyek" baru di sidebar (`(dashboard)/layout.tsx`), di
+  bawah nama proyek aktif.
+
+**Diverifikasi live end-to-end di browser**: dibuat proyek kedua untuk
+org yang sudah punya satu (`Proyek Kedua Verif-Risk` lewat
+`POST /projects`), buka `/proyek` → kedua proyek tampil, yang lama
+ditandai "Aktif" → klik "Aktifkan" di proyek baru → redirect ke
+`/command`, sidebar + semua kartu berubah ke proyek baru (kosong, benar)
+→ balik ke `/proyek` → klik "Aktifkan" di proyek lama → data asli
+(Polarization Index, 6 segmen) tampil kembali persis seperti semula,
+bukan cache basi atau tercampur.
+
+`npm run typecheck` dan `next build` bersih 100%. Backend tidak disentuh
+sama sekali sesi ini (`pytest` 115 tetap lulus, dijalankan ulang untuk
+memastikan). **Belum di-push/di-deploy ke production.**
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 
@@ -504,10 +540,10 @@ ada.
   Brief" di atas. 9/9 halaman dashboard sudah di-port.
 - ~~`/auth/register` tidak punya UI~~ — **selesai 2026-08-27**, lihat
   bagian "Registrasi self-service" di atas.
-- **Belum ada project switcher** — org dengan >1 proyek tidak punya UI
-  ganti-ganti proyek aktif (`pop_project_id` cuma diset sekali oleh
-  `/proyek-baru`). Belum ada UI edit/hapus proyek juga, meski endpoint
-  `PATCH`/`DELETE /projects/{id}` sudah ada sejak awal.
+- ~~Belum ada project switcher~~ — **selesai 2026-08-27**, lihat bagian
+  "Project switcher" di atas.
+- Belum ada UI edit/hapus proyek, meski endpoint `PATCH`/
+  `DELETE /projects/{id}` sudah ada sejak awal.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
   Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
   ada.

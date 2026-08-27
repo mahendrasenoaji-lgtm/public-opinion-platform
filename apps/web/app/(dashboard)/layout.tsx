@@ -77,6 +77,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 ? "Gelombang 12 · Demo data sintetis"
                 : "Proyek Anda sendiri"}
           </div>
+          <Link href={"/proyek" as Route} className="nav-i" style={{ marginTop: 6, display: "inline-block" }}>
+            Ganti proyek
+          </Link>
           {email && (
             <form action="/api/session/logout" method="post" style={{ marginTop: 12 }}>
               <div className="proj-s" style={{ marginBottom: 6 }}>{email}</div>
