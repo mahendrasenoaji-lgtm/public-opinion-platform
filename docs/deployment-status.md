@@ -15,6 +15,12 @@ kodenya sudah live tapi generate sungguhan BELUM diverifikasi** — nunggu
 detail & langkah verifikasi lanjutan). Dokumen ini adalah sumber
 kebenaran untuk sesi berikutnya — jangan andalkan riwayat chat, chat
 lama tidak ikut ter-clone.
+Update 2026-08-27: item pertama Phase 3 dikerjakan — **Polarization Index**
+(`GET /projects/{id}/risk/polarization`, kartu baru di halaman `/segments`),
+dihitung penuh dari data segments Phase 1, bukan data reka-reka. Opinion
+Risk Score (skor gabungan 9 komponen) sengaja belum diekspos — lihat bagian
+"Polarization Index" di bawah untuk alasannya. Diverifikasi end-to-end di
+Postgres Docker lokal, **belum di-push/di-deploy ke production**.
 
 ## Live sekarang
 
@@ -333,6 +339,71 @@ gagal senyap, sudah ditest). **Langkah lanjutan untuk sesi berikutnya**:
    cuma satu periode snapshot yang ada).
 3. Approve, cek `/governance` menampilkan baris audit yang baru dibuat.
 
+## ✅ Polarization Index (Phase 3, sebagian) — selesai 2026-08-27
+
+Item pertama dari Phase 3 yang benar-benar dikerjakan. Dipilih karena satu-
+satunya bagian Opinion Risk Score (`services/risk.py` — sudah ada & diuji
+sejak awal proyek, `tests/test_risk.py` sudah lulus dari dulu, cuma belum
+pernah punya router) yang seluruh datanya sudah nyata: `polarization()` cuma
+butuh (nama, sentiment, size_pct) per segmen, dan itu sudah ada dari Phase 1
+(`segments`, sudah di-seed sejak 2026-08-24).
+
+**Sengaja TIDAK mengerjakan Opinion Risk Score penuh** (9 komponen
+berbobot). 5 dari 9 komponennya — `issue_growth`, `influencer_amplification`,
+`media_escalation`, `trust_decline`, `approval_decline` — butuh sinyal yang
+belum ada: konektor sosial, jaringan influencer, deret waktu tren (Phase 2/3
+yang belum dimulai, lihat `docs/roadmap.md`). Mengisi komponen itu dengan
+angka reka-reka supaya skornya "lengkap" melanggar CLAUDE.md §3 — semangat
+yang sama dengan keputusan sengaja tidak merender "Isu publik" & "Peringatan
+aktif" di Command Center. Endpoint risk-score menyusul begitu komponennya
+nyata.
+
+Baru: `GET /projects/{id}/risk/polarization` (`app/routers/risk.py`) — baca
+`segments`, buang yang `sentiment`-nya NULL (tidak diikutkan sebagai posisi
+0 palsu — itu akan diam-diam menyuntikkan sikap "netral" yang tidak pernah
+diukur), panggil `services/risk.py:polarization()` yang sudah ada. <2 segmen
+bersentimen terukur → `insufficient_data: true` (pola sama dengan gating
+n<250 di `/opinion/geo`), bukan skor dari data yang terlalu tipis.
+Ditampilkan sebagai kartu "Polarization Index" di halaman `/segments`
+(warna ikut `state`: hijau "menuju konsensus", kuning "terfragmentasi",
+merah "terpolarisasi").
+
+**Diverifikasi live end-to-end** (bukan cuma lolos tes) — Postgres Docker
+lokal (belum ke Supabase, lihat catatan di bawah): daftar org+project baru
+lewat `/v1/auth/register` asli, insert 6 segmen dengan angka sama persis
+seperti `db/seed.py:SEGMENTS`, panggil endpoint lewat curl (skor 45,
+"terfragmentasi" — cocok hitungan manual), lalu jalur penuh lewat browser:
+gerbang `SITE_PASSWORD` → login `/masuk` → `/segments` → kartu Polarization
+Index tampil benar dengan 6 segmen, skor, state, dan batasan yang benar.
+
+Bug kecil ketahuan & diperbaiki di sesi ini: `email-validator` ada di
+`requirements.txt` tapi hilang dari `[project.dependencies]` di
+`pyproject.toml` (komentar `requirements.txt` sendiri bilang "dihasilkan
+dari pyproject.toml" — jadi ini penyimpangan, bukan disengaja). Tidak
+mempengaruhi CI/Render (keduanya install dari `requirements.txt` langsung),
+cuma bikin `pip install -e ".[dev]"` lokal gagal import di semua tes
+berbasis router (auth, brief, dashboard_reads) — baru ketahuan sesi ini
+karena baru sekarang ada yang coba `pip install -e .` dari nol. Diperbaiki
+dengan menambah entrinya ke `pyproject.toml`.
+
+Kejanggalan kecil lain ketahuan saat mengerjakan ini: `docs/roadmap.md`
+Phase 1 sempat mencentang "Risk score + Polarization endpoint" sebagai
+selesai padahal endpoint-nya belum pernah ada (cuma fungsi service-nya) —
+sudah diperbaiki jadi mencerminkan kondisi sebenarnya sebelum & sesudah
+sesi ini.
+
+Tes baru (4x) di `apps/api/tests/test_dashboard_reads.py`: kosong →
+insufficient, 1 segmen → insufficient, 2 kutub dari data DB asli → skor &
+state benar, segmen tanpa sentimen diabaikan dari perhitungan (bukan
+dianggap 0). `ruff check app tests`, `mypy app/services app/ai`, dan
+`npm run typecheck` + `next build` semuanya tetap bersih 100%.
+
+**Belum diverifikasi di Supabase produksi** — perubahan ini belum di-push/
+di-deploy, baru diverifikasi di Postgres Docker lokal + `npm run dev`
+lokal. Langkah lanjutan: push ke `main`, tunggu Render+Vercel redeploy,
+lalu ulangi verifikasi manual di atas terhadap production (pola sama
+seperti disclaimer bagian lain dokumen ini).
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
@@ -362,8 +433,11 @@ HDBSCAN → label LLM → verifikasi manusia), narrative map + momentum, media
 monitoring, peta geografis (MapLibre — sekarang cuma grid provinsi statis),
 AI Copilot RAG.
 
-### Phase 3 — prediksi (belum dimulai)
-Model forecast nyata di worker (state-space/SARIMAX — `services/forecast.py`
+### Phase 3 — prediksi (Polarization Index selesai 2026-08-27, sisanya belum dimulai)
+~~Opinion Risk Score & Polarization Index~~ — **Polarization Index selesai**
+(lihat bagian di atas). Opinion Risk Score (skor gabungan 9 komponen) masih
+menunggu sinyal Phase 2 yang belum ada. Sisanya belum dimulai: model
+forecast nyata di worker (state-space/SARIMAX — `services/forecast.py`
 sudah ada tapi belum ada model yang benar-benar di-fit), influencer network,
 Communication Impact (**wajib** desain pembanding, tanpa itu dilarang klaim
 efek kausal — lihat CLAUDE.md).

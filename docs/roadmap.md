@@ -20,7 +20,7 @@ terdokumentasi — bukan sekadar ada di UI.
 - [x] Survey builder: 9 tipe pertanyaan, reorder, delete
 - [x] Ingest respons + quality assessment otomatis (speeding, straight-lining)
 - [x] Repository layer: `_load_dimensions` dan `_load_signal_readings` dari `metric_snapshots`
-- [x] Forecast what-if endpoint + Risk score + Polarization endpoint
+- [x] Forecast what-if endpoint (`POST /forecast/what-if`)
 - [x] `services/weighting.py` — raking (pasca-stratifikasi multi-variabel) + tes
 - [x] Endpoint `POST /surveys/{id}/weights/compute` — hitung & simpan bobot
 - [x] Endpoint `GET /opinion/trend` dan `GET /opinion/timeline`
@@ -92,7 +92,11 @@ proyek nyata, dan laporkan akurasinya di UI.
 
 - [ ] Estimasi model forecast di worker (state-space/SARIMAX)
 - [ ] What-If simulator (lapisan API sudah ada di `services/forecast.py`)
-- [ ] Opinion Risk Score + Polarization Index (`services/risk.py` sudah ada)
+- [x] Polarization Index (`GET /projects/{id}/risk/polarization`, selesai
+      2026-08-27 — lihat `docs/deployment-status.md`)
+- [ ] Opinion Risk Score gabungan 9 komponen (`services/risk.py` sudah ada,
+      tapi 5 komponennya butuh sinyal Phase 2 yang belum ada — lihat
+      `app/routers/risk.py` untuk daftar lengkapnya)
 - [ ] Influencer network dengan istilah *influence estimate*
 - [ ] Communication Impact — **wajib** desain pembanding
       (difference-in-differences atau synthetic control). Tanpa itu, modul ini
