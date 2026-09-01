@@ -81,13 +81,32 @@ Fondasi arsitektural selesai; fitur dibangun bertahap.
 | Repository layer (opinion index + divergence) | Selesai |
 | Forecast what-if + risk + polarization endpoints | Selesai |
 | `services/weighting.py` — bobot pasca-stratifikasi (raking) | Selesai, teruji |
-| Frontend — Command Center, Opinion Index (Next.js) | Selesai, **diverifikasi live** dengan data nyata |
-| Frontend — 7 halaman sisanya (Consistency, Narrative, dst.) | Prototipe selesai, di luar cakupan Phase 1 |
+| Frontend — 9 halaman dashboard Phase 1 | Selesai, **diverifikasi live** dengan data nyata |
+| `connectors/` — RSS, YouTube API, X API, unggahan manual | Selesai, teruji (parsing + kredensial) |
+| `services/ingestion.py` — dedup MinHash, deteksi bahasa, hash akun | Selesai, teruji |
+| `services/sentiment.py` — leksikon Indonesia + set evaluasi berlabel | Selesai, teruji |
+| `services/topics.py` — TF-IDF + LSA + HDBSCAN | Selesai, teruji |
+| `ai/copilot.py` + `ai/retrieval.py` — RAG atas data agregat | Selesai, teruji |
+| `services/timeseries.py` — state-space di-fit dari riwayat proyek | Selesai, teruji |
+| `services/risk.py` — Opinion Risk Score dengan cakupan bobot | Selesai, teruji |
+| `services/influence.py` — estimasi keterpaparan akun | Selesai, teruji |
+| `services/impact.py` — Communication Impact (DiD) | Selesai, teruji |
+| Frontend — 6 halaman Phase 2/3 | Selesai, **diverifikasi di browser** |
+| Phase 4 — SSO, billing, API publik, report generator | Belum dimulai |
 
 Phase 1 selesai menurut definisinya sendiri di `docs/roadmap.md`, dan sudah
 diverifikasi end-to-end dengan Postgres nyata (bukan cuma lulus tanpa
 database) — 7 bug ditemukan dan diperbaiki dalam proses itu, detail lengkap
 di `docs/roadmap.md`.
+
+Phase 2 dan Phase 3 sebagian besar selesai (2026-09-01). Yang sengaja belum
+dikerjakan beserta alasannya tercatat per-item di `docs/roadmap.md` — peta
+MapLibre menunggu data bergeoreferensi asli, stance artikel dan graf jaringan
+influencer menunggu data yang memang belum tersimpan, dan Phase 4 menunggu
+keputusan yang bukan wewenang agen.
+
+**Apa yang sudah dan belum diverifikasi terhadap production** ada di
+`docs/deployment-status.md`. Baca itu sebelum mengandalkan angka mana pun.
 
 Urutan pengerjaan ada di `docs/roadmap.md`.
 

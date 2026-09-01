@@ -94,7 +94,9 @@ apps/api/            FastAPI + SQLAlchemy 2.0 async + Pydantic v2
   app/schemas/       Kontrak Pydantic (yang keluar lewat HTTP)
   app/routers/       Endpoint, tipis — logika ada di services/
   app/services/      Logika domain murni, tanpa I/O, mudah dites
-  app/ai/            Abstraksi provider LLM + agen + envelope
+  app/connectors/    Konektor sumber data — SELURUHNYA I/O, karena itu bukan
+                     services/. Batas legal yang mengikat ada di base.py
+  app/ai/            Abstraksi provider LLM + agen + envelope + retrieval
 apps/web/            Next.js 15 App Router + TypeScript + Tailwind
   components/        Panel, Provenance, DivergenceBand, chart wrappers
   lib/tokens.ts      Sumber tunggal token desain (harus cocok dengan R1)
@@ -104,9 +106,15 @@ db/seed.py           Data demo sintetis Indonesia
 docs/                Keputusan arsitektur, model data, governance, roadmap
 ```
 
-Aturan lapisan: `routers` boleh memanggil `services` dan `ai`. `services` tidak
-boleh mengimpor `routers` atau `ai`. Logika statistik hidup di `services` sebagai
-fungsi murni supaya bisa dites tanpa database dan tanpa memanggil LLM.
+Aturan lapisan: `routers` boleh memanggil `services`, `connectors`, dan `ai`.
+`services` tidak boleh mengimpor `routers`, `connectors`, atau `ai`. Logika
+statistik hidup di `services` sebagai fungsi murni supaya bisa dites tanpa
+database dan tanpa memanggil LLM.
+
+`connectors` melanggar kemurnian itu dengan sengaja — ia memang bicara ke
+jaringan. Yang bisa dites tanpa jaringan (parsing respons) dipisah jadi fungsi
+murni di dalam modul konektornya, dan itu yang dites. Jangan menambah konektor
+tanpa membaca batas legal di `app/connectors/base.py` lebih dulu.
 
 ## 5. Urutan pengerjaan
 

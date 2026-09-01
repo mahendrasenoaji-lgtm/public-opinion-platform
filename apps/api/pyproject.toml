@@ -63,3 +63,20 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = ["sklearn.*", "statsmodels.*", "scipy.*"]
 ignore_missing_imports = true
+
+# app/models BUKAN bagian dari cakupan strict CLAUDE.md §6 (yang wajib bersih
+# hanya app/services dan app/ai, ditambah app/connectors sejak 2026-09-01).
+# Ia punya pelanggaran `type-arg` dan `name-defined` pra-ada, sebagian di area
+# pemetaan enum yang docs/roadmap.md tandai sensitif — membersihkannya adalah
+# pekerjaan tersendiri dengan verifikasi database sendiri, bukan efek samping
+# commit ini.
+#
+# `follow_imports = "silent"` membuat mypy TETAP membaca app/models untuk
+# menentukan tipe yang diimpor app/connectors, tapi tidak melaporkan
+# pelanggaran di dalamnya. Tanpa baris ini, menambahkan app/connectors ke
+# perintah mypy memerahkan CI karena connectors mengimpor
+# app.models.measurement — ketahuan saat menjalankan perintah CI-nya sendiri,
+# bukan setelah push.
+[[tool.mypy.overrides]]
+module = ["app.models.*"]
+follow_imports = "silent"

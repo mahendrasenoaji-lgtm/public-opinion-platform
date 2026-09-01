@@ -21,6 +21,15 @@ dihitung penuh dari data segments Phase 1, bukan data reka-reka. Opinion
 Risk Score (skor gabungan 9 komponen) sengaja belum diekspos — lihat bagian
 "Polarization Index" di bawah untuk alasannya. Diverifikasi end-to-end di
 Postgres Docker lokal, **belum di-push/di-deploy ke production**.
+Update 2026-09-01 (sesi panjang, "kerjakan semua yang belum"): **Phase 2 dan
+Phase 3 sebagian besar dikerjakan** — konektor modular, pipeline ingestion,
+sentiment Indonesia + set evaluasi, topic discovery, AI Copilot RAG, forecast
+state-space yang benar-benar di-fit, Opinion Risk Score, influence estimate,
+dan Communication Impact (DiD). Backend 115 → 387 tes, enam halaman frontend
+baru. **Phase 4 sengaja tidak disentuh** — butuh keputusan penyedia SSO,
+penyedia pembayaran, dan komitmen kontrak API publik yang bukan wewenang
+agen. Baca bagian "Phase 2 + Phase 3 dikerjakan" di bawah, terutama
+sub-bagian "Yang BELUM diverifikasi", sebelum mengklaim apa pun ke pengguna.
 
 ## Live sekarang
 
@@ -400,11 +409,12 @@ state benar, segmen tanpa sentimen diabaikan dari perhitungan (bukan
 dianggap 0). `ruff check app tests`, `mypy app/services app/ai`, dan
 `npm run typecheck` + `next build` semuanya tetap bersih 100%.
 
-**Belum diverifikasi di Supabase produksi** — perubahan ini belum di-push/
-di-deploy, baru diverifikasi di Postgres Docker lokal + `npm run dev`
-lokal. Langkah lanjutan: push ke `main`, tunggu Render+Vercel redeploy,
-lalu ulangi verifikasi manual di atas terhadap production (pola sama
-seperti disclaimer bagian lain dokumen ini).
+~~**Belum diverifikasi di Supabase produksi** — perubahan ini belum di-push/
+di-deploy~~ — **koreksi 2026-09-01**: commit `a27581a` ternyata SUDAH ada di
+`origin/main` (dicek dengan `git rev-parse origin/main`; kalimat di atas
+ditulis sebelum push di akhir sesi yang sama dan tidak pernah diperbarui
+sesudahnya). Yang masih benar: verifikasi manual di browser terhadap Supabase
+produksi belum dilakukan, baru di Postgres lokal.
 
 ## ✅ Registrasi self-service (`/daftar`) — selesai 2026-08-27
 
@@ -531,7 +541,9 @@ bukan cache basi atau tercampur.
 
 `npm run typecheck` dan `next build` bersih 100%. Backend tidak disentuh
 sama sekali sesi ini (`pytest` 115 tetap lulus, dijalankan ulang untuk
-memastikan). **Belum di-push/di-deploy ke production.**
+memastikan). ~~**Belum di-push/di-deploy ke production.**~~ — **koreksi
+2026-09-01**: `a0c2a61` sudah ada di `origin/main`, sama seperti koreksi di
+bagian Polarization Index di atas.
 
 ## ✅ Edit/hapus proyek di `/proyek` — selesai 2026-08-27
 
@@ -570,14 +582,17 @@ disentuh sama sekali.
 - ~~Belum ada UI edit/hapus proyek~~ — **selesai 2026-08-27**, lihat
   bagian "Edit/hapus proyek" di atas.
 - "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
-  Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
-  ada.
-- **Bug dorman belum diperbaiki**: `AIOutput.confidence` dan
-  `AIOutput.human_review` di `models/governance.py` kemungkinan besar punya
-  bug yang sama seperti `MetricSnapshot.source` (dipetakan `String`, padahal
-  kolomnya enum Postgres native) — tidak bisa diverifikasi karena belum ada
-  kode yang menulis ke `ai_outputs` sama sekali. Perbaiki begitu Phase 2
-  mulai menulis ke tabel ini.
+  Center — butuh topic modeling & anomaly detection (Phase 2/3). Topic
+  modeling sekarang ADA (`/tema`), tapi Command Center belum menariknya;
+  anomaly detection masih belum ada sama sekali.
+- ~~**Bug dorman belum diperbaiki**: `AIOutput.confidence` dan
+  `AIOutput.human_review`~~ — **sudah diperbaiki**, ternyata di sesi
+  2026-08-27 bersama Executive Brief (lihat bagian "Executive Brief" di atas
+  yang mencatatnya). Daftar residual ini yang tidak ikut diperbarui.
+  Diverifikasi ulang 2026-09-01: `models/governance.py` memakai
+  `SAEnum(..., create_type=False)` untuk kedua kolom, dan baris `ai_outputs`
+  yang ditulis Copilot terbaca kembali dengan benar lewat tes
+  `test_copilot_router.py::test_jawaban_tercatat_di_ai_outputs`.
 
 ### Infrastruktur & operasional
 - Render free tier: server tidur setelah 15 menit tidak dipakai, request
@@ -586,26 +601,138 @@ disentuh sama sekali.
 - ~~Belum ada CI~~ — selesai 2026-08-24, lihat bagian "Pengerasan Phase 1"
   di atas.
 
-### Phase 2 — sinyal (belum dimulai sama sekali)
-Konektor sosial (YouTube/X/Meta/TikTok), pipeline ingestion (dedup, bahasa,
-embedding), sentiment Indonesia + set evaluasi, topic discovery (embedding →
-HDBSCAN → label LLM → verifikasi manusia), narrative map + momentum, media
-monitoring, peta geografis (MapLibre — sekarang cuma grid provinsi statis),
-AI Copilot RAG.
-
-### Phase 3 — prediksi (Polarization Index selesai 2026-08-27, sisanya belum dimulai)
-~~Opinion Risk Score & Polarization Index~~ — **Polarization Index selesai**
-(lihat bagian di atas). Opinion Risk Score (skor gabungan 9 komponen) masih
-menunggu sinyal Phase 2 yang belum ada. Sisanya belum dimulai: model
-forecast nyata di worker (state-space/SARIMAX — `services/forecast.py`
-sudah ada tapi belum ada model yang benar-benar di-fit), influencer network,
-Communication Impact (**wajib** desain pembanding, tanpa itu dilarang klaim
-efek kausal — lihat CLAUDE.md).
+### Phase 2 & 3 — sebagian besar selesai 2026-09-01
+Lihat bagian "Phase 2 + Phase 3 dikerjakan" di bawah. `docs/roadmap.md` memuat
+status per-item beserta apa yang SENGAJA belum dikerjakan dan alasannya.
 
 ### Phase 4 — enterprise (belum dimulai)
 Multi-agent orchestration, SSO/SAML/MFA, API publik + webhook, report
 generator (PDF/DOCX/PPTX/XLSX), billing, observability (tracing, evaluasi
 model, deteksi drift).
+
+Sengaja tidak disentuh, bukan kehabisan waktu: fase ini butuh keputusan yang
+bukan wewenang agen — penyedia identitas untuk SSO, penyedia pembayaran untuk
+billing, dan komitmen kontrak API publik yang tidak bisa ditarik lagi setelah
+ada yang memakainya. Sesuai CLAUDE.md §8, lebih baik berhenti dan bertanya.
+
+
+## ✅ Phase 2 + Phase 3 dikerjakan — 2026-09-01
+
+Sesi panjang atas instruksi "kerjakan semua yang belum". Backend dari 115 ke
+387 tes, paket `app/connectors/` baru, enam halaman frontend baru.
+
+### Yang dibangun
+
+| Bagian | Berkas inti |
+|---|---|
+| Model sinyal | `app/models/signal.py` (Mention, Topic, DataSource) |
+| Pipeline ingestion | `app/services/ingestion.py`, `app/services/pipeline.py` |
+| Sentiment Indonesia | `app/services/sentiment.py` + `sentiment_eval.py` |
+| Konektor | `app/connectors/` — RSS, YouTube, X, unggahan manual |
+| Topic discovery | `app/services/topics.py` |
+| Copilot RAG | `app/ai/retrieval.py`, `app/ai/copilot.py` |
+| Forecast state-space | `app/services/timeseries.py` |
+| Opinion Risk Score | `app/services/risk.py:partial_risk_score()` |
+| Influence estimate | `app/services/influence.py` |
+| Communication Impact | `app/services/impact.py` |
+| Frontend | `/sinyal`, `/tema`, `/copilot`, `/risiko`, `/pengaruh`, `/dampak` |
+
+### Keputusan yang perlu diketahui sesi berikutnya
+
+**Topic discovery memakai TF-IDF, bukan embedding.** Roadmap menulis
+"embedding -> HDBSCAN -> label LLM"; yang dijalankan TF-IDF -> LSA -> HDBSCAN
+-> label kata kunci, dan `method` mengembalikan yang benar-benar dipakai.
+Belum ada provider embedding yang dikonfigurasi. Titik penggantinya satu
+fungsi (`_vectorize`); **label metodenya WAJIB ikut berubah di commit yang
+sama** saat itu diganti, kalau tidak metadata berbohong (R1).
+
+**Dimensi LSA diikat ke ukuran korpus.** 24 dokumen di 23 dimensi
+menghasilkan NOL klaster (kepadatan menguap di dimensi tinggi); korpus yang
+sama di 3 dimensi memisahkan temanya bersih. Jangan menaikkan
+`SVD_COMPONENTS` tanpa memperhitungkan `DOCUMENTS_PER_COMPONENT`.
+
+**Risk score memakai `partial_risk_score()`, bukan `risk_score()`.** Yang
+kedua tetap ada dan tetap menolak tanpa komponen lengkap. Yang pertama
+menghitung dari komponen yang tersedia, menolak di bawah cakupan bobot 60%,
+dan selalu mengembalikan `coverage`. Jangan menurunkan `MIN_COVERAGE` supaya
+kartunya terisi.
+
+**Skala komponen risiko belum dikalibrasi.** `SENTIMENT_DROP_AT_FULL_RISK`,
+`GROWTH_PCT_AT_FULL_RISK`, dan `POINT_DECLINE_AT_FULL_RISK` adalah penilaian
+tim, bukan hasil kalibrasi terhadap krisis nyata. Karena itu skornya untuk
+membandingkan periode atau proyek berskala sama, bukan ambang absolut — dan
+kalimat itu tampil di UI, bukan cuma di kode.
+
+**Communication Impact menolak tanpa pembanding, tanpa jalan pintas.**
+`NoControlGroup` bukan kekakuan yang bisa dilonggarkan nanti: ia satu-satunya
+penjaga antara platform ini dan klaim kausal yang tidak bisa
+dipertanggungjawabkan. `AIEnvelope._has_causal_design()` mengizinkan bahasa
+kausal justru karena modul ini ada.
+
+**Env var baru: `AUTHOR_HASH_SALT`.** Kosong = diturunkan dari `JWT_SECRET`
+lewat HMAC berpemisah domain, supaya deployment berjalan tidak mendadak gagal
+ingest karena ada env var baru. Kalau mau diset eksplisit, **setel sekali di
+awal**: menggantinya setelah ada data membuat akun yang sama terhitung
+sebagai dua akun berbeda sebelum dan sesudah pergantian. `YOUTUBE_API_KEY`
+dan `X_BEARER_TOKEN` juga baru; keduanya opsional, konektornya membalas 503
+yang menyebut nama env var-nya kalau kosong.
+
+### Dua bug yang ketahuan lewat verifikasi, bukan lewat build
+
+1. **Keadaan awal `useActionState` sempat diekspor dari modul `"use server"`.**
+   Modul itu hanya boleh mengekspor fungsi async; objeknya sampai ke client
+   sebagai `undefined` dan `/dampak` jatuh dengan "Cannot read properties of
+   undefined". **`next build` dan `tsc --noEmit` sama-sama hijau untuk kode
+   itu.** Ketahuan hanya karena halamannya benar-benar dibuka di browser.
+   Catatan pencegahnya sekarang ada di ketiga `actions.ts`.
+2. **`zip(dates, dates[1:], strict=True)`** di `timeseries.py` — `strict=True`
+   menuntut panjang sama, padahal `dates[1:]` memang satu lebih pendek.
+   Ketahuan lewat tes.
+
+### Yang diverifikasi, dan bagaimana
+
+Postgres 16 + pgvector lokal (cluster `initdb` sendiri di kontainer sesi,
+bukan Docker — Docker tidak jalan di sana), API asli lewat uvicorn, Next.js
+hasil `next build` asli, dan Chromium lewat Playwright:
+
+- **387 tes hijau** dengan role `pop_app` (RLS aktif, BUKAN superuser),
+  termasuk tes isolasi tenant baru untuk mentions, data_sources, topics,
+  riwayat copilot, risk score, influence, dan impact.
+- `ruff check app tests` dan `mypy app/services app/ai app/connectors` bersih
+  100%. `npm run typecheck` + `next build` bersih.
+- 160 konten percakapan dimasukkan lewat `POST /signals/ingest` sungguhan ->
+  14 tema ditemukan (10.6% tidak terpetakan) -> skor risiko 62 "High" dengan
+  cakupan 78% dan 3 komponen dilaporkan hilang -> 25 akun, 20 diperingkat.
+- Keenam halaman baru dibuka di browser setelah melewati gerbang
+  `SITE_PASSWORD` dan login user asli. Tombol "Temukan tema" benar-benar
+  menulis dan melaporkan porsi yang tidak terpetakan; Copilot menolak bersih
+  saat provider belum siap (bukan Application error); form dampak menolak
+  tanpa pembanding dengan alasan lengkap.
+
+### Yang BELUM diverifikasi — baca ini sebelum mengklaim apa pun ke pengguna
+
+- **Tidak ada satu pun yang diuji terhadap Supabase produksi.** Seluruh
+  verifikasi di atas memakai Postgres lokal di kontainer sesi. Langkah
+  lanjutan: tunggu Render + Vercel redeploy setelah push, lalu ulangi
+  pemeriksaan manual terhadap production (butuh login `SITE_PASSWORD`, yang
+  di luar kemampuan Claude — lihat aturan boundary kredensial di atas).
+- **Konektor RSS/YouTube/X belum pernah menarik data sungguhan.** Yang dites
+  adalah parsing responsnya (fungsi murni) dan penanganan kredensial kosong.
+  Menarik sungguhan butuh kunci di Render, dan untuk RSS butuh jaringan
+  keluar dari Render ke penerbitnya.
+- **Copilot belum pernah menjawab dengan LLM sungguhan.** Jalur suksesnya
+  diuji lewat provider tiruan yang mengembalikan JSON valid — yang terbukti
+  adalah pipa di sekelilingnya (envelope tersusun benar, baris `ai_outputs`
+  tertulis dan terbaca kembali), BUKAN mutu jawaban model. Sama seperti
+  Executive Brief, ini menunggu `ANTHROPIC_API_KEY` aktif di Render.
+- **Forecast state-space belum pernah di-fit pada data produksi.** Seed
+  Supabase hanya punya satu snapshot per metrik, jadi `/forecast/baseline`
+  akan membalas `insufficient_data` di sana sampai ada gelombang kedua. Itu
+  perilaku yang benar, bukan bug.
+- **Akurasi sentimen yang tampil di `/sinyal` adalah batas ATAS.** Ia diukur
+  pada 52 kalimat yang ditulis tim pengembang, bukan pada percakapan proyek
+  mana pun. Sebelum dipakai untuk keputusan, ukur ulang terhadap sampel
+  berlabel dari data proyek itu sendiri.
 
 ## Arsitektur deploy (untuk referensi)
 

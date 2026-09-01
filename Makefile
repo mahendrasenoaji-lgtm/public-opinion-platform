@@ -13,6 +13,6 @@ test-db: ; TEST_DSN=$$(echo "$$ADMIN_DATABASE_URL" | sed 's#/pop$$#/pop_test#');
           psql "$$TEST_DSN" -f db/schema.sql && psql "$$TEST_DSN" -f db/rls.sql
 seed:    ; DATABASE_URL=$$ADMIN_DATABASE_URL python db/seed.py
 test:    ; cd apps/api && python -m pytest -q
-lint:    ; cd apps/api && ruff check app && mypy app/services app/ai
+lint:    ; cd apps/api && ruff check app tests && mypy app/services app/ai app/connectors
 api:     ; cd apps/api && uvicorn app.main:app --reload
 web:     ; cd apps/web && npm run dev
