@@ -19,6 +19,14 @@ const NAV = [
   ["/segments", "Public Segments"],
   ["/geo", "Geographic Map"],
   ["/forecast", "Forecast & Simulator"],
+  // Phase 2 — sinyal
+  ["/sinyal", "Signal Monitor"],
+  ["/tema", "Topic Discovery"],
+  ["/copilot", "AI Copilot"],
+  // Phase 3 — prediksi
+  ["/risiko", "Opinion Risk Score"],
+  ["/pengaruh", "Influence Estimate"],
+  ["/dampak", "Communication Impact"],
   ["/brief", "Executive Brief"],
   ["/governance", "AI Governance"],
 ] as const;
