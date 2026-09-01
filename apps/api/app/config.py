@@ -1,5 +1,7 @@
 """Konfigurasi aplikasi. Semua rahasia lewat environment, tidak ada default produksi."""
 
+import hashlib
+import hmac
 from functools import lru_cache
 
 from pydantic import Field
@@ -26,12 +28,43 @@ class Settings(BaseSettings):
     anthropic_api_key: str | None = Field(default=None, alias="ANTHROPIC_API_KEY")
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
 
+    # Kredensial konektor Phase 2. Kosong = konektornya membalas 503 dengan
+    # pesan yang menyebut env var ini, bukan gagal senyap.
+    youtube_api_key: str | None = Field(default=None, alias="YOUTUBE_API_KEY")
+    x_bearer_token: str | None = Field(default=None, alias="X_BEARER_TOKEN")
+
+    # Kunci untuk meng-hash identitas akun di mentions (services/ingestion.py).
+    # Kosongkan dan nilainya diturunkan dari jwt_secret — lihat author_salt().
+    author_hash_salt: str | None = Field(default=None, alias="AUTHOR_HASH_SALT")
+
     # Ambang publikasi. Diletakkan di config agar bisa diperketat per deployment,
     # tidak pernah dilonggarkan di bawah nilai ini tanpa persetujuan tertulis.
     min_effective_n: int = 250
     min_aggregate_cell: int = 5
 
     cors_origins: list[str] = ["http://localhost:3000"]
+
+    def author_salt(self) -> str:
+        """Salt untuk hash author, dengan turunan sebagai jaring pengaman.
+
+        Kalau `AUTHOR_HASH_SALT` tidak diset, nilainya DITURUNKAN dari
+        `jwt_secret` lewat HMAC dengan pemisah domain — bukan dipakai apa
+        adanya. Alasannya: deployment yang sudah jalan tidak boleh mendadak
+        gagal ingest hanya karena ada env var baru, tapi juga tidak boleh
+        memakai salt konstan yang sama di semua deployment (hash dari daftar
+        handle publik bisa dibalik lewat pencocokan kamus kalau saltnya
+        diketahui).
+
+        Konsekuensi yang perlu diketahui operator: menyetel AUTHOR_HASH_SALT
+        setelah ada data akan mengubah semua author_hash berikutnya, sehingga
+        akun yang sama terhitung sebagai dua akun berbeda sebelum dan sesudah
+        pergantian. Setel sekali di awal, atau tidak sama sekali.
+        """
+        if self.author_hash_salt:
+            return self.author_hash_salt
+        return hmac.new(
+            self.jwt_secret.encode(), b"author-hash-salt", hashlib.sha256
+        ).hexdigest()
 
 
 @lru_cache
