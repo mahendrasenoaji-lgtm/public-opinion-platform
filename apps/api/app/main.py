@@ -13,6 +13,8 @@ from app.routers import (
     copilot,
     forecast,
     governance,
+    impact,
+    influence,
     narratives,
     opinion,
     projects,
@@ -76,5 +78,7 @@ for r in (
     brief,
     risk,
     topics,
+    influence,
+    impact,
 ):
     app.include_router(r.router, prefix="/v1")
