@@ -20,6 +20,7 @@ from app.routers import (
     segments,
     signals,
     surveys,
+    topics,
 )
 
 settings = get_settings()
@@ -74,5 +75,6 @@ for r in (
     narratives,
     brief,
     risk,
+    topics,
 ):
     app.include_router(r.router, prefix="/v1")
