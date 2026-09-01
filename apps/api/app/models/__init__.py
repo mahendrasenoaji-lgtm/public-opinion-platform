@@ -4,6 +4,7 @@ from app.models.governance import AIOutput, AuditLog, DataQualityScore
 from app.models.measurement import Forecast, MetricSnapshot, Segment, TimelineEvent
 from app.models.org import Organization, User, UserRole
 from app.models.project import Project
+from app.models.signal import DataSource, Mention, Topic
 from app.models.survey import (
     QualityFlagEnum,
     Question,
@@ -19,7 +20,9 @@ __all__ = [
     "AIOutput",
     "AuditLog",
     "DataQualityScore",
+    "DataSource",
     "Forecast",
+    "Mention",
     "MetricSnapshot",
     "Organization",
     "Project",
@@ -33,6 +36,7 @@ __all__ = [
     "Segment",
     "Survey",
     "TimelineEvent",
+    "Topic",
     "User",
     "UserRole",
 ]
