@@ -54,3 +54,12 @@ strict = true
 # dari env, bukan argumen konstruktor) kurang argumen — false positive.
 # Ditemukan 2026-08-24 saat mengeraskan CI.
 plugins = ["pydantic.mypy"]
+
+# scikit-learn dan statsmodels tidak mengirim stub tipe maupun penanda py.typed,
+# jadi mypy --strict menolak impornya. Yang dilonggarkan HANYA pengetahuan mypy
+# soal isi paket pihak ketiga itu — kode kita sendiri tetap diperiksa penuh,
+# termasuk anotasi di sekeliling pemanggilannya (services/topics.py,
+# services/timeseries.py).
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "statsmodels.*", "scipy.*"]
+ignore_missing_imports = true
