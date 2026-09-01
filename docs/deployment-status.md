@@ -1,5 +1,9 @@
 # Status Deployment
 
+> Dokumen ini riwayat deploy, kredensial, dan catatan per sesi. Untuk status
+> ringkas per komponen beserta apa yang belum diverifikasi, lihat
+> [progress.md](progress.md).
+
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
 Update 2026-08-24 (sesi panjang, 11 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang

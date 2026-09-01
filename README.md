@@ -61,6 +61,10 @@ docs            arsitektur, model data, governance, roadmap
 
 Fondasi arsitektural selesai; fitur dibangun bertahap.
 
+> Status jujur per komponen — termasuk **apa yang belum diverifikasi** dan
+> apa yang sengaja tidak dikerjakan beserta alasannya — ada di
+> **[docs/progress.md](docs/progress.md)**.
+
 | Bagian | Status |
 |---|---|
 | Skema database + RLS multi-tenant | Selesai |

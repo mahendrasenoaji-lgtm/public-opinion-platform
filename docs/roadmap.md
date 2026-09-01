@@ -3,6 +3,10 @@
 Kerjakan berurutan. Setiap fase selesai berarti: berjalan, teruji, dan
 terdokumentasi — bukan sekadar ada di UI.
 
+Dokumen ini daftar centang per fase. Untuk status jujur per komponen —
+seberapa jauh sesuatu sudah dibuktikan bekerja, dan apa yang menahan yang
+belum — lihat [progress.md](progress.md).
+
 ## Phase 1 — fondasi
 
 - [x] Skema database + RLS
