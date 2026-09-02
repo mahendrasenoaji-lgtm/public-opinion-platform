@@ -199,11 +199,13 @@ Ini bagian terpenting dari dokumen ini.
    "Application error: a server-side exception has occurred", karena
    `GET /topics`/`GET /network` gagal 500 (kolom tidak ada), dan
    `apiOrNull()` di frontend cuma menangkap 404. Mitigasi frontend
-   (`apiOrNullLenient()`, PR #4) sudah dibuka, CI hijau, **belum di-merge**
-   — begitu di-merge, ketiga halaman akan kembali menampilkan "data tidak
-   cukup" alih-alih crash, TAPI itu tetap bukan pengganti migrasi ini. SQL
-   lengkapnya ada di deskripsi PR #4 dan di `docs/deployment-status.md`
-   bagian "Fix crash Command Center/Tema/Jaringan".
+   (`apiOrNullLenient()`, PR #4) **sudah di-merge ke `main`** (sesi keempat,
+   2026-09-02) — begitu Render+Vercel selesai redeploy dari `main`, ketiga
+   halaman akan menampilkan "data tidak cukup" alih-alih crash, TAPI itu
+   tetap bukan pengganti migrasi ini, yang masih perlu dijalankan manual.
+   SQL lengkapnya ada di deskripsi PR #4 dan di `docs/deployment-status.md`
+   bagian "Fix crash Command Center/Tema/Jaringan". **Belum diverifikasi
+   live di production** — butuh login `SITE_PASSWORD` manual pengguna.
 
 2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
    kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS

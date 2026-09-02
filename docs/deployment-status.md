@@ -76,6 +76,11 @@ migrasi Supabase yang sesungguhnya (perbaikan akar masalah, bukan cuma
 mitigasi) sudah disiapkan lengkap di deskripsi PR #4 — masih tugas
 pengguna sendiri, butuh kredensial Supabase.
 
+**Update sesi keempat (masih 2026-09-02): kedua PR sudah di-merge**, atas
+persetujuan eksplisit pengguna — lihat bagian "Fix crash Command
+Center/Tema/Jaringan" di bawah untuk detail merge dan apa yang masih
+tersisa (migrasi Supabase).
+
 ## Live sekarang
 
 | Layer | Platform | URL | Status |
@@ -1012,7 +1017,19 @@ perubahan sesi ini.
   itu memang eksplisit tugas pengguna sendiri, bukan residual yang
   terlewat.
 
-## ⚠️ Fix crash Command Center/Tema/Jaringan — PR #4, belum di-merge (2026-09-02)
+Update 2026-09-02 (sesi keempat hari yang sama): pengguna mengonfirmasi
+lewat prompt sesi ini bahwa PR #3 dan #4 belum di-merge sendiri. Diminta
+konfirmasi eksplisit ("Merge keduanya sekarang"), lalu **PR #4 dan PR #3
+di-merge ke `main`** (`gh pr merge --squash --delete-branch`, commit
+`a3e9462` dan `3e082a8`). Render + Vercel akan redeploy `main` otomatis —
+**mitigasi crash sudah di jalur deploy**, tapi migrasi kolom Supabase
+(SQL lengkap di bagian "Fix crash Command Center" di bawah) **masih
+tugas pengguna**, sesuai batas kredensial yang sama seperti sebelumnya.
+Verifikasi production sungguhan (login `SITE_PASSWORD` manual) juga masih
+menunggu pengguna. Sisa waktu sesi ini dipakai untuk kerja yang genuinely
+bisa tanpa kredensial itu — lihat update berikutnya kalau ada.
+
+## ✅ Fix crash Command Center/Tema/Jaringan — PR #4, di-merge 2026-09-02 (sesi keempat)
 
 Insiden production nyata, dilaporkan pengguna langsung: membuka
 `https://public-opinion-platform.vercel.app/command` menampilkan
@@ -1051,8 +1068,9 @@ ulang: ketiga halaman merender "Data tidak cukup" alih-alih crash.
 `apiOrNull()`. Dipakai di `/command` (`/topics` & `/alerts`), `/tema`
 (`/topics`), `/jaringan` (`/network`). CI hijau (`typecheck`+`next build`
 + backend 474 tes semuanya lulus, tidak ada kode backend yang diubah).
-**Belum di-merge ke `main`** — menunggu persetujuan eksplisit pengguna,
-sama seperti PR #2 sebelumnya.
+**Di-merge ke `main` 2026-09-02 (sesi keempat)** — atas persetujuan
+eksplisit pengguna, commit `a3e9462`. Render + Vercel redeploy otomatis
+dari `main`; mitigasi ada di jalur deploy begitu redeploy selesai.
 
 **Ini mitigasi, BUKAN perbaikan akar masalah.** SQL migrasi sesungguhnya
 (sudah ditulis lengkap di deskripsi PR #4, siap copy-paste ke Supabase SQL
@@ -1083,12 +1101,14 @@ Setelah migrasi ini dijalankan, fitur review label dan network graph baru
 benar-benar berfungsi dengan data nyata — PR #4 sendiri cuma mencegah
 crash, tidak mengaktifkan fiturnya.
 
-**Sesi berikutnya, kalau PR #4 belum di-merge saat itu**: cek dulu apakah
-production masih crash (`curl -sI https://public-opinion-platform.vercel.app/command`
-redirect ke `/login` itu normal — yang perlu dicek adalah setelah login
-sungguhan, bukan cuma status kode gerbang). Kalau pengguna sudah merge
-sendiri lewat GitHub UI tanpa bilang, `git log origin/main` akan
-menunjukkannya — jangan asumsikan berdasarkan chat lama.
+**Sesi berikutnya**: PR #4 sudah di-merge (lihat di atas) — cek apakah
+migrasi SQL di atas sudah dijalankan pengguna ke Supabase. Kalau belum,
+`/command`/`/tema`/`/jaringan` di production akan tampil "Data tidak
+cukup" (bukan crash — mitigasi PR #4 aktif) tapi fitur review-label dan
+network graph tetap belum benar-benar berfungsi sampai migrasi jalan.
+Verifikasi production sungguhan (login `SITE_PASSWORD` manual oleh
+pengguna) juga masih perlu dilakukan untuk mengonfirmasi mitigasi bekerja
+di production nyata, bukan cuma lokal.
 
 ## Arsitektur deploy (untuk referensi)
 
