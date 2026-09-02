@@ -48,6 +48,15 @@ atas persetujuan eksplisit pengguna — Render + Vercel akan redeploy dari
 bawah) masih perlu langkah manual terpisah** sebelum fitur review label
 atau `/jaringan` benar-benar jalan di production. Baca bagian
 "Sesi lanjutan Phase 2/3" di bawah.
+Update 2026-09-02 (sesi kedua hari yang sama): migrasi Supabase dan
+`ANTHROPIC_API_KEY`/`YOUTUBE_API_KEY`/`X_BEARER_TOKEN` di Render masih
+menunggu pengguna (butuh kredensial production yang tidak ada di sandbox
+agen). Sambil menunggu, dikerjakan yang genuinely bisa tanpa kredensial itu:
+konektor RSS ditarik terhadap 5 feed media Indonesia SUNGGUHAN untuk
+pertama kalinya (215 item nyata, di luar Postgres/Render — lihat bagian
+"Verifikasi RSS sungguhan" di bawah), dan dari situ ketemu + diperbaiki satu
+bug leksikon sentimen nyata ("asal" salah dibaca negatif). Phase 4 sengaja
+tidak disentuh, sesuai instruksi eksplisit pengguna sesi ini.
 
 ## Live sekarang
 
@@ -869,6 +878,121 @@ tiap item.
   sesi 2026-09-01) — parsing `referenced_tweets`/`conversation_id` yang baru
   ditambahkan sesi ini teruji lewat payload buatan (fungsi murni), bukan
   lewat panggilan API X asli. Butuh `X_BEARER_TOKEN` di Render.
+
+## ✅ Verifikasi RSS sungguhan + perbaikan leksikon sentimen — 2026-09-02 (sesi kedua)
+
+Instruksi pengguna: kerjakan migrasi Supabase dan env var Render sendiri
+(butuh kredensial production); sambil menunggu, agen mengerjakan apa pun
+yang genuinely bisa dikerjakan tanpa kredensial itu, dan tidak menyentuh
+Phase 4 tanpa bertanya. Sandbox sesi ini **tidak punya Docker/Postgres yang
+jalan** (Docker Desktop terpasang tapi daemon-nya mati, WSL "Stopped") dan
+**tidak punya akses ke Supabase/Render/Vercel** — jadi verifikasi di sesi
+ini murni terhadap jaringan publik + fungsi murni lokal, bukan terhadap
+database atau deployment mana pun.
+
+### Yang dikerjakan
+
+**Konektor RSS ditarik terhadap feed sungguhan untuk pertama kalinya.**
+`RSSConnector().fetch()` — kode produksi apa adanya, dipanggil lewat skrip
+mandiri di venv Python terisolasi (dependency minimal: sqlalchemy,
+pydantic-settings, asyncpg, httpx — cukup untuk mengimpor modulnya tanpa
+menyalakan seluruh aplikasi) — dipakai untuk menarik 5 feed media Indonesia:
+Antara News, CNN Indonesia, Tempo, Republika, CNBC Indonesia. 215 dari 250
+item diambil berhasil. Dua kandidat URL yang dicoba lebih dulu (Kompas,
+Detik) ternyata 404/gagal koneksi — bukan bug konektor, URL feednya memang
+sudah pindah/mati (dicoba beberapa varian URL, semuanya gagal) — jadi
+diganti dengan Republika + CNBC Indonesia yang terbukti masih hidup.
+Konektor menangani kedua kegagalan itu dengan bersih (`ConnectorError` yang
+bisa dibaca, bukan crash).
+
+Ke-215 item nyata itu lalu dijalankan lewat pipeline ingestion+sentiment
+ASLI (`app/services/ingestion.py`, `app/services/sentiment.py` — tidak
+ditulis ulang, dipanggil langsung): `normalize_text`, `detect_language`,
+`dedupe` (MinHash+LSH), `sentiment.score`. Tidak ada satu exception pun atas
+data lapangan yang beragam (5 struktur feed berbeda, judul+ringkasan dari
+gaya penulisan berbeda-beda). Deteksi bahasa: 200-202/215 "id" (angka
+berubah antar dua kali jalan karena feednya LIVE — artikel baru masuk,
+lama keluar dari jendela top-50, bukan karena kode berubah). Dedup: 0
+duplikat exact/near di antara 215 item (feed berbeda outlet, wajar tidak
+ada salinan).
+
+**Bug leksikon sentimen nyata ditemukan lewat data lapangan, bukan lewat
+52 kalimat set evaluasi tim.** Dari 44 item yang ternilai (sentiment
+abstain 79.5% — 171/215, jauh lebih tinggi dari kesan yang mungkin didapat
+dari set evaluasi), 40 dibaca manual satu-per-satu (bukan evaluasi
+berlabel formal — satu penilai, sekali baca, bukan pengganti langkah
+"ukur ulang terhadap sampel berlabel" yang sudah dicatat sejak sesi
+2026-09-01). Ditemukan: kata **"asal"** (arti "berasal dari") ada di
+leksikon negatif (arti "asal-asalan"/ceroboh) dengan bobot -0.5, dan di
+sampel ini memicu skor negatif salah pada 2 dari 2 kemunculannya — keduanya
+konstruksi kebangsaan yang netral sepenuhnya ("aktor **asal** Inggris
+Raya", "aktris **asal** Korea Selatan"), bukan sekali pun dalam arti
+ceroboh.
+
+**Diperbaiki**: entri `"asal": 0.5` dihapus dari `_NEGATIVE` di
+`app/services/sentiment.py`, dengan komentar penjelas alasannya langsung di
+kode (supaya tidak ditambahkan lagi tanpa konteks ini). Tokenizer memisah
+tanda hubung (`normalize_text` membuang non-word char), jadi "asal-asalan"
+pun pecah jadi token "asal" + "asalan" terpisah — entri tunggal ini memang
+tidak bisa membedakan kedua makna tanpa konteks kata di sekitarnya, di luar
+kemampuan leksikon kata-tunggal. Tes regresi baru:
+`test_asal_negara_tidak_lagi_dianggap_negatif` di
+`apps/api/tests/test_sentiment.py` (kelas baru `TestKataAmbigu`).
+
+**Diverifikasi tidak menurunkan mutu di set evaluasi 52 kalimat**: kata
+"asal" tidak muncul sama sekali di `sentiment_eval.py:LABELED`, jadi
+`evaluate(LABELED)` tidak terpengaruh sama sekali oleh perubahan ini — bukan
+trade-off yang harus ditimbang, murni perbaikan bersih. Dikonfirmasi lokal
+(`tests/test_sentiment.py` — 31 tes, semuanya lulus, sebelum dan sesudah
+perubahan) dan `tests/test_ingestion.py` + `tests/test_connectors.py` (86
+tes murni tanpa DB total, semuanya lulus) di venv terisolasi tanpa Postgres
+sama sekali — modul-modul ini murni (CLAUDE.md §4), jadi tidak butuh
+database untuk dites. `ruff check` dan `mypy --strict` bersih untuk
+`app/services/sentiment.py`.
+
+**Dua temuan lain dicatat, sengaja TIDAK diperbaiki** (di luar cakupan yang
+bisa diverifikasi aman tanpa risiko regresi baru):
+1. Judul-judul berbeda tentang program pemerintah yang sama ("Apresiasi
+   Pemerintah Daerah Berprestasi") membanjiri skor positif hanya karena kata
+   "apresiasi" ada di NAMA program itu, bukan karena tiap artikel menyatakan
+   sikap sendiri — keterbatasan struktural leksikon kata-tunggal terhadap
+   nama proper berulang, bukan bug satu kata yang bisa dihapus seperti
+   "asal".
+2. Sarkasme dan eskalasi krisis (jumlah korban meninggal yang bertambah)
+   tetap tidak terbaca benar — persis batas yang sudah diakui docstring
+   modul sejak awal proyek, sekarang ada contoh konkretnya dari data nyata.
+
+Detail lengkap (215 item, 44 skor, alasan tiap keputusan) ada di
+`docs/progress.md` bagian "Yang BELUM diverifikasi" poin 2 dan 5 — dokumen
+ini sengaja tidak mengulang semuanya supaya tidak ada dua sumber kebenaran
+yang bisa berbeda.
+
+### Yang sudah dikonfirmasi lewat CI (bukan cuma lokal)
+
+**473 → 474 tes backend dikonfirmasi hijau lewat CI GitHub Actions**
+([run `33590975725`](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/actions/runs/33590975725),
+dipicu oleh [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2)) —
+`474 passed` terhadap Postgres asli (image `pgvector/pgvector:pg16`, role
+`pop_app`, RLS aktif, bukan superuser), bukan cuma lokal tanpa DB. `ruff` dan
+`mypy --strict` (`app/services app/ai app/connectors`) juga bersih di CI
+yang sama. Frontend (`typecheck` + `next build`) juga hijau, meski tidak ada
+kode frontend yang disentuh sesi ini — dijalankan karena satu PR memicu
+kedua job. Lokal (venv tanpa Postgres, Docker tidak tersedia di sandbox
+sesi ini) sebelumnya hanya sempat memverifikasi 87 tes murni tanpa DB
+(`test_sentiment.py`, `test_ingestion.py`, `test_connectors.py`) — CI di
+atas adalah verifikasi PERTAMA yang mencakup seluruh 474 tes untuk
+perubahan sesi ini.
+
+### Yang BELUM diverifikasi dari pekerjaan sesi ini
+
+- Tarikan RSS ini terjadi di luar aplikasi sepenuhnya (skrip mandiri, bukan
+  lewat `POST .../signals/collect`, bukan lewat Postgres, bukan dari
+  Render). Jalur endpoint asli + database + dari Render sendiri ke
+  penerbit masih belum diuji terpisah.
+- Migrasi kolom Supabase dan env var Render (`ANTHROPIC_API_KEY` dkk.) —
+  seperti diminta pengguna di awal sesi ini — **tetap belum dikerjakan**,
+  itu memang eksplisit tugas pengguna sendiri, bukan residual yang
+  terlewat.
 
 ## Arsitektur deploy (untuk referensi)
 
