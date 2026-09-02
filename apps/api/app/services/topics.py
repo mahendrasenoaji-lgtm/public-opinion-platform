@@ -313,3 +313,22 @@ def share_of_voice(volumes: dict[str, int]) -> dict[str, float]:
     if total <= 0:
         return {}
     return {k: round(100 * v / total, 1) for k, v in volumes.items()}
+
+
+def effective_label(label: str, reviewed_label: str | None, review_status: str) -> str:
+    """Label yang seharusnya ditampilkan/dipakai untuk sebuah tema.
+
+    Fungsi murni (string masuk, string keluar) supaya dipakai konsisten oleh
+    routers/topics.py (tampilan /tema) dan routers/copilot.py (kartu fakta) —
+    revisi manusia atas label yang salah harus mengalir ke KEDUANYA, bukan
+    cuma ke satu tempat yang kebetulan dibuka duluan.
+
+    Hanya `review_status == "APPROVED"` yang membuat `reviewed_label` dipakai.
+    Sebuah label yang DITOLAK tetap tersimpan (jejak audit apa yang diusulkan
+    peninjau) tapi tidak pernah ditampilkan sebagai pengganti — status
+    REJECTED berarti "label mentah ini yang benar", bukan "pakai usulan yang
+    baru saja ditolak".
+    """
+    if review_status == "APPROVED" and reviewed_label:
+        return reviewed_label
+    return label

@@ -35,6 +35,7 @@ from app.models.governance import AIOutput, ConfidenceBand
 from app.models.governance import ReviewStatus as DBReviewStatus
 from app.models.measurement import MetricSnapshot, Narrative, Segment
 from app.models.signal import Mention, Topic
+from app.services import topics as topics_svc
 
 router = APIRouter(prefix="/projects/{project_id}/copilot", tags=["copilot"])
 
@@ -174,19 +175,26 @@ async def _fact_cards(session: TenantSession, project_id: UUID) -> list[FactCard
         .all()
     )
     for topic in topics:
+        # Pakai label yang sudah ditinjau manusia bila ada dan disetujui --
+        # fungsi murni yang sama dipakai tampilan /tema (services/topics.py),
+        # supaya revisi seorang peninjau juga mengubah apa yang dibaca Copilot,
+        # bukan cuma apa yang terlihat di satu halaman.
+        label = topics_svc.effective_label(
+            topic.label, topic.reviewed_label, topic.review_status.value
+        )
         cards.append(
             FactCard(
                 key=f"topic:{topic.id}",
-                label=f"Tema {topic.label}",
+                label=f"Tema {label}",
                 payload={
-                    "label": topic.label,
+                    "label": label,
                     "kata_kunci": list(topic.keywords),
                     "volume": topic.volume,
                 },
                 evidence=EvidenceRef(
                     kind="mention_aggregate",
                     ref_id=topic.id,
-                    label=f"Tema percakapan: {topic.label}",
+                    label=f"Tema percakapan: {label}",
                     n=topic.volume,
                     source="SOCIAL",
                 ),

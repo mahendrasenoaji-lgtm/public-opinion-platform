@@ -22,6 +22,7 @@ metodenya di commit yang sama.
 
 from __future__ import annotations
 
+import enum
 from datetime import datetime
 from decimal import Decimal
 from uuid import UUID, uuid4
@@ -114,12 +115,27 @@ class Mention(Base):
     )
 
 
+class TopicReviewStatus(str, enum.Enum):  # noqa: UP042 -- lihat catatan
+    # ConfidenceBand di app/models/governance.py: enum lokal supaya app/models
+    # tidak bergantung ke app/ai, dan cocok dengan tipe Postgres native
+    # `review_status` yang sama dipakai ai_outputs.human_review.
+    PENDING = "PENDING"
+    APPROVED = "APPROVED"
+    REJECTED = "REJECTED"
+    NEEDS_REVIEW = "NEEDS_REVIEW"
+
+
 class Topic(Base):
     """Klaster percakapan hasil `services/topics.py`.
 
     `volume` adalah jumlah mention di klaster ini, bukan persentase — persentase
     dihitung saat penyajian supaya penyebutnya (total mention pada periode yang
     ditanyakan) selalu eksplisit.
+
+    `reviewed_label`/`review_status` adalah verifikasi manusia ATAS label
+    kata-kunci otomatis -- lihat routers/topics.py:review_topic(). Label asli
+    (`label`) tidak pernah ditimpa; yang disunting manusia disimpan terpisah
+    supaya keduanya bisa dibandingkan.
     """
 
     __tablename__ = "topics"
@@ -137,3 +153,16 @@ class Topic(Base):
     label: Mapped[str] = mapped_column(Text, nullable=False)
     keywords: Mapped[list[str]] = mapped_column(ARRAY(Text), nullable=False, default=list)
     volume: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    reviewed_label: Mapped[str | None] = mapped_column(Text)
+    review_status: Mapped[TopicReviewStatus] = mapped_column(
+        SAEnum(
+            TopicReviewStatus,
+            name="review_status",
+            create_type=False,
+            values_callable=lambda e: [m.value for m in e],
+        ),
+        nullable=False,
+        default=TopicReviewStatus.PENDING,
+    )
+    reviewed_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

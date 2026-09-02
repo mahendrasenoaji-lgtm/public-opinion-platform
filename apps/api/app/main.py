@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.config import get_settings
 from app.routers import (
+    alerts,
     auth,
     brief,
     copilot,
@@ -80,5 +81,6 @@ for r in (
     topics,
     influence,
     impact,
+    alerts,
 ):
     app.include_router(r.router, prefix="/v1")

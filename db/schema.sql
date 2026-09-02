@@ -192,7 +192,17 @@ CREATE TABLE topics (
     label      text NOT NULL,
     keywords   text[] NOT NULL DEFAULT '{}',
     centroid   vector(1024),
-    volume     integer NOT NULL DEFAULT 0
+    volume     integer NOT NULL DEFAULT 0,
+    -- Verifikasi manusia atas label (gabungan kata kunci otomatis, lihat
+    -- services/topics.py). review_status memakai enum yang sama dengan
+    -- ai_outputs.human_review -- label tema BUKAN keluaran generatif, tapi
+    -- statusnya (belum ditinjau/disetujui/ditolak) semantiknya identik.
+    -- reviewed_label NULL berarti belum ada revisi manusia; kalau terisi,
+    -- itu yang ditampilkan menggantikan label kata kunci mentah.
+    reviewed_label text,
+    review_status  review_status NOT NULL DEFAULT 'PENDING',
+    reviewed_by    uuid REFERENCES users(id),
+    reviewed_at    timestamptz
 );
 
 CREATE TABLE narratives (
