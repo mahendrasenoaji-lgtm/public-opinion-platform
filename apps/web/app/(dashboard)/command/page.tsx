@@ -5,7 +5,7 @@ import { InsufficientData, Provenance } from "@/components/Provenance";
 import { Timeline, type TimelineEvent } from "@/components/Timeline";
 import { Info } from "lucide-react";
 import { TrendChart } from "@/components/TrendChart";
-import { apiOrNull, apiOrNullLenient, api, repeatedQuery, type Metric } from "@/lib/api";
+import { apiOrNullLenient, repeatedQuery, type Metric } from "@/lib/api";
 import { riskColor } from "@/lib/tokens";
 import { getCurrentProject } from "@/lib/currentProject";
 
@@ -61,23 +61,26 @@ interface AlertsOut {
 export default async function CommandCenter() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
-  const [index, divergence, trend, timeline, topics, alerts] = await Promise.all([
-    apiOrNull<{ index: Metric; limitations: string[] }>(`/projects/${projectId}/opinion/index`),
-    apiOrNull<Divergence>(`/projects/${projectId}/opinion/divergence`),
-    api<TrendPoint[]>(
+  // apiOrNullLenient di SEMUA panggilan berikut -- bukan apiOrNull (yang
+  // cuma menangkap 404), dan bukan api polos. Error backend APA PUN (500
+  // dari kolom belum bermigrasi, DB blip, dll.), bukan cuma "belum ada
+  // data" 404, tidak boleh menjatuhkan SELURUH Command Center dengan
+  // "Application error" polos -- insiden nyata 2026-09-02 untuk /topics &
+  // /alerts, dan dikonfirmasi lewat verifikasi lokal (backend tiruan
+  // membalas 500 utk semua endpoint) bahwa panggilan lain di halaman ini
+  // rentan persis sama sebelum diperbaiki.
+  const [index, divergence, trendRaw, timelineRaw, topics, alerts] = await Promise.all([
+    apiOrNullLenient<{ index: Metric; limitations: string[] }>(`/projects/${projectId}/opinion/index`),
+    apiOrNullLenient<Divergence>(`/projects/${projectId}/opinion/divergence`),
+    apiOrNullLenient<TrendPoint[]>(
       `/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: [...TREND_METRICS], limit: 12 })}`,
     ),
-    api<TimelineEvent[]>(`/projects/${projectId}/opinion/timeline${repeatedQuery({ limit: 8 })}`),
-    // apiOrNullLenient, bukan api/apiOrNull: /topics butuh kolom
-    // topics.review_status yang migrasinya ke Supabase bisa saja belum
-    // diterapkan (lihat docs/deployment-status.md) -- itu gagal dengan 500
-    // dari backend, bukan 404, dan tanpa ini akan menjatuhkan SELURUH
-    // Command Center dengan "Application error" polos (insiden nyata
-    // 2026-09-02). /alerts sendiri tidak menyentuh kolom itu, tapi dibuat
-    // lenient juga sebagai jaring pengaman panel yang sama.
+    apiOrNullLenient<TimelineEvent[]>(`/projects/${projectId}/opinion/timeline${repeatedQuery({ limit: 8 })}`),
     apiOrNullLenient<TopicRow[]>(`/projects/${projectId}/topics`),
     apiOrNullLenient<AlertsOut>(`/projects/${projectId}/alerts`),
   ]);
+  const trend = trendRaw ?? [];
+  const timeline = timelineRaw ?? [];
   const topTopics = (topics ?? [])
     .slice()
     .sort((a, b) => b.volume - a.volume)

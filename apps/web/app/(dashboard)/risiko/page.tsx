@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { riskColor } from "@/lib/tokens";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ const pct = (v: number) => `${Math.round(v * 100)}%`;
 
 export default async function RisikoPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const risk = await apiOrNull<RiskScore>(`/projects/${projectId}/risk/score`);
+  const risk = await apiOrNullLenient<RiskScore>(`/projects/${projectId}/risk/score`);
 
   const tersedia = risk?.components.filter((c) => c.available) ?? [];
   const hilang = risk?.components.filter((c) => !c.available) ?? [];

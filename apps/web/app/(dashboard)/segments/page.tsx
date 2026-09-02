@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
-import { api } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -43,10 +43,21 @@ const SEG_COLOR = (sent: number | null) => {
 
 export default async function SegmentsPage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
-  const [segments, polarization] = await Promise.all([
-    api<SegmentOut[]>(`/projects/${projectId}/segments`),
-    api<PolarizationOut>(`/projects/${projectId}/risk/polarization`),
+  // apiOrNullLenient, bukan api polos -- lihat catatan yang sama di geo/page.tsx.
+  const [segmentsRaw, polarizationRaw] = await Promise.all([
+    apiOrNullLenient<SegmentOut[]>(`/projects/${projectId}/segments`),
+    apiOrNullLenient<PolarizationOut>(`/projects/${projectId}/risk/polarization`),
   ]);
+  const segments = segmentsRaw ?? [];
+  const polarization: PolarizationOut = polarizationRaw ?? {
+    polarization_score: null,
+    state: null,
+    method: "—",
+    segments_used: 0,
+    insufficient_data: true,
+    note: null,
+    limitations: null,
+  };
 
   return (
     <>

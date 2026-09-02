@@ -3,7 +3,7 @@ import type { Route } from "next";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/Panel";
 import { InsufficientData } from "@/components/Provenance";
-import { api } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProjectId } from "@/lib/currentProject";
 import { ProjectRow } from "./ProjectRow";
 
@@ -18,10 +18,12 @@ interface ProjectOut {
 }
 
 export default async function ProyekPage() {
-  const [projects, currentId] = await Promise.all([
-    api<ProjectOut[]>("/projects"),
+  // apiOrNullLenient, bukan api polos -- lihat catatan yang sama di geo/page.tsx.
+  const [projectsRaw, currentId] = await Promise.all([
+    apiOrNullLenient<ProjectOut[]>("/projects"),
     getCurrentProjectId(),
   ]);
+  const projects = projectsRaw ?? [];
 
   return (
     <>

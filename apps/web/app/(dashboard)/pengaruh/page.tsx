@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ interface InfluenceOut {
 
 export default async function PengaruhPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const data = await apiOrNull<InfluenceOut>(`/projects/${projectId}/influence`);
+  const data = await apiOrNullLenient<InfluenceOut>(`/projects/${projectId}/influence`);
   const social = SOURCE.SOCIAL.color;
   const peak = Math.max(1, ...(data?.top ?? []).map((r) => r.influence_estimate));
 

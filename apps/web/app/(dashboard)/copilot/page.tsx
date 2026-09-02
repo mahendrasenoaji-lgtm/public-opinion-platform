@@ -2,7 +2,7 @@ import { Info } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { AskForm } from "./AskForm";
 import type { AskResponse } from "./actions";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CopilotPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const history = (await apiOrNull<AskResponse[]>(`/projects/${projectId}/copilot/history`)) ?? [];
+  const history = (await apiOrNullLenient<AskResponse[]>(`/projects/${projectId}/copilot/history`)) ?? [];
 
   return (
     <>

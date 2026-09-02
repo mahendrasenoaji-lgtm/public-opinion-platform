@@ -2,7 +2,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE, type SignalSource } from "@/lib/tokens";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +26,9 @@ interface DivergenceResponse {
 export default async function ConsistencyPage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
   // null saat proyek belum punya >=2 sumber sinyal sama sekali (404 backend,
-  // lihat lib/api.ts:apiOrNull) -- diperlakukan sama seperti readings kosong,
+  // lihat lib/api.ts:apiOrNullLenient) -- diperlakukan sama seperti readings kosong,
   // UI di bawah sudah menampilkan InsufficientData untuk kedua kasus itu.
-  const divergence = (await apiOrNull<DivergenceResponse>(
+  const divergence = (await apiOrNullLenient<DivergenceResponse>(
     `/projects/${projectId}/opinion/divergence`,
   )) ?? { gap: 0, is_notable: false, readings: [], explanations: [], limitations: [] };
 

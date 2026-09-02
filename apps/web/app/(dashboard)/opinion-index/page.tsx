@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { TrendChart } from "@/components/TrendChart";
 import { WeightEditor, type WeightDim } from "@/components/WeightEditor";
-import { api, apiOrNull, repeatedQuery, type Metric, type SignalSource } from "@/lib/api";
+import { apiOrNullLenient, repeatedQuery, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -58,10 +58,15 @@ const EMPTY_INDEX: IndexResponse = {
 export default async function IndexPage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
+  // apiOrNullLenient, bukan api/apiOrNull polos: error backend APA PUN
+  // (bukan cuma "belum ada data" 404) tidak boleh menjatuhkan seluruh
+  // halaman -- lihat catatan yang sama di /command untuk /topics & /alerts.
   const [index, trend] = await Promise.all([
-    apiOrNull<IndexResponse>(`/projects/${projectId}/opinion/index`),
-    api<TrendPoint[]>(`/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: ["poi"], limit: 12 })}`),
-  ]).then(([idx, tr]) => [idx ?? EMPTY_INDEX, tr] as const);
+    apiOrNullLenient<IndexResponse>(`/projects/${projectId}/opinion/index`),
+    apiOrNullLenient<TrendPoint[]>(
+      `/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: ["poi"], limit: 12 })}`,
+    ),
+  ]).then(([idx, tr]) => [idx ?? EMPTY_INDEX, tr ?? []] as const);
 
   const dims: WeightDim[] = index.dimensions.map((d) => ({
     key: d.key,

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { PageHeader } from "@/components/PageHeader";
 import { BriefGenerator } from "@/components/BriefGenerator";
-import { api, ApiError } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import type { BriefOut } from "./actions";
@@ -17,12 +17,10 @@ const CAN_APPROVE_ROLES = new Set(["SUPER_ADMIN", "RESEARCH_DIRECTOR", "RESEARCH
 export default async function BriefPage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
-  let brief: BriefOut | null = null;
-  try {
-    brief = await api<BriefOut>(`/projects/${projectId}/brief/latest`);
-  } catch (e) {
-    if (!(e instanceof ApiError) || e.status !== 404) throw e;
-  }
+  // apiOrNullLenient, bukan api+try/catch-404-saja: error backend APA PUN
+  // (bukan cuma "belum ada brief" 404) tidak boleh menjatuhkan seluruh
+  // halaman -- lihat catatan yang sama di /command untuk /topics & /alerts.
+  const brief = await apiOrNullLenient<BriefOut>(`/projects/${projectId}/brief/latest`);
 
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
   const role = sessionToken ? decodeJwtPayload(sessionToken)?.role : undefined;

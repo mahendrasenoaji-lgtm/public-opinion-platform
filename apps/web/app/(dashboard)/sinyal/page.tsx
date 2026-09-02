@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
-import { apiOrNull, type Metric, type SignalSource } from "@/lib/api";
+import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -77,7 +77,7 @@ const BACKEND_TERTINGGAL =
 export default async function SinyalPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
 
-  // SEMUA panggilan pakai apiOrNull, termasuk dua yang secara logika "selalu
+  // SEMUA panggilan pakai apiOrNullLenient, termasuk dua yang secara logika "selalu
   // ada" (sentiment-quality dan daftar konektor tidak bergantung pada data
   // proyek sama sekali). Alasannya bukan data kosong, melainkan urutan deploy:
   // frontend di Vercel dan backend di Render naik terpisah, dan Vercel jauh
@@ -88,11 +88,11 @@ export default async function SinyalPage() {
   // lain di repo ini (lihat docs/deployment-status.md, bagian registrasi
   // self-service).
   const [summary, trend, quality, sources, connectors] = await Promise.all([
-    apiOrNull<SignalSummary>(`/projects/${projectId}/signals/summary`),
-    apiOrNull<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
-    apiOrNull<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
-    apiOrNull<SourceRow[]>(`/projects/${projectId}/signals/sources`),
-    apiOrNull<ConnectorRow[]>(`/signals/connectors`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
+    apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
+    apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
+    apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
+    apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
   ]);
 
   const volume = summary?.volume.value ?? 0;

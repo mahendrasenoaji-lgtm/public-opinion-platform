@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
 import { ForecastSimulator } from "@/components/ForecastSimulator";
-import { apiOrNull, type Metric } from "@/lib/api";
+import { apiOrNullLenient, type Metric } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { runWhatIf } from "./actions";
 
@@ -12,7 +12,7 @@ export default async function ForecastPage() {
   // null kalau proyek belum punya data dimensi POI sama sekali (404
   // backend) -- diperlakukan sama seperti index.value === null di bawah,
   // keduanya berujung "belum ada baseline yang valid untuk forecast".
-  const index = await apiOrNull<{ index: Metric }>(`/projects/${projectId}/opinion/index`);
+  const index = await apiOrNullLenient<{ index: Metric }>(`/projects/${projectId}/opinion/index`);
 
   if (index === null || index.index.value === null) {
     return (

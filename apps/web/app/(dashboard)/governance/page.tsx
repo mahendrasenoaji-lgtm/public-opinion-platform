@@ -1,7 +1,7 @@
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
-import { api } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -38,10 +38,13 @@ const REVIEW_LABEL: Record<AIOutputRow["human_review"], string> = {
 
 export default async function GovernancePage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
-  const [aiOutputs, dataQuality] = await Promise.all([
-    api<AIOutputRow[]>(`/projects/${projectId}/governance/ai-outputs`),
-    api<DataQualityRow[]>(`/projects/${projectId}/governance/data-quality`),
+  // apiOrNullLenient, bukan api polos -- lihat catatan yang sama di geo/page.tsx.
+  const [aiOutputsRaw, dataQualityRaw] = await Promise.all([
+    apiOrNullLenient<AIOutputRow[]>(`/projects/${projectId}/governance/ai-outputs`),
+    apiOrNullLenient<DataQualityRow[]>(`/projects/${projectId}/governance/data-quality`),
   ]);
+  const aiOutputs = aiOutputsRaw ?? [];
+  const dataQuality = dataQualityRaw ?? [];
 
   const dq = dataQuality[0];
   const dqRows: Array<[string, number]> = dq

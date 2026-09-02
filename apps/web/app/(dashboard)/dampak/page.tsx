@@ -1,7 +1,7 @@
 import { Info } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { ImpactForm } from "./ImpactForm";
 import { SyntheticControlForm } from "./SyntheticControlForm";
@@ -14,7 +14,7 @@ interface SegmentOut {
 
 export default async function DampakPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const segments = (await apiOrNull<SegmentOut[]>(`/projects/${projectId}/segments`)) ?? [];
+  const segments = (await apiOrNullLenient<SegmentOut[]>(`/projects/${projectId}/segments`)) ?? [];
 
   return (
     <>

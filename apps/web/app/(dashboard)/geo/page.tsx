@@ -1,14 +1,18 @@
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData } from "@/components/Provenance";
 import { GeoExplorer, type ProvinceMetrics } from "@/components/GeoExplorer";
-import { api } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
 
 export default async function GeoPage() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
-  const provinces = await api<ProvinceMetrics[]>(`/projects/${projectId}/opinion/geo`);
+  // apiOrNullLenient, bukan api polos: satu error backend (mis. kolom belum
+  // bermigrasi, DB sempat down) tidak boleh menjatuhkan SELURUH halaman
+  // dengan "Application error" -- kelas bug yang sama persis dengan yang
+  // sudah diperbaiki di /command, /tema, /jaringan (lihat lib/api.ts).
+  const provinces = (await apiOrNullLenient<ProvinceMetrics[]>(`/projects/${projectId}/opinion/geo`)) ?? [];
 
   return (
     <>
