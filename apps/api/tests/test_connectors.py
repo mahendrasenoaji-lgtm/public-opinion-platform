@@ -156,6 +156,57 @@ class TestXParsing:
         del payload["includes"]
         assert parse_search(payload)[0].author_handle is None
 
+    def test_referenced_tweets_menghasilkan_reply_dan_quote_handle(self) -> None:
+        payload = {
+            "data": [
+                {
+                    "id": "333",
+                    "text": "Setuju sama pendapat ini",
+                    "created_at": "2026-08-25T04:00:00Z",
+                    "author_id": "u2",
+                    "conversation_id": "111",
+                    "referenced_tweets": [{"type": "replied_to", "id": "111"}],
+                },
+                {
+                    "id": "444",
+                    "text": "Kutip ini penting",
+                    "created_at": "2026-08-25T05:00:00Z",
+                    "author_id": "u3",
+                    "referenced_tweets": [{"type": "quoted", "id": "111"}],
+                },
+            ],
+            "includes": {
+                "users": [
+                    {"id": "u1", "username": "warga_b"},
+                    {"id": "u2", "username": "warga_c"},
+                    {"id": "u3", "username": "warga_d"},
+                ],
+                # tweet 111 sendiri tidak lolos kueri pencarian, tapi ikut
+                # kembali di sini karena expansions referenced_tweets.id.
+                "tweets": [{"id": "111", "author_id": "u1"}],
+            },
+        }
+        items = {i.external_id: i for i in parse_search(payload)}
+        assert items["333"].reply_to_handle == "warga_b"
+        assert items["333"].quote_of_handle is None
+        assert items["333"].conversation_id == "111"
+        assert items["444"].quote_of_handle == "warga_b"
+        assert items["444"].reply_to_handle is None
+
+    def test_retweeted_tidak_diambil_sebagai_reply_atau_quote(self) -> None:
+        payload = self._payload()
+        payload["data"][0]["referenced_tweets"] = [{"type": "retweeted", "id": "999"}]
+        payload["includes"]["tweets"] = [{"id": "999", "author_id": "u1"}]
+        items = parse_search(payload)
+        assert items[0].reply_to_handle is None
+        assert items[0].quote_of_handle is None
+
+    def test_tanpa_includes_tweets_reply_handle_none_bukan_error(self) -> None:
+        payload = self._payload()
+        payload["data"][0]["referenced_tweets"] = [{"type": "replied_to", "id": "999"}]
+        items = parse_search(payload)
+        assert items[0].reply_to_handle is None
+
 
 class TestRegistry:
     def test_konektor_bawaan_terdaftar(self) -> None:

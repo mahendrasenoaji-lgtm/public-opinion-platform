@@ -26,6 +26,7 @@ const NAV = [
   // Phase 3 — prediksi
   ["/risiko", "Opinion Risk Score"],
   ["/pengaruh", "Influence Estimate"],
+  ["/jaringan", "Interaction Network"],
   ["/dampak", "Communication Impact"],
   ["/brief", "Executive Brief"],
   ["/governance", "AI Governance"],

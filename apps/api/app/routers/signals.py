@@ -119,6 +119,19 @@ class IngestItem(BaseModel):
             "dari isi teks."
         ),
     )
+    reply_to_handle: str | None = Field(
+        default=None,
+        description=(
+            "Akun yang DIBALAS item ini, kalau sumbernya menyatakannya secara "
+            "eksplisit (mis. field referenced_tweets X). Di-hash sama seperti "
+            "author_handle. Jangan menebak dari isi teks."
+        ),
+    )
+    quote_of_handle: str | None = Field(
+        default=None,
+        description="Akun yang DIKUTIP item ini, dengan syarat yang sama seperti reply_to_handle.",
+    )
+    conversation_id: str | None = Field(default=None)
 
 
 class IngestRequest(BaseModel):
@@ -360,6 +373,9 @@ async def _store(
                 province_code=p.province_code,
                 sentiment=None if p.sentiment is None else Decimal(str(p.sentiment)),
                 emotion=p.emotion or None,
+                reply_to_hash=p.reply_to_hash,
+                quote_of_hash=p.quote_of_hash,
+                conversation_id=p.conversation_id,
             )
             .on_conflict_do_nothing(index_elements=["project_id", "connector", "external_id"])
         )
@@ -409,6 +425,9 @@ async def ingest(
                 engagement=i.engagement,
                 reach_est=i.reach_est,
                 province_code=i.province_code,
+                reply_to_handle=i.reply_to_handle,
+                quote_of_handle=i.quote_of_handle,
+                conversation_id=i.conversation_id,
             )
             for i in body.items
         ],
@@ -491,6 +510,9 @@ async def collect(
                 engagement=r.engagement,
                 reach_est=r.reach_est,
                 province_code=r.province_code,
+                reply_to_handle=r.reply_to_handle,
+                quote_of_handle=r.quote_of_handle,
+                conversation_id=r.conversation_id,
             )
             for r in raw
         ],

@@ -132,12 +132,21 @@ proyek itu sendiri.
 - [x] Influencer network dengan istilah *influence estimate*
       (`services/influence.py`, `GET .../influence`). Yang diukur porsi
       percakapan dan keterlibatan — keterpaparan, bukan pengaruh kausal.
-      **Graf jaringan antar-akun belum ada**: data yang tersimpan tidak
-      memuat relasi balasan/kutipan antar-akun.
+- [x] Graf jaringan antar-akun dari relasi balasan/kutipan
+      (`services/network.py`, `GET .../network`, halaman `/jaringan`).
+      Konektor X (`connectors/x.py`) mengekstrak `referenced_tweets` jadi
+      `reply_to_handle`/`quote_of_handle`, di-hash lewat pipeline yang sama
+      dengan `author_handle`. Graf hanya memuat relasi antar akun yang
+      KEDUANYA muncul sebagai penulis dalam data yang berhasil diambil — akun
+      yang dibalas tapi tidak ikut terambil tidak jadi node, bukan node tanpa
+      relasi. Tidak menyimpulkan koordinasi atau kendali atas opini.
 - [x] Communication Impact dengan desain pembanding wajib
-      (`services/impact.py`, difference-in-differences).
-      `NoControlGroup` menolak menghitung tanpa kelompok pembanding, tanpa
-      jalan pintas. Synthetic control belum ada.
+      (`services/impact.py`, difference-in-differences DAN synthetic
+      control). `NoControlGroup` menolak menghitung DiD tanpa kelompok
+      pembanding, tanpa jalan pintas. Synthetic control (Abadie dkk.,
+      `POST .../impact/synthetic-control`) dipakai ketika tidak ada satu
+      pembanding tunggal yang meyakinkan tapi ada beberapa kandidat donor;
+      signifikansinya dari uji permutasi placebo, bukan p-value parametrik.
 
 ## Phase 4 — enterprise (belum dimulai)
 

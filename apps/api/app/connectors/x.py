@@ -47,6 +47,15 @@ def parse_search(payload: dict[str, Any]) -> list[RawItem]:
         str(u.get("id")): str(u.get("username", ""))
         for u in payload.get("includes", {}).get("users", [])
     }
+    # `includes.tweets` berisi tweet yang DIRUJUK (dibalas/dikutip) tapi tidak
+    # sendiri lolos kueri pencarian -- expansions `referenced_tweets.id` dan
+    # `referenced_tweets.id.author_id` di fetch() yang membuatnya ada di sini.
+    # Dipetakan ke author_id-nya supaya bisa dicari usernamenya di `users`.
+    referenced_author_by_id = {
+        str(t.get("id")): str(t.get("author_id"))
+        for t in payload.get("includes", {}).get("tweets", [])
+        if t.get("id") and t.get("author_id")
+    }
 
     items: list[RawItem] = []
     for row in payload.get("data", []):
@@ -68,6 +77,21 @@ def parse_search(payload: dict[str, Any]) -> list[RawItem]:
             for k in ("retweet_count", "reply_count", "like_count", "quote_count")
         )
 
+        # Relasi balasan/kutipan -- dari field `referenced_tweets` X sendiri,
+        # bukan ditebak dari teks. "retweeted" sengaja tidak diambil: repost
+        # bukan balasan atau kutipan, itu penyebaran ulang tanpa komentar.
+        reply_to_handle: str | None = None
+        quote_of_handle: str | None = None
+        for ref in row.get("referenced_tweets") or []:
+            author_id = referenced_author_by_id.get(str(ref.get("id")))
+            handle = users.get(author_id) if author_id else None
+            if not handle:
+                continue
+            if ref.get("type") == "replied_to":
+                reply_to_handle = handle
+            elif ref.get("type") == "quoted":
+                quote_of_handle = handle
+
         items.append(
             RawItem(
                 external_id=external_id,
@@ -76,6 +100,9 @@ def parse_search(payload: dict[str, Any]) -> list[RawItem]:
                 author_handle=users.get(str(row.get("author_id"))) or None,
                 engagement=engagement,
                 url=f"https://x.com/i/status/{external_id}",
+                reply_to_handle=reply_to_handle,
+                quote_of_handle=quote_of_handle,
+                conversation_id=str(row.get("conversation_id") or "") or None,
                 extra={"lang_reported": str(row.get("lang") or "")},
             )
         )
@@ -115,8 +142,14 @@ class XConnector(Connector):
         params: dict[str, str | int] = {
             "query": cfg["query"],
             "max_results": min(MAX_PAGE, max(10, limit)),
-            "tweet.fields": "created_at,public_metrics,lang",
-            "expansions": "author_id",
+            "tweet.fields": "created_at,public_metrics,lang,conversation_id,referenced_tweets",
+            # `referenced_tweets.id.author_id` membuat X mengembalikan
+            # tweet yang dirujuk (dibalas/dikutip) di `includes.tweets` --
+            # DAN username penulisnya di `includes.users` -- walau tweet
+            # itu sendiri tidak lolos kueri pencarian `query`. Tanpa ini,
+            # relasi balasan/kutipan cuma bisa ditelusuri ke tweet yang
+            # kebetulan ikut lolos kueri yang sama.
+            "expansions": "author_id,referenced_tweets.id,referenced_tweets.id.author_id",
             "user.fields": "username",
         }
         if since is not None:

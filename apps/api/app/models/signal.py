@@ -108,6 +108,12 @@ class Mention(Base):
     province_code: Mapped[str | None] = mapped_column(Text)
     sentiment: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
     emotion: Mapped[dict | None] = mapped_column(JSON)
+    #: Relasi balasan/kutipan (services/network.py) -- akun tujuan sudah
+    #: di-hash, sama seperti author_hash. Hanya diisi kalau sumbernya
+    #: memang menyatakan relasi ini secara eksplisit.
+    reply_to_hash: Mapped[str | None] = mapped_column(Text)
+    quote_of_hash: Mapped[str | None] = mapped_column(Text)
+    conversation_id: Mapped[str | None] = mapped_column(Text)
     topic_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True))
     narrative_id: Mapped[UUID | None] = mapped_column(PG_UUID(as_uuid=True))
     ingested_at: Mapped[datetime] = mapped_column(

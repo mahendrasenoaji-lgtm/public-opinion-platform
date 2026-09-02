@@ -54,6 +54,13 @@ class RawItem:
 
     `province_code` hanya diisi kalau SUMBERNYA memberi geotag resmi. Konektor
     dilarang menebaknya dari isi teks — lihat catatan di services/ingestion.py.
+
+    `reply_to_handle`/`quote_of_handle`/`conversation_id` hanya diisi kalau
+    SUMBERNYA memang menyatakan relasi itu secara eksplisit (mis. field
+    `referenced_tweets` di X API) — bukan ditebak dari isi teks (mis. "@user"
+    di awal kalimat bisa berarti macam-macam). Dipakai services/network.py
+    untuk graf balasan/kutipan; konektor yang tidak punya relasi ini
+    (RSS, YouTube, unggahan manual) membiarkannya None.
     """
 
     external_id: str
@@ -64,6 +71,9 @@ class RawItem:
     reach_est: int | None = None
     url: str | None = None
     province_code: str | None = None
+    reply_to_handle: str | None = None
+    quote_of_handle: str | None = None
+    conversation_id: str | None = None
     extra: dict[str, str] = field(default_factory=dict)
 
 

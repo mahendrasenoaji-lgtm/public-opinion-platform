@@ -30,7 +30,13 @@ from app.services.ingestion import dedupe, detect_language, hash_author
 
 @dataclass(frozen=True, slots=True)
 class IncomingItem:
-    """Item mentah dari konektor atau unggahan manual."""
+    """Item mentah dari konektor atau unggahan manual.
+
+    `reply_to_handle`/`quote_of_handle` hanya diisi kalau sumbernya memang
+    menyatakan relasi itu secara eksplisit (lihat catatan RawItem di
+    connectors/base.py) -- dipakai services/network.py untuk graf balasan/
+    kutipan setelah di-hash sama seperti author_handle.
+    """
 
     external_id: str
     text: str
@@ -39,6 +45,9 @@ class IncomingItem:
     engagement: int = 0
     reach_est: int | None = None
     province_code: str | None = None
+    reply_to_handle: str | None = None
+    quote_of_handle: str | None = None
+    conversation_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +64,9 @@ class PreparedMention:
     province_code: str | None
     sentiment: float | None
     emotion: dict[str, float]
+    reply_to_hash: str | None = None
+    quote_of_hash: str | None = None
+    conversation_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +112,14 @@ class BatchReport:
                     f"{share:.0%} konten terlalu pendek untuk dipastikan bahasanya."
                 )
         return out
+
+
+def _maybe_hash(handle: str | None, *, salt: str) -> str | None:
+    """hash_author(), tapi None tetap None -- dipakai untuk author_handle,
+    reply_to_handle, dan quote_of_handle sekaligus."""
+    if handle and handle.strip():
+        return hash_author(handle, salt=salt)
+    return None
 
 
 def prepare_batch(
@@ -152,17 +172,16 @@ def prepare_batch(
                 external_id=item.external_id,
                 text=item.text,
                 published_at=item.published_at,
-                author_hash=(
-                    hash_author(item.author_handle, salt=author_salt)
-                    if item.author_handle and item.author_handle.strip()
-                    else None
-                ),
+                author_hash=_maybe_hash(item.author_handle, salt=author_salt),
                 lang=guess.lang,
                 engagement=max(0, item.engagement),
                 reach_est=item.reach_est,
                 province_code=item.province_code,
                 sentiment=scored.score,
                 emotion=sentiment_svc.emotions(item.text),
+                reply_to_hash=_maybe_hash(item.reply_to_handle, salt=author_salt),
+                quote_of_hash=_maybe_hash(item.quote_of_handle, salt=author_salt),
+                conversation_id=item.conversation_id,
             )
         )
 

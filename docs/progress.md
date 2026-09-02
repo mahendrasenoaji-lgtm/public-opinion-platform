@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **387 lulus** (role `pop_app`, RLS aktif — bukan superuser) |
+| Tes backend | **473 lulus** (role `pop_app`, RLS aktif — bukan superuser) |
 | Endpoint API | 56, dengan 17 baru pada Phase 2/3 |
 | Halaman dashboard | 15 (9 Phase 1 + 6 Phase 2/3) |
 | `ruff` | Bersih di `app` dan `tests` |
@@ -127,9 +127,10 @@ dari isi teks — hasilnya akan dipakai sebagai georeferensi padahal bukan.
 | Polarization Index | Live lokal | Selesai 2026-08-27 |
 | `GET .../risk/score` — 9 komponen | Teruji (25 tes unit) + Live lokal | 8 dari 9 komponen nyata |
 | `services/influence.py` + endpoint | Teruji (16 tes unit) | |
-| `services/impact.py` — DiD + endpoint | Teruji (22 tes unit) | |
-| Tes router influence + impact | Teruji (15 tes) | Termasuk tes isolasi tenant |
-| Halaman `/risiko`, `/pengaruh`, `/dampak` | Live lokal | |
+| `services/impact.py` — DiD + synthetic control + endpoint | Teruji (40 tes unit) | Synthetic control: gating donor/periode, placebo |
+| `services/network.py` + endpoint | Teruji (10 tes unit) | Graf balasan/kutipan, bukan pengaruh kausal |
+| Tes router influence + impact + network | Teruji (33 tes) | Termasuk tes isolasi tenant |
+| Halaman `/risiko`, `/pengaruh`, `/dampak`, `/jaringan` | Live lokal | `/dampak` sekarang dua panel: DiD + synthetic control |
 
 ### Yang SENGAJA tidak dikerjakan di Phase 3, dan alasannya
 
@@ -144,13 +145,6 @@ tim, bukan hasil kalibrasi terhadap kejadian krisis nyata — belum ada dataset
 berlabel untuk itu. Konsekuensinya tertulis di `limitations` yang tampil di
 layar: skor ini untuk **membandingkan periode atau proyek berskala sama**,
 bukan sebagai ambang absolut ("di atas 60 berarti krisis").
-
-**Graf jaringan influencer belum ada.** Data yang tersimpan tidak memuat
-relasi balasan/kutipan antar-akun, jadi tidak ada tepi untuk digambar. Yang
-ada adalah estimasi keterpaparan per akun — dan namanya memang itu.
-
-**Synthetic control belum ada.** Communication Impact baru mendukung
-difference-in-differences.
 
 **Fitting model belum pindah ke worker.** Sama seperti pipeline ingestion:
 cukup cepat untuk jumlah pengamatan sekarang, perlu dipindah begitu riwayatnya

@@ -17,6 +17,7 @@ from app.routers import (
     impact,
     influence,
     narratives,
+    network,
     opinion,
     projects,
     risk,
@@ -82,5 +83,6 @@ for r in (
     influence,
     impact,
     alerts,
+    network,
 ):
     app.include_router(r.router, prefix="/v1")
