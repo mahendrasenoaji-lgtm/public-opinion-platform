@@ -34,6 +34,17 @@ baru. **Phase 4 sengaja tidak disentuh** — butuh keputusan penyedia SSO,
 penyedia pembayaran, dan komitmen kontrak API publik yang bukan wewenang
 agen. Baca bagian "Phase 2 + Phase 3 dikerjakan" di bawah, terutama
 sub-bagian "Yang BELUM diverifikasi", sebelum mengklaim apa pun ke pengguna.
+Update 2026-09-02 (sesi lanjutan, "kerjakan semua yang belum selesai"):
+menutup residual yang tercatat sesi 2026-09-01 — Command Center sekarang
+menarik "Isu publik" dan "Peringatan aktif" sungguhan (`services/alerts.py`
+baru), verifikasi manusia atas label tema (`topics.review_status`), dan dua
+fitur Phase 3 yang sebelumnya sengaja belum ada: **synthetic control**
+(alternatif DiD untuk Communication Impact) dan **graf jaringan interaksi**
+dari relasi balasan/kutipan X (`services/network.py`, halaman `/jaringan`
+baru). Backend 387 → 473 tes. **Semuanya di-push ke branch
+`claude/repo-ini-comparison-ior2z4` / PR #1, CI hijau — BELUM di-merge ke
+`main`, jadi BELUM live di Render/Vercel/Supabase production.** Baca bagian
+"Sesi lanjutan Phase 2/3" di bawah.
 
 ## Live sekarang
 
@@ -585,10 +596,10 @@ disentuh sama sekali.
   "Project switcher" di atas.
 - ~~Belum ada UI edit/hapus proyek~~ — **selesai 2026-08-27**, lihat
   bagian "Edit/hapus proyek" di atas.
-- "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
-  Center — butuh topic modeling & anomaly detection (Phase 2/3). Topic
-  modeling sekarang ADA (`/tema`), tapi Command Center belum menariknya;
-  anomaly detection masih belum ada sama sekali.
+- ~~"Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
+  Center~~ — **selesai 2026-09-02**, lihat bagian "Sesi lanjutan Phase 2/3"
+  di bawah. `services/alerts.py` (anomaly detection z-score) sekarang ada,
+  dan Command Center menariknya bersama topic discovery.
 - ~~**Bug dorman belum diperbaiki**: `AIOutput.confidence` dan
   `AIOutput.human_review`~~ — **sudah diperbaiki**, ternyata di sesi
   2026-08-27 bersama Executive Brief (lihat bagian "Executive Brief" di atas
@@ -737,6 +748,123 @@ hasil `next build` asli, dan Chromium lewat Playwright:
   pada 52 kalimat yang ditulis tim pengembang, bukan pada percakapan proyek
   mana pun. Sebelum dipakai untuk keputusan, ukur ulang terhadap sampel
   berlabel dari data proyek itu sendiri.
+
+## ✅ Sesi lanjutan Phase 2/3 — selesai 2026-09-02
+
+Kelanjutan langsung sesi 2026-09-01, dengan instruksi yang sama: "kerjakan
+semua yang belum selesai, lakukan yang terbaik". Enam pekerjaan yang di sesi
+sebelumnya tercatat sengaja belum dikerjakan atau baru separuh jalan, semua
+ditutup di sesi ini. Enam commit, semua di branch
+`claude/repo-ini-comparison-ior2z4` (PR #1), CI hijau di keenamnya.
+
+### Yang dibangun
+
+| Bagian | Berkas inti |
+|---|---|
+| Command Center: Isu publik + Peringatan aktif | `app/(dashboard)/command/page.tsx` menarik `/topics` dan `/alerts` yang sudah ada |
+| Anomaly detection (baru) | `app/services/alerts.py`, `app/routers/alerts.py` — `GET .../alerts` |
+| Verifikasi manusia atas label tema (baru) | kolom `topics.reviewed_label`/`review_status`, `PATCH .../topics/{id}/review`, `ReviewTopic.tsx` |
+| Synthetic control (baru, Communication Impact) | `services/impact.py:synthetic_control()`, `POST .../impact/synthetic-control`, panel kedua di `/dampak` |
+| Graf jaringan interaksi (baru) | `services/network.py`, `GET .../network`, halaman `/jaringan` baru; `connectors/x.py` mengekstrak `referenced_tweets` |
+| `lib/api.ts` — bugfix nyata | 422 dari validasi Pydantic (array objek) tidak lagi tampil sebagai `[object Object]` |
+
+### Keputusan yang perlu diketahui sesi berikutnya
+
+**Anomaly detection adalah z-score terhadap baseline historis DERET SENDIRI,
+bukan deteksi krisis.** `services/alerts.py` membandingkan titik terakhir
+suatu deret (volume/sentimen harian, snapshot metrik) dengan rata-rata dan
+simpangan baku titik-titik sebelumnya di deret yang SAMA. Kalau baseline-nya
+nyaris rata (SD ~0), z-score meledak jadi tak berarti — ada fallback ke
+ambang perubahan relatif untuk kasus itu. `method` dan `limitations`
+eksplisit menyebut ini BUKAN penilaian krisis. `MIN_BASELINE_POINTS=4`:
+deret yang lebih pendek dari itu dilaporkan "belum bisa diperiksa", beda
+dari "diperiksa, tidak ada penyimpangan" — dua keadaan itu tidak boleh
+disamakan di UI.
+
+**`topics.review_status` memakai ULANG tipe Postgres `review_status`** yang
+tadinya cuma untuk `ai_outputs.human_review` (lihat sesi 2026-08-27). Kolom
+baru: `reviewed_label`, `review_status`, `reviewed_by`, `reviewed_at`. Label
+asli (`label`, dari kata kunci TF-IDF) TIDAK PERNAH ditimpa — yang disunting
+manusia disimpan terpisah supaya keduanya bisa dibandingkan.
+`effective_label()` cuma mengganti label yang ditampilkan kalau
+`review_status == APPROVED`; ditolak atau masih pending tetap menampilkan
+label asli. **Migrasi kolom ini BELUM diterapkan ke Supabase production**
+(lihat di bawah).
+
+**Synthetic control (Abadie, Diamond & Hainmueller) butuh periode
+pra-perlakuan LEBIH BANYAK dari jumlah donor**, bukan sekadar donor yang
+banyak. Kalau tidak, kecocokan pra-perlakuan bisa sempurna secara trivial
+(derajat kebebasan cukup untuk overfit) tanpa berarti apa-apa —
+`MIN_DONORS=5` menjamin itu, bukan angka sembarang. Signifikansinya dari uji
+permutasi placebo (leave-one-out pada donor) → `rank_p_value`, secara
+eksplisit BUKAN p-value parametrik — jangan pernah dilabeli "p-value" polos
+di UI mana pun nanti.
+
+**Graf jaringan SELALU sebagian, dan itu bukan cacat yang bisa
+diperbaiki.** Ia cuma memuat relasi antar akun yang KEDUANYA muncul sebagai
+penulis dalam data yang berhasil diambil konektor. Akun yang dibalas tapi
+tidak ikut terambil (di luar jendela pencarian X, di luar kueri) tidak
+tercatat sebagai nol — tidak tercatat sama sekali. `MIN_ACCOUNTS=10`,
+`MIN_EDGES=15`. Tidak menyimpulkan koordinasi atau kendali atas opini
+(CLAUDE.md §3) — istilahnya "posisi struktural", bukan "pengaruh".
+**Migrasi kolom `mentions.reply_to_hash`/`quote_of_hash`/`conversation_id`
+juga BELUM diterapkan ke Supabase production.**
+
+**Lingkungan sesi ini sempat benar-benar kosong** — kontainer baru tanpa
+role/database Postgres sama sekali (bukan sekadar server yang mati). Role
+`pop`/`pop_app` dan tiga database (`pop`, `pop_test`, `pop_ci`) dibangun
+ulang dari `db/schema.sql` + `db/rls.sql` sebelum satu pun tes bisa
+dijalankan. Ini fakta lingkungan sesi, bukan sesuatu yang rusak di produk —
+dicatat di sini supaya sesi berikutnya tidak bingung kalau mengalami hal
+yang sama.
+
+### Bug ditemukan lewat verifikasi browser, bukan lewat build
+
+**`lib/api.ts` menampilkan `[object Object]` untuk error validasi
+Pydantic.** `HTTPException(422, "pesan")` dari kode aplikasi mengembalikan
+`detail` berupa string, tapi 422 dari validasi Pydantic BAWAAN (mis. daftar
+donor kurang dari minimum) mengembalikan `detail` berupa ARRAY objek
+`{msg, loc, ...}`. `ApiError` lama menelan itu lewat
+`Array.prototype.toString()` → `"[object Object]"`, tidak berarti apa-apa
+bagi pengguna. `tsc --noEmit` dan `next build` sama-sama hijau untuk kode
+lama — ketahuan hanya karena mencoba jalur penolakan (donor < 5) sungguhan
+di browser. `detailToMessage()` sekarang menyusun pesan dari field `msg`
+tiap item.
+
+### Yang diverifikasi, dan bagaimana
+
+- **473 tes backend hijau** (387 → 473; 86 baru) dengan role `pop_app`, RLS
+  aktif, BUKAN superuser. `ruff check app tests` dan
+  `mypy app/services app/ai app/connectors` bersih 100%.
+- `npm run typecheck` + `next build` bersih untuk kedua halaman baru
+  (`/dampak` dengan panel synthetic control, `/jaringan` baru).
+- **Empat halaman diverifikasi lewat browser sungguhan (Playwright)**
+  terhadap API asli (uvicorn) + Postgres lokal asli, bukan cuma build
+  hijau: Command Center (kartu Isu publik + Peringatan aktif, tombol
+  "Tinjau label" → "Setujui"), `/dampak` (jalur sukses synthetic control
+  dengan bobot donor & efek yang cocok dengan perhitungan tangan, DAN jalur
+  penolakan donor < 5), `/jaringan` (jalur data cukup dengan hash + in-degree
+  yang benar, DAN jalur data tidak cukup).
+- CI GitHub Actions hijau di keenam push sesi ini; PR #1 `mergeable_state:
+  clean`, tanpa review thread yang belum diselesaikan.
+
+### Yang BELUM diverifikasi
+
+- **Belum di-merge ke `main`, jadi belum live di Render/Vercel/Supabase
+  production.** Semua verifikasi di atas memakai Postgres lokal di
+  kontainer sesi. Merge PR #1 adalah keputusan yang diserahkan ke pengguna,
+  bukan diambil sepihak oleh agen — PR ini memuat seluruh Phase 2 + sebagian
+  besar Phase 3 (86 berkas berubah), dan belum ada review manusia atasnya.
+- **Migrasi skema untuk kolom baru BELUM diterapkan ke Supabase**: kolom
+  review topics (sesi ini) dan kolom relasi balasan/kutipan mentions (sesi
+  ini). `db/schema.sql` sudah memuat keduanya untuk instalasi baru, tapi
+  tabel yang sudah ada di Supabase butuh `ALTER TABLE ... ADD COLUMN IF NOT
+  EXISTS ...` manual per kolom sebelum fitur review label atau `/jaringan`
+  bisa dipakai di production.
+- **Konektor X masih belum pernah menarik data sungguhan** (sama seperti
+  sesi 2026-09-01) — parsing `referenced_tweets`/`conversation_id` yang baru
+  ditambahkan sesi ini teruji lewat payload buatan (fungsi murni), bukan
+  lewat panggilan API X asli. Butuh `X_BEARER_TOKEN` di Render.
 
 ## Arsitektur deploy (untuk referensi)
 
