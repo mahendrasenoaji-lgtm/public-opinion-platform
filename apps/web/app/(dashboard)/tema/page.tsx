@@ -6,6 +6,7 @@ import { SOURCE } from "@/lib/tokens";
 import { apiOrNull } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { DiscoverButton } from "./DiscoverButton";
+import { ReviewTopic } from "./ReviewTopic";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,9 @@ interface TopicRow {
   sentiment: number | null;
   scored: number;
   momentum_pct: number | null;
+  effective_label: string;
+  review_status: string;
+  reviewed_label: string | null;
 }
 
 export default async function TemaPage() {
@@ -49,7 +53,7 @@ export default async function TemaPage() {
               {topics.map((t) => (
                 <div key={t.id} className="narr">
                   <div className="narr-head">
-                    <span className="narr-t">{t.label}</span>
+                    <span className="narr-t">{t.effective_label}</span>
                     <span className="narr-v mono">
                       {t.volume} konten
                       {t.share_pct !== null && ` · ${t.share_pct.toFixed(1)}%`}
@@ -61,6 +65,14 @@ export default async function TemaPage() {
                   <div className="narr-meta">
                     <span className="mono">{t.keywords.slice(0, 6).join(" · ")}</span>
                   </div>
+
+                  <ReviewTopic
+                    projectId={projectId}
+                    topicId={t.id}
+                    reviewStatus={t.review_status}
+                    reviewedLabel={t.reviewed_label}
+                    rawLabel={t.label}
+                  />
                   <div className="narr-meta" style={{ marginTop: 4 }}>
                     {/* Momentum null berarti tema ini tidak ada di periode
                         pembanding. Pertumbuhan dari nol tidak punya persentase

@@ -62,3 +62,42 @@ export async function discoverTopics(
     throw e;
   }
 }
+
+export interface ReviewState {
+  ok: boolean;
+  message: string | null;
+}
+
+/**
+ * Verifikasi manusia atas label kata-kunci sebuah tema.
+ *
+ * Label ASLI tidak pernah ditimpa (lihat app/routers/topics.py) -- yang
+ * dikirim di sini disimpan terpisah sebagai reviewed_label, dan hanya dipakai
+ * sebagai tampilan bila statusnya APPROVED.
+ */
+export async function reviewTopic(
+  _prev: ReviewState,
+  formData: FormData,
+): Promise<ReviewState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const topicId = String(formData.get("topicId") ?? "");
+  const status = String(formData.get("status") ?? "");
+  const label = String(formData.get("label") ?? "").trim();
+
+  if (!projectId || !topicId || !status) {
+    return { ok: false, message: "Data tema tidak lengkap." };
+  }
+
+  try {
+    await api(`/projects/${projectId}/topics/${topicId}/review`, {
+      method: "PATCH",
+      body: JSON.stringify({ status, label: label || null }),
+    });
+    revalidatePath("/tema");
+    revalidatePath("/command");
+    return { ok: true, message: null };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, message: e.message };
+    throw e;
+  }
+}
