@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,11 @@ interface NetworkOut {
 
 export default async function JaringanPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const data = await apiOrNull<NetworkOut>(`/projects/${projectId}/network`);
+  // apiOrNullLenient: /network butuh kolom mentions.reply_to_hash/
+  // quote_of_hash/conversation_id yang migrasinya ke Supabase bisa saja
+  // belum diterapkan -- 500, bukan 404, dan tanpa ini menjatuhkan seluruh
+  // halaman (lihat catatan yang sama di lib/api.ts).
+  const data = await apiOrNullLenient<NetworkOut>(`/projects/${projectId}/network`);
   const social = SOURCE.SOCIAL.color;
   const peak = Math.max(1, ...(data?.top ?? []).map((r) => r.in_degree));
 

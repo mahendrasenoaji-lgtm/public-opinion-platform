@@ -110,6 +110,31 @@ export async function apiOrNull<T>(path: string, init?: RequestInit): Promise<T 
   }
 }
 
+/**
+ * Seperti `apiOrNull`, tapi menganggap SEMUA `ApiError` dari backend (bukan
+ * cuma 404) sebagai "belum bisa disajikan" -> null, bukan menjatuhkan
+ * seluruh Server Component. Dipakai khusus untuk widget yang bergantung pada
+ * kolom skema yang migrasinya belum tentu sudah diterapkan di setiap
+ * environment (mis. `topics.review_status`, `mentions.reply_to_hash` --
+ * lihat catatan migrasi Supabase di docs/deployment-status.md): kodenya
+ * sudah di production, tapi kalau `ALTER TABLE` manual belum dijalankan di
+ * sana, query backend gagal dengan 500 (kolom tidak ada), bukan 404 --
+ * insiden nyata 2026-09-02 yang menjatuhkan /command, /tema, /jaringan
+ * dengan "Application error" polos sebelum helper ini ada.
+ *
+ * JANGAN dipakai untuk endpoint yang errornya memang harus terlihat
+ * pengguna (mis. hasil submit form) -- redirect 401 ke /masuk di `api()`
+ * tetap jalan seperti biasa karena itu bukan `ApiError`.
+ */
+export async function apiOrNullLenient<T>(path: string, init?: RequestInit): Promise<T | null> {
+  try {
+    return await api<T>(path, init);
+  } catch (e) {
+    if (e instanceof ApiError) return null;
+    throw e;
+  }
+}
+
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message);

@@ -5,7 +5,7 @@ import { InsufficientData, Provenance } from "@/components/Provenance";
 import { Timeline, type TimelineEvent } from "@/components/Timeline";
 import { Info } from "lucide-react";
 import { TrendChart } from "@/components/TrendChart";
-import { apiOrNull, api, repeatedQuery, type Metric } from "@/lib/api";
+import { apiOrNull, apiOrNullLenient, api, repeatedQuery, type Metric } from "@/lib/api";
 import { riskColor } from "@/lib/tokens";
 import { getCurrentProject } from "@/lib/currentProject";
 
@@ -68,11 +68,15 @@ export default async function CommandCenter() {
       `/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: [...TREND_METRICS], limit: 12 })}`,
     ),
     api<TimelineEvent[]>(`/projects/${projectId}/opinion/timeline${repeatedQuery({ limit: 8 })}`),
-    // apiOrNull, bukan api: fitur ini belum tentu tersedia di backend yang
-    // sedang aktif kalau Vercel naik lebih dulu daripada Render setelah
-    // rilis (lihat catatan yang sama di /sinyal).
-    apiOrNull<TopicRow[]>(`/projects/${projectId}/topics`),
-    apiOrNull<AlertsOut>(`/projects/${projectId}/alerts`),
+    // apiOrNullLenient, bukan api/apiOrNull: /topics butuh kolom
+    // topics.review_status yang migrasinya ke Supabase bisa saja belum
+    // diterapkan (lihat docs/deployment-status.md) -- itu gagal dengan 500
+    // dari backend, bukan 404, dan tanpa ini akan menjatuhkan SELURUH
+    // Command Center dengan "Application error" polos (insiden nyata
+    // 2026-09-02). /alerts sendiri tidak menyentuh kolom itu, tapi dibuat
+    // lenient juga sebagai jaring pengaman panel yang sama.
+    apiOrNullLenient<TopicRow[]>(`/projects/${projectId}/topics`),
+    apiOrNullLenient<AlertsOut>(`/projects/${projectId}/alerts`),
   ]);
   const topTopics = (topics ?? [])
     .slice()

@@ -192,6 +192,19 @@ Ini bagian terpenting dari dokumen ini.
    ini) sebelum fitur review label atau `/jaringan` bisa dipakai di
    production.
 
+   **Update 2026-09-02, sesi ketiga hari yang sama — ini bukan lagi risiko
+   teoretis, sudah jadi insiden production nyata.** Absennya migrasi ini
+   TIDAK cuma membuat fitur review-label/network tidak berfungsi — ia
+   menjatuhkan SELURUH halaman `/command`, `/tema`, dan `/jaringan` dengan
+   "Application error: a server-side exception has occurred", karena
+   `GET /topics`/`GET /network` gagal 500 (kolom tidak ada), dan
+   `apiOrNull()` di frontend cuma menangkap 404. Mitigasi frontend
+   (`apiOrNullLenient()`, PR #4) sudah dibuka, CI hijau, **belum di-merge**
+   — begitu di-merge, ketiga halaman akan kembali menampilkan "data tidak
+   cukup" alih-alih crash, TAPI itu tetap bukan pengganti migrasi ini. SQL
+   lengkapnya ada di deskripsi PR #4 dan di `docs/deployment-status.md`
+   bagian "Fix crash Command Center/Tema/Jaringan".
+
 2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
    kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS
    sekarang sudah, sebagian** (2026-09-02): `RSSConnector().fetch()` — kode
