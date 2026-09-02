@@ -41,9 +41,12 @@ baru), verifikasi manusia atas label tema (`topics.review_status`), dan dua
 fitur Phase 3 yang sebelumnya sengaja belum ada: **synthetic control**
 (alternatif DiD untuk Communication Impact) dan **graf jaringan interaksi**
 dari relasi balasan/kutipan X (`services/network.py`, halaman `/jaringan`
-baru). Backend 387 → 473 tes. **Semuanya di-push ke branch
-`claude/repo-ini-comparison-ior2z4` / PR #1, CI hijau — BELUM di-merge ke
-`main`, jadi BELUM live di Render/Vercel/Supabase production.** Baca bagian
+baru). Backend 387 → 473 tes. PR #1 (branch
+`claude/repo-ini-comparison-ior2z4`, CI hijau) **sudah di-merge ke `main`**
+atas persetujuan eksplisit pengguna — Render + Vercel akan redeploy dari
+`main` secara otomatis, tapi **migrasi kolom baru ke Supabase (lihat di
+bawah) masih perlu langkah manual terpisah** sebelum fitur review label
+atau `/jaringan` benar-benar jalan di production. Baca bagian
 "Sesi lanjutan Phase 2/3" di bawah.
 
 ## Live sekarang
@@ -850,11 +853,12 @@ tiap item.
 
 ### Yang BELUM diverifikasi
 
-- **Belum di-merge ke `main`, jadi belum live di Render/Vercel/Supabase
-  production.** Semua verifikasi di atas memakai Postgres lokal di
-  kontainer sesi. Merge PR #1 adalah keputusan yang diserahkan ke pengguna,
-  bukan diambil sepihak oleh agen — PR ini memuat seluruh Phase 2 + sebagian
-  besar Phase 3 (86 berkas berubah), dan belum ada review manusia atasnya.
+- ~~Belum di-merge ke `main`~~ — **PR #1 sudah di-merge ke `main`
+  (commit `ad6a3f0`)** atas persetujuan eksplisit pengguna. Semua
+  verifikasi di atas tetap memakai Postgres lokal kontainer sesi, bukan
+  Supabase — merge memicu redeploy Render+Vercel dari `main`, tapi belum
+  ada pemeriksaan manual pasca-deploy terhadap production sungguhan (butuh
+  login `SITE_PASSWORD`, di luar kemampuan agen).
 - **Migrasi skema untuk kolom baru BELUM diterapkan ke Supabase**: kolom
   review topics (sesi ini) dan kolom relasi balasan/kutipan mentions (sesi
   ini). `db/schema.sql` sudah memuat keduanya untuk instalasi baru, tapi
