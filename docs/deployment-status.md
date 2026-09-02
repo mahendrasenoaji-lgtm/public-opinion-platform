@@ -1242,6 +1242,86 @@ kandidat perbaikan aman baru selain "asal". Ini bukan kegagalan mencari
 — ini bukti bahwa perbaikan lanjutan butuh metode berbeda (model, bukan
 kamus), sesuai yang sudah diakui sejak awal modul ini ditulis.
 
+## ✅ Audit crash seluruh sidebar + perbaikan sistemik — 2026-09-02 (masih sesi keempat)
+
+Pengguna melaporkan lewat screenshot: "masih banyak yang belum bisa
+diklik" di sidebar. Ditanya dua kali untuk klarifikasi — pertama soal
+tampilan (garis bawah default browser di item nav, sudah diperbaiki
+terpisah, lihat commit `427e704`), lalu dikonfirmasi pengguna SUDAH
+mencoba klik dan memang gagal. Diminta cek semua link.
+
+### Audit statis: kelas bug PR #4 ternyata bukan cuma di 3 halaman
+
+Baca kode ke-14 halaman dashboard satu per satu. `apiOrNull()` HANYA
+menangkap 404 (lihat `lib/api.ts`) — 6 halaman ternyata memanggil `api()`
+POLOS tanpa penanganan error sama sekali: `/geo`, `/narrative`,
+`/governance`, `/segments`, `/proyek`, plus panggilan trend/timeline di
+`/command` dan `/opinion-index`. Semuanya akan menjatuhkan SELURUH
+halaman kalau backend membalas error apa pun (bukan cuma skenario kolom
+belum bermigrasi yang memicu insiden PR #4 — bisa juga DB blip, timeout,
+dll).
+
+### Perbaikan PERTAMA salah — ketahuan lewat verifikasi, bukan baca kode
+
+Iterasi pertama mengganti `api()` -> `apiOrNull()` di 6 halaman itu.
+**Salah** — `apiOrNull()` cuma menangkap 404, PERSIS bug yang sama
+dengan yang coba diperbaiki (insiden PR #4 itu sendiri 500, bukan 404).
+Ketahuan lewat verifikasi lokal sungguhan, bukan asumsi:
+
+1. `next build && next start` lokal, `NEXT_PUBLIC_API_URL` menunjuk ke
+   backend tiruan Node `http` polos yang membalas 500 untuk SEMUA
+   endpoint.
+2. Cookie gerbang `pop_gate_session` dibuat manual pakai `SESSION_SECRET`
+   lokal (HMAC sama seperti `lib/auth.ts`) dan cookie sesi `pop_session`
+   JWT bentuk-valid tanpa tanda tangan asli (middleware cuma cek `exp`,
+   bukan verifikasi signature — pola sama dengan verifikasi PR #4
+   sebelumnya).
+3. Ke-17 rute dashboard diminta lewat klien HTTP Node (bukan `curl` —
+   tidak tersedia di sandbox sesi ini), dicek status code + isi body.
+
+Hasil ronde pertama (setelah "perbaikan" apiOrNull): SEMUA 6 halaman
+yang baru diubah **masih 500**, body HTML `id="__next_error__"` — masih
+crash persis seperti sebelum "diperbaiki". Root cause: `apiOrNull` bukan
+`apiOrNullLenient`.
+
+### Perbaikan BENAR: apiOrNullLenient di semua 15 halaman
+
+Diperbaiki ulang — SEMUA panggilan `api()`/`apiOrNull()` untuk baca data
+awal halaman (bukan Server Action hasil submit form, itu beda kategori
+sesuai dokumentasi `apiOrNullLenient`) diganti `apiOrNullLenient()`.
+Ternyata ini bukan cuma 6 halaman yang tadi salah — SEMUA 9 halaman lain
+yang sudah pakai `apiOrNull` (consistency, copilot, dampak, forecast,
+pengaruh, risiko, sinyal, opinion-index, brief) punya kerentanan SAMA
+persis, cuma belum pernah dilaporkan sebagai insiden. Total 15 halaman
+diubah dalam satu commit (`33d026b`).
+
+**Diverifikasi ulang dua kali** dengan server lokal yang sama:
+- Backend tiruan 500-untuk-semua: **ke-17 rute HTTP 200**, tidak ada
+  `__next_error__` sama sekali.
+- Backend tiruan 404-untuk-semua (simulasi proyek baru kosong lewat
+  `/proyek-baru`): **ke-17 rute HTTP 200** juga, semua menampilkan
+  "data tidak cukup"/"belum ada" alih-alih crash.
+
+`typecheck` + `next build` bersih di kedua iterasi.
+
+### Yang BELUM diverifikasi dari perbaikan ini
+
+- Ini murni tes backend TIRUAN (500/404 buatan), bukan Supabase/Render
+  sungguhan. Backend production sekarang (pasca migrasi) kemungkinan
+  besar tidak membalas 500 untuk endpoint-endpoint ini — tapi
+  kerentanannya tetap ada untuk masa depan (DB blip, migrasi
+  berikutnya yang lupa diterapkan, dll). Perbaikan ini pencegahan,
+  bukan bukti ada bug production AKTIF hari ini di 6 halaman yang
+  ditemukan lewat audit statis (beda dengan /topics & /network yang
+  memang terbukti aktif gagal).
+- **Belum ketahuan apakah keluhan awal pengguna ("belum bisa diklik")
+  memang disebabkan hal ini** — bisa jadi murni soal tampilan (garis
+  bawah, sudah diperbaiki terpisah) atau memang backend production
+  sempat 500 di jendela waktu tertentu (mis. sebelum migrasi Supabase
+  dijalankan hari ini). Pengguna belum sempat konfirmasi link mana
+  spesifiknya. Perlu diverifikasi ulang dengan pengguna langsung
+  mencoba lagi di production.
+
 ## Arsitektur deploy (untuk referensi)
 
 ```

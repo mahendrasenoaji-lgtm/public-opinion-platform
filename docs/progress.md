@@ -316,6 +316,26 @@ Ini bagian terpenting dari dokumen ini.
    batas perbaikan amannya — perbaikan lanjutan yang berarti butuh model,
    bukan kamus kata, persis seperti diakui docstring modul sejak awal.
 
+6. **15 dari 17 halaman dashboard rentan crash "Application error" pada
+   error backend APA PUN — ditemukan+diperbaiki 2026-09-02 (sesi
+   keempat), atas laporan pengguna "banyak yang belum bisa diklik".**
+   Insiden PR #4 (500 dari kolom belum bermigrasi menjatuhkan
+   `/command`/`/tema`/`/jaringan`) ternyata cuma tiga contoh dari kelas
+   bug yang jauh lebih luas — 6 halaman lain pakai `api()` polos tanpa
+   penanganan error sama sekali, dan 9 halaman lagi yang sudah pakai
+   `apiOrNull()` ternyata SAMA rentannya (`apiOrNull` cuma menangkap
+   404, bukan 500 — persis kesalahan yang sempat dibuat ulang di
+   perbaikan PERTAMA sesi ini, ketahuan lewat verifikasi lokal
+   sungguhan dengan backend tiruan, bukan asumsi). Diperbaiki dengan
+   `apiOrNullLenient()` (menangkap SEMUA `ApiError`) di seluruh 15
+   halaman, diverifikasi dua kali (backend tiruan 500-untuk-semua DAN
+   404-untuk-semua) — ke-17 halaman sekarang konsisten HTTP 200 dengan
+   degradasi "data tidak cukup". **Yang belum diverifikasi**: apakah
+   keluhan awal pengguna memang disebabkan ini (belum dikonfirmasi link
+   spesifik mana yang gagal, dan tes ini pakai backend tiruan, bukan
+   Supabase/Render sungguhan) — lihat `docs/deployment-status.md`
+   bagian "Audit crash seluruh sidebar" untuk detail lengkap.
+
 ---
 
 ## Langkah berikutnya yang paling masuk akal
