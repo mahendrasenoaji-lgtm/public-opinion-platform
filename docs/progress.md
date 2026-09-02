@@ -1,7 +1,7 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-09-01.
+menahannya.** Diperbarui 2026-09-02.
 
 Dokumen ini melengkapi dua yang lain, tidak menggantikannya:
 
@@ -34,8 +34,8 @@ yang lulus tanpa database.
 | | |
 |---|---|
 | Tes backend | **473 lulus** (role `pop_app`, RLS aktif — bukan superuser) |
-| Endpoint API | 56, dengan 17 baru pada Phase 2/3 |
-| Halaman dashboard | 15 (9 Phase 1 + 6 Phase 2/3) |
+| Endpoint API | 59 |
+| Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
 | `mypy --strict` | Bersih di `app/services`, `app/ai`, `app/connectors` |
 | Frontend | `tsc --noEmit` dan `next build` hijau |
@@ -182,6 +182,15 @@ Ini bagian terpenting dari dokumen ini.
    produksi.** Seluruh verifikasi memakai Postgres lokal. Langkah lanjutan:
    tunggu Render + Vercel redeploy, lalu ulangi pemeriksaan manual terhadap
    production. Itu butuh login `SITE_PASSWORD` yang di luar kemampuan agen.
+   **Migrasi skema belum diterapkan ke Supabase** untuk dua perubahan Phase 3
+   terakhir — kolom `topics.reviewed_label`/`review_status`/`reviewed_by`/
+   `reviewed_at`, dan `mentions.reply_to_hash`/`quote_of_hash`/
+   `conversation_id`. `db/schema.sql` sudah memuatnya di definisi
+   `CREATE TABLE`, tapi itu cuma berlaku untuk instalasi baru — tabel yang
+   sudah ada di Supabase butuh `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...`
+   manual per kolom (persis seperti yang dijalankan ke Postgres lokal sesi
+   ini) sebelum fitur review label atau `/jaringan` bisa dipakai di
+   production.
 
 2. **Konektor RSS, YouTube, dan X belum pernah menarik data sungguhan.** Yang
    diuji adalah parsing responsnya (fungsi murni) dan penanganan kredensial
