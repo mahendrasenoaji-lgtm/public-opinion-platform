@@ -56,7 +56,25 @@ konektor RSS ditarik terhadap 5 feed media Indonesia SUNGGUHAN untuk
 pertama kalinya (215 item nyata, di luar Postgres/Render — lihat bagian
 "Verifikasi RSS sungguhan" di bawah), dan dari situ ketemu + diperbaiki satu
 bug leksikon sentimen nyata ("asal" salah dibaca negatif). Phase 4 sengaja
-tidak disentuh, sesuai instruksi eksplisit pengguna sesi ini.
+tidak disentuh, sesuai instruksi eksplisit pengguna sesi ini. **PR #2
+(fix leksikon) sudah di-merge ke `main`** atas persetujuan eksplisit
+pengguna, CI mengonfirmasi 474 tes lulus (lihat bagian "Verifikasi RSS
+sungguhan" untuk detail).
+Update 2026-09-02 (sesi ketiga hari yang sama — **insiden produksi nyata**):
+pengguna melaporkan `/command` menampilkan "Application error: a
+server-side exception has occurred" di production, tepat setelah PR #1
+redeploy. Akar masalah dikonfirmasi & direproduksi persis secara lokal
+(lihat bagian "Fix crash Command Center" di bawah): `GET /topics` dan
+`GET /network` butuh kolom yang migrasinya ke Supabase memang belum
+diterapkan (dicatat sejak sesi PR #1) — itu gagal 500 di backend, bukan
+404, dan `apiOrNull()` di frontend cuma menangkap 404 sehingga error lolos
+dan menjatuhkan SELURUH halaman `/command`, `/tema`, dan `/jaringan`.
+**PR #4** (mitigasi frontend, `apiOrNullLenient()`) dibuka, CI hijau,
+**belum di-merge** — menunggu persetujuan pengguna. **PR #3** (gitignore,
+trivial) juga masih terbuka dari sesi sebelumnya, belum di-merge. SQL
+migrasi Supabase yang sesungguhnya (perbaikan akar masalah, bukan cuma
+mitigasi) sudah disiapkan lengkap di deskripsi PR #4 — masih tugas
+pengguna sendiri, butuh kredensial Supabase.
 
 ## Live sekarang
 
@@ -993,6 +1011,84 @@ perubahan sesi ini.
   seperti diminta pengguna di awal sesi ini — **tetap belum dikerjakan**,
   itu memang eksplisit tugas pengguna sendiri, bukan residual yang
   terlewat.
+
+## ⚠️ Fix crash Command Center/Tema/Jaringan — PR #4, belum di-merge (2026-09-02)
+
+Insiden production nyata, dilaporkan pengguna langsung: membuka
+`https://public-opinion-platform.vercel.app/command` menampilkan
+```
+Application error: a server-side exception has occurred while loading
+public-opinion-platform.vercel.app (see the server logs for more information).
+Digest: 548418512
+```
+
+**Akar masalah** (dikonfirmasi, bukan dugaan): `GET /projects/{id}/topics`
+mengambil kolom `topics.review_status`/`reviewed_label`/`reviewed_by`/
+`reviewed_at` (ditambahkan sesi PR #1), dan `GET /projects/{id}/network`
+mengambil `mentions.reply_to_hash`/`quote_of_hash`/`conversation_id`.
+**Migrasi kolom-kolom ini ke Supabase production belum diterapkan** — sudah
+dicatat sejak sesi PR #1 (lihat "Yang BELUM diverifikasi" di atas), tapi
+belum ada yang menyadari bahwa absennya migrasi itu tidak cuma membuat
+FITUR review-label/network tidak berfungsi, melainkan menjatuhkan
+**seluruh** `/command` (juga `/tema` dan `/jaringan`, endpoint yang sama).
+Query gagal 500 (kolom tidak ada di tabel Supabase), bukan 404, dan
+`apiOrNull()` di `apps/web/lib/api.ts` cuma menangkap 404 — 500 lolos dan
+menjatuhkan seluruh Server Component.
+
+**Diagnosis dikonfirmasi dengan reproduksi lokal, bukan cuma membaca
+kode**: backend tiruan (Node `http` polos, bukan FastAPI sungguhan) dibuat
+untuk membalas 500 persis seperti kolom hilang, lalu Next.js production
+build (`next start`) dijalankan lokal dengan cookie sesi buatan sendiri
+(HMAC gerbang `SITE_PASSWORD` dihitung manual dengan `SESSION_SECRET`
+lokal, JWT `pop_session` bentuk-valid tanpa perlu tanda tangan asli —
+middleware cuma cek `exp`, bukan verifikasi signature, lihat
+`lib/session.ts`). Error yang muncul **identik kata demi kata** dengan
+laporan pengguna. Baru setelah itu perbaikan diterapkan dan diverifikasi
+ulang: ketiga halaman merender "Data tidak cukup" alih-alih crash.
+
+**Perbaikan (PR #4, mitigasi frontend)**: `apiOrNullLenient()` baru di
+`lib/api.ts` — menangkap SEMUA `ApiError`, bukan cuma 404 seperti
+`apiOrNull()`. Dipakai di `/command` (`/topics` & `/alerts`), `/tema`
+(`/topics`), `/jaringan` (`/network`). CI hijau (`typecheck`+`next build`
++ backend 474 tes semuanya lulus, tidak ada kode backend yang diubah).
+**Belum di-merge ke `main`** — menunggu persetujuan eksplisit pengguna,
+sama seperti PR #2 sebelumnya.
+
+**Ini mitigasi, BUKAN perbaikan akar masalah.** SQL migrasi sesungguhnya
+(sudah ditulis lengkap di deskripsi PR #4, siap copy-paste ke Supabase SQL
+Editor):
+
+```sql
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS reviewed_label text;
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS review_status review_status NOT NULL DEFAULT 'PENDING';
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS reviewed_by uuid REFERENCES users(id);
+ALTER TABLE topics ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;
+
+ALTER TABLE mentions ADD COLUMN IF NOT EXISTS reply_to_hash text;
+ALTER TABLE mentions ADD COLUMN IF NOT EXISTS quote_of_hash text;
+ALTER TABLE mentions ADD COLUMN IF NOT EXISTS conversation_id text;
+
+CREATE INDEX IF NOT EXISTS mentions_project_reply_to_hash_idx
+  ON mentions (project_id, reply_to_hash) WHERE reply_to_hash IS NOT NULL;
+CREATE INDEX IF NOT EXISTS mentions_project_quote_of_hash_idx
+  ON mentions (project_id, quote_of_hash) WHERE quote_of_hash IS NOT NULL;
+```
+
+Tipe `review_status` seharusnya sudah ada (dipakai `ai_outputs.human_review`
+sejak 2026-08-24/27) — kalau muncul error "type review_status does not
+exist", jalankan dulu
+`CREATE TYPE review_status AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'NEEDS_REVIEW');`
+sebelum baris `ALTER TABLE topics ADD COLUMN review_status ...` di atas.
+Setelah migrasi ini dijalankan, fitur review label dan network graph baru
+benar-benar berfungsi dengan data nyata — PR #4 sendiri cuma mencegah
+crash, tidak mengaktifkan fiturnya.
+
+**Sesi berikutnya, kalau PR #4 belum di-merge saat itu**: cek dulu apakah
+production masih crash (`curl -sI https://public-opinion-platform.vercel.app/command`
+redirect ke `/login` itu normal — yang perlu dicek adalah setelah login
+sungguhan, bukan cuma status kode gerbang). Kalau pengguna sudah merge
+sendiri lewat GitHub UI tanpa bilang, `git log origin/main` akan
+menunjukkannya — jangan asumsikan berdasarkan chat lama.
 
 ## Arsitektur deploy (untuk referensi)
 
