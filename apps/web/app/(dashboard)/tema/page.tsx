@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
-import { apiOrNull } from "@/lib/api";
+import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { DiscoverButton } from "./DiscoverButton";
 import { ReviewTopic } from "./ReviewTopic";
@@ -27,7 +27,10 @@ interface TopicRow {
 
 export default async function TemaPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const topics = (await apiOrNull<TopicRow[]>(`/projects/${projectId}/topics`)) ?? [];
+  // apiOrNullLenient: kolom review_status bisa saja belum ada di Supabase
+  // (migrasi manual belum jalan) -- itu 500, bukan 404, dan tanpa ini
+  // menjatuhkan seluruh halaman (lihat catatan yang sama di lib/api.ts).
+  const topics = (await apiOrNullLenient<TopicRow[]>(`/projects/${projectId}/topics`)) ?? [];
   const peak = Math.max(1, ...topics.map((t) => t.volume));
   const social = SOURCE.SOCIAL.color;
 
