@@ -1028,6 +1028,23 @@ tugas pengguna**, sesuai batas kredensial yang sama seperti sebelumnya.
 Verifikasi production sungguhan (login `SITE_PASSWORD` manual) juga masih
 menunggu pengguna. Sisa waktu sesi ini dipakai untuk kerja yang genuinely
 bisa tanpa kredensial itu — lihat update berikutnya kalau ada.
+Update 2026-09-02 (masih sesi keempat): **migrasi kolom Supabase
+dijalankan pengguna** lewat SQL Editor dashboard Supabase (project
+`publicopinion`, org `ALWAYSLEARN`, branch `main PRODUCTION`) — SQL
+persis seperti di deskripsi PR #4 (lihat bagian "Fix crash Command
+Center/Tema/Jaringan" di bawah), hasil `Success. No rows returned`.
+Pengguna login Supabase sendiri lewat Chrome; Claude membuka tab ke SQL
+Editor yang benar dan membaca hasilnya via screenshot (teks query yang
+tereksekusi dicocokkan baris demi baris dengan yang diminta — sama), tapi
+**tidak mengetik SQL-nya sendiri** — classifier izin Claude Code menolak
+aksi `cmd+a` dan `type` di halaman itu (kemungkinan karena tergolong
+perubahan skema database production), jadi pengguna yang paste+klik Run
+manual. Kolom `topics.reviewed_label`/`review_status`/`reviewed_by`/
+`reviewed_at` dan `mentions.reply_to_hash`/`quote_of_hash`/
+`conversation_id` + dua index sekarang seharusnya ada di Supabase
+production. **Belum diverifikasi lewat aplikasi sungguhan** (butuh login
+`SITE_PASSWORD` + `/masuk` manual pengguna ke `/command`, `/tema`,
+`/jaringan`) — itu langkah berikutnya.
 
 ## ✅ Fix crash Command Center/Tema/Jaringan — PR #4, di-merge 2026-09-02 (sesi keempat)
 
@@ -1101,14 +1118,18 @@ Setelah migrasi ini dijalankan, fitur review label dan network graph baru
 benar-benar berfungsi dengan data nyata — PR #4 sendiri cuma mencegah
 crash, tidak mengaktifkan fiturnya.
 
-**Sesi berikutnya**: PR #4 sudah di-merge (lihat di atas) — cek apakah
-migrasi SQL di atas sudah dijalankan pengguna ke Supabase. Kalau belum,
-`/command`/`/tema`/`/jaringan` di production akan tampil "Data tidak
-cukup" (bukan crash — mitigasi PR #4 aktif) tapi fitur review-label dan
-network graph tetap belum benar-benar berfungsi sampai migrasi jalan.
-Verifikasi production sungguhan (login `SITE_PASSWORD` manual oleh
-pengguna) juga masih perlu dilakukan untuk mengonfirmasi mitigasi bekerja
-di production nyata, bukan cuma lokal.
+**Update: migrasi SQL di atas sudah dijalankan pengguna** (2026-09-02,
+sesi keempat, lihat update di bagian atas dokumen ini) — `Success. No
+rows returned` di Supabase SQL Editor, query tereksekusi dicocokkan
+persis dengan yang diminta. Kolom-kolom di atas seharusnya sudah ada di
+Supabase production sekarang.
+
+**Sesi berikutnya**: verifikasi production sungguhan (login
+`SITE_PASSWORD` + `/masuk` manual oleh pengguna) masih **belum
+dilakukan** — itu satu-satunya langkah tersisa untuk mengonfirmasi (a)
+`/command`/`/tema`/`/jaringan` tidak lagi crash, dan (b) fitur
+review-label + network graph benar-benar menampilkan data, bukan cuma
+"data tidak cukup".
 
 ## Arsitektur deploy (untuk referensi)
 

@@ -204,8 +204,12 @@ Ini bagian terpenting dari dokumen ini.
    halaman akan menampilkan "data tidak cukup" alih-alih crash, TAPI itu
    tetap bukan pengganti migrasi ini, yang masih perlu dijalankan manual.
    SQL lengkapnya ada di deskripsi PR #4 dan di `docs/deployment-status.md`
-   bagian "Fix crash Command Center/Tema/Jaringan". **Belum diverifikasi
-   live di production** — butuh login `SITE_PASSWORD` manual pengguna.
+   bagian "Fix crash Command Center/Tema/Jaringan". **Migrasi kolom
+   Supabase sudah dijalankan pengguna** (2026-09-02, sesi keempat) —
+   `Success. No rows returned` di SQL Editor. **Masih belum diverifikasi
+   live di aplikasi** — butuh login `SITE_PASSWORD` manual pengguna ke
+   `/command`, `/tema`, `/jaringan` untuk konfirmasi fitur review-label
+   dan network graph benar-benar berfungsi, bukan cuma tidak crash.
 
 2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
    kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS
