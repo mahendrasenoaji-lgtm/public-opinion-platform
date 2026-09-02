@@ -967,17 +967,24 @@ Detail lengkap (215 item, 44 skor, alasan tiap keputusan) ada di
 ini sengaja tidak mengulang semuanya supaya tidak ada dua sumber kebenaran
 yang bisa berbeda.
 
+### Yang sudah dikonfirmasi lewat CI (bukan cuma lokal)
+
+**473 → 474 tes backend dikonfirmasi hijau lewat CI GitHub Actions**
+([run `33590975725`](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/actions/runs/33590975725),
+dipicu oleh [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2)) —
+`474 passed` terhadap Postgres asli (image `pgvector/pgvector:pg16`, role
+`pop_app`, RLS aktif, bukan superuser), bukan cuma lokal tanpa DB. `ruff` dan
+`mypy --strict` (`app/services app/ai app/connectors`) juga bersih di CI
+yang sama. Frontend (`typecheck` + `next build`) juga hijau, meski tidak ada
+kode frontend yang disentuh sesi ini — dijalankan karena satu PR memicu
+kedua job. Lokal (venv tanpa Postgres, Docker tidak tersedia di sandbox
+sesi ini) sebelumnya hanya sempat memverifikasi 87 tes murni tanpa DB
+(`test_sentiment.py`, `test_ingestion.py`, `test_connectors.py`) — CI di
+atas adalah verifikasi PERTAMA yang mencakup seluruh 474 tes untuk
+perubahan sesi ini.
+
 ### Yang BELUM diverifikasi dari pekerjaan sesi ini
 
-- **473 → 474 tes backend BELUM dikonfirmasi lewat suite penuh atau CI di
-  sesi ini** — Docker tidak tersedia di sandbox, jadi hanya subset murni
-  (86+1 tes tanpa DB) yang benar-benar dijalankan lokal. Perubahan hanya
-  menghapus satu entri dict + menambah satu tes independen (tanpa mengubah
-  signature/impor apa pun), jadi risiko memengaruhi tes lain di luar
-  `test_sentiment.py` secara praktis nol — tapi itu penilaian risiko, bukan
-  bukti. **Push ke branch + PR akan memicu CI GitHub Actions yang punya
-  Postgres asli** (lihat `.github/workflows/ci.yml`) — itu yang akan
-  mengonfirmasi angka 474 sesungguhnya, bukan dokumen ini.
 - Tarikan RSS ini terjadi di luar aplikasi sepenuhnya (skrip mandiri, bukan
   lewat `POST .../signals/collect`, bukan lewat Postgres, bukan dari
   Render). Jalur endpoint asli + database + dari Render sendiri ke

@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **473 lulus**, +1 tes baru 2026-09-02 (role `pop_app`, RLS aktif — bukan superuser; tes baru diverifikasi lulus di venv terisolasi tanpa Postgres karena modulnya murni, BELUM lewat `make test`/CI penuh — Docker tidak tersedia di sandbox sesi ini, cek run CI PR terkait untuk konfirmasi 474) |
+| Tes backend | **474 lulus** (role `pop_app`, RLS aktif — bukan superuser; 473→474 dikonfirmasi via CI [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2), bukan lokal — Docker tidak tersedia di sandbox sesi 2026-09-02) |
 | Endpoint API | 59 |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
