@@ -92,6 +92,15 @@ _POSITIVE: dict[str, float] = {
     "andal": 0.7, "tuntas": 0.6, "akurat": 0.7,
 }
 
+#: "asal" (arti "asal-asalan"/asal-asalan, ceroboh) SENGAJA tidak dimasukkan
+#: lagi ke sini (dihapus 2026-09-02). Kata yang sama jauh lebih sering muncul
+#: dalam arti "berasal dari"/"asal negara-X" yang netral sepenuhnya (mis.
+#: "aktor asal Inggris") — dikonfirmasi via 215 item nyata dari 5 feed RSS
+#: media Indonesia (bukan 52 kalimat set evaluasi): 2/2 kemunculan token
+#: "asal" adalah makna "dari", 0/2 makna "ceroboh". Tokenizer memisahkan
+#: hubung ("asal-asalan" -> "asal" "asalan"), jadi entri tunggal ini tidak
+#: bisa membedakan kedua makna tanpa konteks kata di sekitarnya — di luar
+#: kemampuan leksikon kata-tunggal ini (lihat docstring modul).
 _NEGATIVE: dict[str, float] = {
     "buruk": 0.8, "jelek": 0.8, "parah": 0.9, "hancur": 0.9, "kacau": 0.9,
     "amburadul": 0.9, "gagal": 0.9, "kecewa": 0.8, "mengecewakan": 0.9,
@@ -109,7 +118,7 @@ _NEGATIVE: dict[str, float] = {
     "omongkosong": 0.9, "percuma": 0.8, "sia": 0.6, "memburuk": 0.8,
     "krisis": 0.7, "darurat": 0.6, "bermasalah": 0.7, "cacat": 0.7,
     "telat": 0.6, "terlambat": 0.6, "menyulitkan": 0.8, "mempersulit": 0.8,
-    "menumpuk": 0.5, "mangkrak": 0.8, "terbengkalai": 0.8, "asal": 0.5,
+    "menumpuk": 0.5, "mangkrak": 0.8, "terbengkalai": 0.8,
 }
 
 LEXICON: dict[str, float] = {

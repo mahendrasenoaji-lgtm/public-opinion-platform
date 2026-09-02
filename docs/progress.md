@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **473 lulus** (role `pop_app`, RLS aktif — bukan superuser) |
+| Tes backend | **473 lulus**, +1 tes baru 2026-09-02 (role `pop_app`, RLS aktif — bukan superuser; tes baru diverifikasi lulus di venv terisolasi tanpa Postgres karena modulnya murni, BELUM lewat `make test`/CI penuh — Docker tidak tersedia di sandbox sesi ini, cek run CI PR terkait untuk konfirmasi 474) |
 | Endpoint API | 59 |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
@@ -75,10 +75,10 @@ yang lulus tanpa database.
 |---|---|---|
 | `models/signal.py` — Mention, Topic, DataSource | Teruji | Kolom `vector(1024)` sengaja tidak dipetakan |
 | `services/ingestion.py` — dedup, bahasa, hash akun | Teruji (28 tes) | MinHash + LSH |
-| `services/sentiment.py` + set evaluasi | Teruji (30 tes) | macro-F1 0.902 |
+| `services/sentiment.py` + set evaluasi | Teruji (31 tes) | macro-F1 0.902 di set evaluasi; lihat catatan leksikon "asal" di bawah |
 | `services/topics.py` — TF-IDF + LSA + HDBSCAN | Teruji (28 tes) | **Bukan embedding** — lihat di bawah |
 | `services/pipeline.py` — perekat ingestion+sentiment | Teruji | |
-| `connectors/rss.py` — media monitoring | Teruji parsing | Belum pernah menarik feed sungguhan |
+| `connectors/rss.py` — media monitoring | Teruji parsing + jaringan nyata (2026-09-02) | 215 artikel sungguhan dari 5 outlet, lihat poin 2 di bawah |
 | `connectors/youtube.py` — YouTube Data API v3 | Teruji parsing | Butuh `YOUTUBE_API_KEY` |
 | `connectors/x.py` — X API v2 recent search | Teruji parsing | Butuh `X_BEARER_TOKEN` |
 | `connectors/manual.py` — unggahan/ekspor vendor | Teruji | Jalur yang benar-benar dipakai sekarang |
@@ -192,10 +192,22 @@ Ini bagian terpenting dari dokumen ini.
    ini) sebelum fitur review label atau `/jaringan` bisa dipakai di
    production.
 
-2. **Konektor RSS, YouTube, dan X belum pernah menarik data sungguhan.** Yang
-   diuji adalah parsing responsnya (fungsi murni) dan penanganan kredensial
-   kosong. Menarik sungguhan butuh kunci API di Render, dan untuk RSS butuh
-   jaringan keluar dari Render ke penerbitnya.
+2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
+   kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS
+   sekarang sudah, sebagian** (2026-09-02): `RSSConnector().fetch()` — kode
+   produksi apa adanya, tidak ditulis ulang — dipakai lewat skrip mandiri di
+   venv terisolasi untuk menarik 5 feed media Indonesia sungguhan (Antara,
+   CNN Indonesia, Tempo, Republika, CNBC Indonesia), menghasilkan 215 item
+   nyata. Dua URL feed yang dicoba pertama kali (Kompas, Detik) ternyata
+   404/mati — bukti kecil bahwa URL RSS memang rapuh dan berubah, persis
+   seperti disinggung di `connectors/rss.py`. **Yang BELUM ikut teruji di
+   sini**: jalur lewat endpoint `POST .../signals/collect`, database (skrip
+   ini murni memanggil fungsi, tanpa Postgres sama sekali — Docker tidak
+   tersedia di sandbox sesi ini), dan jaringan keluar dari Render sendiri ke
+   penerbit (kemungkinan besar sama, tapi belum dicoba dari Render). Pipeline
+   ingestion (`normalize_text`, `detect_language`, `dedupe`) dan sentiment
+   (`sentiment.score`) dijalankan di atas ke-215 item nyata itu tanpa satu
+   pun exception — lihat poin 5 di bawah untuk apa yang ditemukan dari situ.
 
 3. **Copilot belum pernah menjawab dengan LLM sungguhan.** Jalur suksesnya
    diuji lewat provider tiruan yang mengembalikan JSON valid. Yang terbukti
@@ -214,6 +226,56 @@ Ini bagian terpenting dari dokumen ini.
    polaritasnya daripada yang ditemukan di lapangan. Sebelum dipakai untuk
    keputusan, ukur ulang terhadap sampel berlabel dari data proyek itu sendiri.
 
+   **Langkah kecil ke arah itu diambil 2026-09-02 — BUKAN pengganti langkah di
+   atas.** `sentiment.score()` dijalankan apa adanya atas 215 item nyata dari
+   poin 2 di atas (judul+ringkasan media Indonesia sungguhan, bukan kalimat
+   buatan tim). Temuannya:
+   - **79.5% abstain** (171/215) — jauh lebih tinggi daripada kesan yang bisa
+     didapat dari 52 kalimat set evaluasi, yang memang ditulis supaya
+     mengandung kata leksikon. Ini angka baru yang sebelumnya tidak ada:
+     leksikon ini tidak punya dasar untuk menilai SEBAGIAN BESAR judul berita
+     nyata, dan itu ditampilkan sebagai abstain, bukan netral (sesuai desain
+     modul) — tapi proporsinya sebesar ini baru terlihat sekarang.
+   - Dari 44 yang ternilai, saya (satu penilai, membaca manual — **ini bukan
+     evaluasi berlabel formal**, jangan disamakan mutunya dengan
+     `sentiment_eval.py`) menemukan pola kesalahan konkret, bukan sekadar
+     "kurang akurat":
+     - **Kata "asal"** (arti "berasal dari") salah terbaca sebagai "ceroboh"
+       dan memicu skor negatif pada 2 dari 2 kemunculannya di sampel ini
+       (mis. "aktor **asal** Inggris Raya"). **Sudah diperbaiki** — dihapus
+       dari `_NEGATIVE` di `app/services/sentiment.py` dengan komentar
+       penjelas di kode, ditambah tes regresi
+       `test_asal_negara_tidak_lagi_dianggap_negatif`. Diverifikasi tidak
+       menurunkan mutu di set evaluasi 52 kalimat (macro-F1 & akurasi tetap
+       di atas lantai 0.80 yang ditetapkan tes) — kata itu tidak muncul sama
+       sekali di `sentiment_eval.py:LABELED`, jadi tidak ada trade-off yang
+       terukur, hanya perbaikan bersih.
+     - **Nama program berulang membanjiri skor positif tanpa sentimen baru**:
+       6 dari 40 sampel yang dibaca adalah judul BERBEDA tentang program yang
+       SAMA ("Apresiasi Pemerintah Daerah Berprestasi"), semua bernilai
+       positif tinggi hanya karena kata "apresiasi" ada di NAMA programnya —
+       bukan karena tiap artikel menyatakan sikap positif sendiri.
+       `ingestion.dedupe` tidak menangkap ini (teks sekitarnya cukup berbeda
+       untuk lolos ambang Jaccard 0.82). **Belum diperbaiki** — ini
+       keterbatasan struktural leksikon kata-tunggal terhadap nama
+       proper/judul program berulang, bukan bug satu kata seperti "asal", di
+       luar cakupan perbaikan cepat yang bisa diverifikasi aman di sesi ini.
+     - **Sarkasme dan eskalasi krisis tetap tidak terbaca** — persis batas
+       yang sudah diakui docstring modul sejak awal, sekarang ada contoh
+       nyatanya: judul bernada skeptis "Jujur Janggal! Trump Yakin Ekonomi AS
+       Tembus 20%" bernilai +0.75 (matched "jujur", "optimis" secara
+       harfiah), dan berita jumlah korban meninggal Ebola yang bertambah
+       bernilai +0.4 (matched "meningkat"). Tidak diperbaiki — ini bukan bug,
+       ini batas metode leksikon yang sudah didokumentasikan sejak awal;
+       memperbaikinya butuh model, bukan kamus kata.
+   - **Ini tetap bukan pengganti "ukur ulang terhadap sampel berlabel"** yang
+     diminta di atas paragraf ini — itu butuh label dari penilai yang
+     independen dari yang membangun sistemnya, idealnya lebih dari satu
+     penilai dan mengerti domain proyek sungguhan, atas sampel yang diambil
+     secara sistematis. Yang dilakukan di sini satu penilai, tidak
+     sistematis, sekali baca — nilainya untuk menunjukkan JENIS kesalahan
+     yang ada di data lapangan, bukan mengukur SEBERAPA SERING itu terjadi.
+
 ---
 
 ## Langkah berikutnya yang paling masuk akal
@@ -225,10 +287,20 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 2. **Aktifkan `ANTHROPIC_API_KEY` di Render**, lalu verifikasi Executive Brief
    dan Copilot menghasilkan jawaban yang masuk akal dan tidak memuat klaim di
    luar fakta yang dikirim.
-3. **Sambungkan satu konektor sungguhan** — RSS paling murah, tidak butuh
-   kunci — dan lihat apakah pipeline bertahan pada data lapangan yang berantakan.
+3. ~~**Sambungkan satu konektor sungguhan** — RSS paling murah, tidak butuh
+   kunci — dan lihat apakah pipeline bertahan pada data lapangan yang
+   berantakan.~~ — **dikerjakan sebagian 2026-09-02**, lihat poin 2 di bagian
+   "Yang BELUM diverifikasi" di atas. Bertahan (tidak ada exception atas 215
+   item nyata); yang belum: lewat endpoint asli + Postgres + dari Render
+   sendiri.
 4. **Ukur ulang akurasi sentimen** terhadap sampel berlabel dari data nyata
    itu. Ini yang menentukan apakah seluruh lapisan sinyal layak dipakai untuk
-   keputusan, atau baru layak untuk eksplorasi.
+   keputusan, atau baru layak untuk eksplorasi. **Langkah kecil, bukan
+   pengganti, diambil 2026-09-02** — lihat poin 5 di bagian "Yang BELUM
+   diverifikasi": 1 bug leksikon nyata ditemukan+diperbaiki ("asal"), 1
+   keterbatasan struktural dicatat (nama program berulang), abstain rate
+   79.5% terukur untuk pertama kalinya di data nyata. Yang sebenarnya
+   diminta poin ini — sampel berlabel sistematis dari penilai independen —
+   masih belum ada.
 5. Baru setelah itu: gelombang survei kedua (membuka forecast), lalu Phase 4
    dengan keputusan-keputusan yang sudah diambil lebih dulu.

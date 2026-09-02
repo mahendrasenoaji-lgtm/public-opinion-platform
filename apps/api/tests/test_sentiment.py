@@ -41,6 +41,20 @@ class TestSkorDasar:
         assert [w for w, _ in r.matched] == ["bagus"]
 
 
+class TestKataAmbigu:
+    """Regresi dari verifikasi terhadap feed RSS media sungguhan (2026-09-02).
+
+    "asal" sempat ada di leksikon negatif (arti "asal-asalan", ceroboh), tapi
+    di 215 artikel media nyata yang ditarik lewat RSSConnector, satu-satunya
+    kemunculan token itu (2 dari 2) adalah arti "berasal dari"/"asal negara-X"
+    yang netral — bukan arti "ceroboh". Dihapus dari leksikon karena itu.
+    """
+
+    def test_asal_negara_tidak_lagi_dianggap_negatif(self) -> None:
+        r = score("Aktor asal Inggris Raya bergabung dalam film itu")
+        assert r.abstained, "'asal' (arti 'dari') tidak boleh memicu skor apa pun"
+
+
 class TestNegasi:
     def test_negasi_membalik_polaritas(self) -> None:
         positif = score("pelayanannya bagus")
