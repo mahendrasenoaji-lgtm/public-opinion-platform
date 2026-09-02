@@ -295,6 +295,27 @@ Ini bagian terpenting dari dokumen ini.
      sistematis, sekali baca — nilainya untuk menunjukkan JENIS kesalahan
      yang ada di data lapangan, bukan mengukur SEBERAPA SERING itu terjadi.
 
+   **Ronde kedua diambil 2026-09-02 (sesi keempat) — sampel dua kali lebih
+   besar, KESIMPULAN SAMA, tidak dipaksakan jadi "progres" palsu.** 385
+   item mentah (naik dari 215) dari 7 feed hidup (naik dari 5 — Sindonews
+   dan Media Indonesia terbukti hidup, 4 kandidat lain terbukti mati/rusak),
+   84 judul ternilai dibaca manual + token `matched` diperiksa untuk item
+   ekstrem. **Tidak ada bug leksikon baru yang aman diperbaiki** seperti
+   "asal" — tiga temuan baru, semuanya batas struktural yang sudah
+   diketahui, bukan bug baru: (1) "meningkat" salah pada konteks bencana
+   (Gunung Sinabung, +0.40 padahal berita evakuasi) — versi baru dari
+   temuan Ebola sesi lalu, kelas masalah sama; (2) "korupsi" mendominasi
+   berita ANTI-korupsi jadi salah arah (RUU Perampasan Aset, -0.90 padahal
+   berita positif upaya pemberantasan); (3) "sulit" salah pada satu idiom
+   entertainment ("sulit tahan tawa" = lucu, bukan sulit) — sengaja TIDAK
+   dihapus dari leksikon karena juga benar dipakai di sampel yang sama
+   (jasad "sulit dikenali"), beda dengan "asal" yang nyaris tidak punya
+   kegunaan sah sebagai kata negatif. Detail lengkap + token yang cocok
+   untuk tiap temuan ada di `docs/deployment-status.md` bagian "Verifikasi
+   RSS ronde kedua". Kesimpulannya: leksikon kata-tunggal sudah dekat
+   batas perbaikan amannya — perbaikan lanjutan yang berarti butuh model,
+   bukan kamus kata, persis seperti diakui docstring modul sejak awal.
+
 ---
 
 ## Langkah berikutnya yang paling masuk akal
@@ -314,12 +335,19 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    sendiri.
 4. **Ukur ulang akurasi sentimen** terhadap sampel berlabel dari data nyata
    itu. Ini yang menentukan apakah seluruh lapisan sinyal layak dipakai untuk
-   keputusan, atau baru layak untuk eksplorasi. **Langkah kecil, bukan
-   pengganti, diambil 2026-09-02** — lihat poin 5 di bagian "Yang BELUM
-   diverifikasi": 1 bug leksikon nyata ditemukan+diperbaiki ("asal"), 1
-   keterbatasan struktural dicatat (nama program berulang), abstain rate
-   79.5% terukur untuk pertama kalinya di data nyata. Yang sebenarnya
-   diminta poin ini — sampel berlabel sistematis dari penilai independen —
-   masih belum ada.
+   keputusan, atau baru layak untuk eksplorasi. **Dua ronde langkah kecil
+   diambil 2026-09-02, bukan pengganti langkah ini** — lihat poin 5 di
+   bagian "Yang BELUM diverifikasi": ronde pertama menemukan+memperbaiki 1
+   bug leksikon nyata ("asal") dari 215 item/5 feed; ronde kedua (385
+   item/7 feed, dua kali lebih besar) **tidak menemukan bug baru yang aman
+   diperbaiki** — 3 temuan baru semuanya batas struktural yang sudah
+   diketahui ("meningkat" pada bencana, "korupsi" pada berita
+   anti-korupsi, "sulit" pada idiom), dikonfirmasi ganda sebagai batas
+   metode leksikon, bukan kekurangan pencarian. **Sinyal untuk sesi
+   berikutnya**: ronde manual seperti ini sudah mendekati titik jenuh —
+   perbaikan akurasi lebih lanjut kemungkinan besar butuh (a) sampel
+   berlabel sistematis dari penilai independen (yang sebenarnya diminta
+   poin ini, masih belum ada), atau (b) metode berbasis model, bukan ronde
+   pull-RSS-dan-baca-manual ketiga dengan feed berbeda lagi.
 5. Baru setelah itu: gelombang survei kedua (membuka forecast), lalu Phase 4
    dengan keputusan-keputusan yang sudah diambil lebih dulu.

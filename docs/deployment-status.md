@@ -1131,6 +1131,117 @@ dilakukan** — itu satu-satunya langkah tersisa untuk mengonfirmasi (a)
 review-label + network graph benar-benar menampilkan data, bukan cuma
 "data tidak cukup".
 
+## ✅ Verifikasi RSS ronde kedua (sampel lebih besar) — 2026-09-02 (sesi keempat)
+
+Instruksi pengguna: sambil menunggu verifikasi production, kerjakan
+"langkah 2" (hal genuinely bisa dikerjakan tanpa kredensial) secara
+maksimal. Diplih: perluas verifikasi RSS+sentimen sesi kedua (215 item,
+5 feed) dengan sampel baru yang lebih besar, untuk mencari bug leksikon
+lain seperti "asal".
+
+### Yang dikerjakan
+
+Skrip mandiri baru (pola identik sesi sebelumnya — venv terisolasi tanpa
+Postgres, `RSSConnector().fetch()` dan `services/ingestion.py`,
+`services/sentiment.py` dipanggil langsung apa adanya, tidak ditulis
+ulang) menarik **11 kandidat feed**: 5 yang sudah terbukti hidup sesi lalu
+(Antara, CNN Indonesia, Tempo, Republika, CNBC Indonesia) plus 6 kandidat
+baru (Liputan6, Sindonews, Bisnis.com, Kontan, Media Indonesia,
+Suara.com).
+
+**7/11 hidup** — 385 item mentah, lebih besar dari 215 item sesi lalu:
+- Ke-5 feed lama tetap hidup. Catatan kecil: Antara News gagal sekali
+  ("Server disconnected") lalu berhasil di percobaan berikutnya — bukti
+  kongkret kegagalan TRANSIEN, bukan cuma feed mati permanen seperti
+  Kompas/Detik sesi lalu. Menguatkan catatan `connectors/rss.py` soal
+  feed yang rapuh.
+- **2 kandidat baru terbukti hidup**: Sindonews (30 item), Media Indonesia
+  (80 item) — bisa ditambahkan ke daftar feed produksi kalau nanti mau
+  diperluas.
+- **4 kandidat gagal**, dicatat biar tidak perlu dicoba ulang: Liputan6
+  (404 — URL RSS lama sudah tidak berlaku), Bisnis.com (403/404,
+  tidak konsisten antar percobaan), Kontan (XML tidak well-formed —
+  kemungkinan encoding/entity rusak dari sisi penerbit), Suara.com
+  (koneksi gagal total, bukan HTTP error).
+
+Pipeline ingestion+sentiment ASLI dijalankan atas 385 item: 0 exception,
+362/385 (94%) terdeteksi bahasa Indonesia, 0 duplikat (wajar, 7 outlet
+berbeda), abstain 301/385 (78.2% — konsisten dengan 79.5% sesi lalu, beda
+tipis karena feed LIVE). 84 item ternilai dibaca manual, plus token
+`matched` diperiksa lewat REPL untuk ~15 item ekstrem/mencurigakan yang
+tidak langsung jelas benar-salahnya (bukan cuma menyimpulkan dari
+judulnya).
+
+### Hasil: TIDAK ada bug leksikon baru yang aman diperbaiki
+
+Berbeda dari sesi lalu ("asal"), ronde ini **tidak menemukan kata tunggal
+yang bisa dihapus/diperbaiki tanpa risiko regresi** — dicatat apa adanya,
+bukan dipaksakan supaya kelihatan ada progres (CLAUDE.md §8). Tiga
+temuan konkret:
+
+1. **Kata "meningkat" (bobot positif 0.4) salah pada konteks krisis —
+   dikonfirmasi lagi dengan contoh BARU, bukan cuma Ebola sesi lalu.**
+   "Aktivitas Gunung Sinabung Meningkat-Warga Mengungsi, Awas Bencana
+   Baru" bernilai **+0.40 positif** (matched: `meningkat`), padahal ini
+   berita evakuasi akibat erupsi gunung berapi — jelas negatif. Kejadian
+   sama pada "Wamen ESDM ... Subsidi Energi Bisa Meningkat Rp300
+   Triliun" (+0.40, subsidi membengkak = buruk secara fiskal, bukan
+   baik). **Tidak diperbaiki** — "meningkat" tetap positif di sebagian
+   besar konteks lain (ekonomi tumbuh, kepuasan naik), menghapusnya akan
+   merusak lebih banyak klasifikasi benar daripada memperbaiki. Ini batas
+   leksikon-kata-tunggal yang sudah diakui docstring modul, sekarang ada
+   dua contoh nyata dari topik berbeda (kesehatan/Ebola sesi lalu,
+   bencana alam sesi ini).
+
+2. **Kata "korupsi"/"korup" (bobot negatif 0.9) mendominasi berita
+   ANTI-korupsi jadi salah arah.** "RUU Perampasan Aset Momentum Perkuat
+   Pemberantasan Korupsi" (-0.90, matched 2x `korupsi`) dan "Negara Kaya
+   Minyak Ngamuk Digerogoti Koruptor, Sita Aset Rp 17,7 T" (-0.90) —
+   keduanya berita tentang UPAYA memberantas korupsi (RUU baru, aset
+   hasil korupsi disita), bukan tentang korupsi terjadi, tapi skornya
+   sama negatifnya seolah itu berita korupsi baru. **Tidak diperbaiki**
+   — "korupsi" negatif itu sendiri benar; masalahnya ada di konteks
+   "melawan X" vs "X terjadi", yang butuh pemahaman kalimat penuh, bukan
+   kamus kata. Sama persis kelas masalah dengan sarkasme yang sudah
+   dicatat sesi lalu.
+
+3. **Kata "sulit" (bobot negatif 0.6) salah pada satu kalimat idiomatik,
+   BUKAN kandidat perbaikan seperti "asal".** "Gita Bhebhita sulit tahan
+   tawa saat satu adegan..." (-0.60) — "sulit tahan tawa" adalah idiom
+   untuk "lucu sekali", bukan kesulitan sungguhan, jadi entertainment
+   yang netral/positif salah terbaca negatif. **Sengaja tidak
+   diperbaiki, beda alasan dari "asal"**: pada sampel ini "sulit" juga
+   benar dipakai pada "Berwajah Sulit Dikenali" (jasad tanpa identitas —
+   memang negatif), dan "sulit"/"susah" adalah salah satu penanda
+   kesulitan paling umum di seluruh leksikon — kebalikan dari "asal"
+   yang nyaris tidak punya kegunaan sah sebagai kata negatif. Menghapus
+   "sulit" akan merusak jauh lebih banyak klasifikasi benar daripada
+   memperbaiki satu idiom langka.
+
+**Yang justru terkonfirmasi jalan dengan benar** (supaya tidak semua
+temuan kedengaran negatif): "berhasil" pada "Penyelundupan ... Berhasil
+Digagalkan" (+0.80, benar — penggagalan penyelundupan itu berita baik),
+"sukses" pada dua berita berbeda (+0.80, benar), "membaik" pada berita
+kondisi santri keracunan yang membaik (+0.70, benar), "cepat" pada 4
+judul berbeda soal respons cepat pemerintah (+0.40..+0.55, benar — cepat
+menangani krisis itu genuinely positif meski krisisnya sendiri negatif),
+"tolak"/"menolak" pada dua berita politik luar negeri (-0.80, benar).
+Leksikon ini bekerja sebagaimana mestinya pada mayoritas kasus yang
+diperiksa — temuan di atas adalah pengecualian yang didokumentasikan,
+bukan indikasi leksikonnya rusak.
+
+### Kesimpulan untuk `docs/progress.md`
+
+Poin 5 di "Yang BELUM diverifikasi" (akurasi sentimen adalah batas ATAS,
+perlu diukur ulang terhadap sampel berlabel sistematis dari penilai
+independen) **tetap berlaku, sekarang dengan sampel dua kali lebih besar
+menguatkan kesimpulan yang sama**: leksikon kata-tunggal punya batas
+struktural yang jelas (kata ambigu konteks, framing "melawan X" vs "X
+terjadi", idiom) yang sudah dua sesi berturut-turut ditemukan tanpa
+kandidat perbaikan aman baru selain "asal". Ini bukan kegagalan mencari
+— ini bukti bahwa perbaikan lanjutan butuh metode berbeda (model, bukan
+kamus), sesuai yang sudah diakui sejak awal modul ini ditulis.
+
 ## Arsitektur deploy (untuk referensi)
 
 ```
