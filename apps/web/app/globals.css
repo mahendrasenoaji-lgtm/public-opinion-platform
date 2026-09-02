@@ -39,6 +39,7 @@
 .nav-i {
   display:flex; align-items:center; gap:9px; width:100%; padding:8px 9px; border:0; border-radius:3px;
   background:transparent; color:var(--txt2); font:inherit; font-size:12.5px; cursor:pointer; text-align:left;
+  text-decoration:none;
 }
 .nav-i:hover { background:#0F1720; color:var(--txt); }
 .nav-on { background:#11202F; color:var(--txt); box-shadow:inset 2px 0 0 var(--survey); }
