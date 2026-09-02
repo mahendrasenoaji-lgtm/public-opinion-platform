@@ -31,7 +31,13 @@ from sqlalchemy import select
 
 from app.deps import CurrentUser, TenantSession
 from app.models.measurement import MetricSnapshot
-from app.services.impact import Cell, NoControlGroup, difference_in_differences
+from app.services.impact import (
+    MIN_DONORS,
+    Cell,
+    NoControlGroup,
+    difference_in_differences,
+    synthetic_control,
+)
 
 router = APIRouter(prefix="/projects/{project_id}/impact", tags=["impact"])
 
@@ -114,6 +120,157 @@ def _to_cell(row: MetricSnapshot | None, label: str) -> Cell:
         )
     se = (float(row.ci_high) - float(row.ci_low)) / (2 * _Z95)
     return Cell(mean=float(row.value), sd=se * math.sqrt(row.effective_n), n=row.effective_n)
+
+
+class SyntheticControlRequest(BaseModel):
+    """Definisi desain synthetic control. Alternatif dari DiD untuk kasus
+    tanpa satu kelompok pembanding tunggal yang meyakinkan, tapi ADA beberapa
+    kandidat donor -- lihat services/impact.py bagian synthetic control."""
+
+    metric: str = Field(default="approval")
+    treated_segment: str = Field(min_length=1, description="Segmen yang terpapar komunikasi")
+    donor_segments: list[str] = Field(
+        min_length=MIN_DONORS,
+        description=f"Kandidat donor, minimal {MIN_DONORS} segmen yang TIDAK terpapar.",
+    )
+    pre_period_end: date = Field(
+        description="Snapshot dengan period_end <= ini dipakai sebagai deret pra-perlakuan"
+    )
+    post_period_end: date = Field(description="Titik pasca-perlakuan yang dibandingkan")
+
+
+class SyntheticControlOut(BaseModel):
+    effect: float | None
+    treated_post: float | None
+    synthetic_post: float | None
+    weights: dict[str, float]
+    donors_used: int
+    n_pre_periods: int
+    pre_fit_rmspe: float | None
+    fit_quality_ok: bool | None
+    placebo_effects: dict[str, float]
+    rank_p_value: float | None
+    method: str
+    insufficient_data: bool
+    note: str | None
+    limitations: list[str]
+
+
+async def _aligned_pre_series(
+    session: TenantSession,
+    project_id: UUID,
+    *,
+    metric: str,
+    segments: list[str],
+    pre_period_end: date,
+) -> dict[str, list[float]]:
+    """Deret pra-perlakuan tiap segmen, HANYA pada period_end yang tersedia
+    untuk SEMUA segmen sekaligus (irisan, bukan gabungan).
+
+    Synthetic control mencocokkan titik demi titik antar deret -- period_end
+    yang cuma dipunyai sebagian segmen tidak bisa dipasangkan, jadi dibuang
+    dari SEMUA deret, bukan diisi nilai reka-reka.
+    """
+    rows = (
+        (
+            await session.execute(
+                select(MetricSnapshot).where(
+                    MetricSnapshot.project_id == project_id,
+                    MetricSnapshot.metric == metric,
+                    MetricSnapshot.segment.in_(segments),
+                    MetricSnapshot.period_end <= pre_period_end,
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    by_period: dict[date, dict[str, float]] = {}
+    for r in rows:
+        if r.segment is None:  # tersaring oleh filter .in_(segments) di atas, tapi
+            continue  # kolomnya nullable secara skema -- jaga mypy tetap jujur
+        by_period.setdefault(r.period_end, {})[r.segment] = float(r.value)
+
+    common_periods = sorted(
+        p for p, values in by_period.items() if set(segments) <= set(values)
+    )
+    return {seg: [by_period[p][seg] for p in common_periods] for seg in segments}
+
+
+@router.post("/synthetic-control", response_model=SyntheticControlOut)
+async def analyze_synthetic_control(
+    project_id: UUID, body: SyntheticControlRequest, session: TenantSession, user: CurrentUser
+) -> SyntheticControlOut:
+    """Ukur efek komunikasi dengan synthetic control (Abadie et al.).
+
+    Dipilih di atas DiD ketika tidak ada satu kelompok pembanding tunggal
+    yang meyakinkan, tapi ada beberapa kandidat donor. Menolak kalau donor
+    kurang dari MIN_DONORS, atau kalau jumlah periode pra-perlakuan yang
+    SEJAJAR antar semua segmen tidak lebih banyak dari jumlah donor -- lihat
+    services/impact.py:synthetic_control() untuk alasannya.
+    """
+    if body.treated_segment in body.donor_segments:
+        raise HTTPException(
+            422,
+            "Segmen terpapar tidak boleh ikut jadi donornya sendiri.",
+        )
+    if len(set(body.donor_segments)) != len(body.donor_segments):
+        raise HTTPException(422, "Daftar segmen donor memuat duplikat.")
+
+    all_segments = [body.treated_segment, *body.donor_segments]
+    pre_series = await _aligned_pre_series(
+        session,
+        project_id,
+        metric=body.metric,
+        segments=all_segments,
+        pre_period_end=body.pre_period_end,
+    )
+
+    async def _post_value(segment: str) -> float:
+        row = await _snapshot(
+            session,
+            project_id,
+            metric=body.metric,
+            segment=segment,
+            period_end=body.post_period_end,
+        )
+        if row is None:
+            raise HTTPException(
+                status.HTTP_404_NOT_FOUND,
+                f"Tidak ada snapshot pasca-perlakuan untuk segmen '{segment}' "
+                f"pada {body.post_period_end}.",
+            )
+        return float(row.value)
+
+    treated_post = await _post_value(body.treated_segment)
+    donors_post = {seg: await _post_value(seg) for seg in body.donor_segments}
+
+    try:
+        result = synthetic_control(
+            treated_pre=pre_series[body.treated_segment],
+            treated_post=treated_post,
+            donors_pre={seg: pre_series[seg] for seg in body.donor_segments},
+            donors_post=donors_post,
+        )
+    except ValueError as e:
+        raise HTTPException(422, str(e)) from e
+
+    return SyntheticControlOut(
+        effect=result.effect,
+        treated_post=result.treated_post,
+        synthetic_post=result.synthetic_post,
+        weights=result.weights,
+        donors_used=result.donors_used,
+        n_pre_periods=result.n_pre_periods,
+        pre_fit_rmspe=result.pre_fit_rmspe,
+        fit_quality_ok=result.fit_quality_ok,
+        placebo_effects=result.placebo_effects,
+        rank_p_value=result.rank_p_value,
+        method=result.method,
+        insufficient_data=result.insufficient_data,
+        note=result.note,
+        limitations=result.limitations,
+    )
 
 
 @router.post("/analyze", response_model=ImpactOut)

@@ -43,6 +43,9 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+import numpy as np
+from scipy.optimize import minimize
+
 #: Nilai z untuk interval kepercayaan yang lazim dipakai.
 _Z = {0.80: 1.2816, 0.90: 1.6449, 0.95: 1.9600, 0.99: 2.5758}
 
@@ -254,5 +257,218 @@ def difference_in_differences(
         parallel_trends_ok=parallel_ok,
         insufficient_data=False,
         note=note,
+        limitations=limitations,
+    )
+
+
+# ============================================================================
+# Synthetic control (Abadie, Diamond & Hainmueller)
+# ============================================================================
+#
+# Desain pembanding kedua yang boleh mengisi pengecualian klaim kausal di
+# AIEnvelope (lihat docstring modul). Dipilih ketika TIDAK ada satu kelompok
+# pembanding tunggal yang meyakinkan, tapi ADA beberapa kandidat ("donor")
+# yang masing-masing tidak terpapar perlakuan. Alih-alih memilih satu, metode
+# ini membentuk UNIT SINTETIS: kombinasi berbobot para donor yang paling
+# mendekati lintasan unit terpapar SEBELUM perlakuan.
+#
+# Intuisinya: kalau kombinasi donor itu berhasil meniru unit terpapar dengan
+# akurat selama periode PRA-perlakuan (saat keduanya sama-sama tidak
+# terpapar), maka kombinasi yang sama punya alasan kuat untuk dipercaya
+# sebagai perkiraan "apa yang akan terjadi tanpa perlakuan" pada periode
+# PASCA-perlakuan. Selisih antara unit terpapar sungguhan dan unit sintetis
+# itulah efeknya.
+
+#: Donor minimum. Bukan cuma supaya bobotnya tidak trivial (1 donor = bobot
+#: 100% ke situ) -- juga supaya inferensi placebo (di bawah) masih punya
+#: sisa donor yang cukup di tiap iterasi leave-one-out.
+MIN_DONORS = 5
+
+#: RMSPE (root mean squared prediction error) pra-perlakuan, relatif terhadap
+#: simpangan baku deret unit terpapar sendiri. Di atas ini, unit sintetis
+#: dianggap TIDAK cukup mirip untuk dipercaya sebagai kontrafaktual -- angka
+#: pembobotan ini penilaian metodologis (rujuk Abadie et al.), bukan hasil
+#: kalibrasi terhadap data proyek ini.
+REL_FIT_THRESHOLD = 0.5
+
+METHOD_SC = (
+    "synthetic control (Abadie et al.) -- unit sintetis dari kombinasi "
+    "berbobot donor, signifikansi dari uji permutasi placebo"
+)
+
+
+@dataclass(frozen=True, slots=True)
+class SyntheticControlResult:
+    effect: float | None
+    treated_post: float | None
+    synthetic_post: float | None
+    #: Hanya donor dengan bobot > 0 (setelah dibulatkan) yang disertakan --
+    #: donor berbobot nol tidak ikut membentuk unit sintetis sama sekali.
+    weights: dict[str, float] = field(default_factory=dict)
+    donors_used: int = 0
+    n_pre_periods: int = 0
+    pre_fit_rmspe: float | None = None
+    #: True kalau RMSPE pra-perlakuan cukup kecil untuk dipercaya. False
+    #: berarti unit sintetis tidak meniru unit terpapar dengan baik SEBELUM
+    #: perlakuan pun -- efek pasca-perlakuan tidak boleh ditafsirkan.
+    fit_quality_ok: bool | None = None
+    #: Efek placebo per donor (leave-one-out: donor itu diperlakukan seolah
+    #: "terpapar", sisanya jadi donor poolnya). Dipakai menghitung rank_p_value.
+    placebo_effects: dict[str, float] = field(default_factory=dict)
+    #: Porsi efek placebo (dari SEMUA donor) yang magnitudonya >= magnitudo
+    #: efek unit terpapar sungguhan. Kecil berarti efeknya ekstrem dibanding
+    #: seandainya "perlakuan" itu jatuh ke unit lain secara acak -- ini uji
+    #: permutasi, BUKAN p-value uji-t klasik.
+    rank_p_value: float | None = None
+    method: str = METHOD_SC
+    insufficient_data: bool = False
+    note: str | None = None
+    limitations: list[str] = field(default_factory=list)
+
+
+def _fit_donor_weights(pre_matrix: np.ndarray, target_pre: np.ndarray) -> np.ndarray:
+    """Bobot non-negatif berjumlah 1 yang meminimalkan galat kuadrat
+    pra-perlakuan. Optimasi cembung kecil (SLSQP) -- jumlah donor di proyek
+    ini tidak pernah cukup besar untuk butuh solver khusus."""
+    n_donors = pre_matrix.shape[1]
+    x0 = np.full(n_donors, 1.0 / n_donors)
+
+    def objective(w: np.ndarray) -> float:
+        diff = target_pre - pre_matrix @ w
+        return float(diff @ diff)
+
+    result = minimize(
+        objective,
+        x0,
+        method="SLSQP",
+        bounds=[(0.0, 1.0)] * n_donors,
+        constraints=[{"type": "eq", "fun": lambda w: float(np.sum(w) - 1.0)}],
+        options={"maxiter": 1000, "ftol": 1e-10},
+    )
+    w = np.clip(result.x, 0.0, None)
+    total = w.sum()
+    return w / total if total > 1e-9 else x0
+
+
+def synthetic_control(
+    *,
+    treated_pre: Sequence[float],
+    treated_post: float,
+    donors_pre: dict[str, Sequence[float]],
+    donors_post: dict[str, float],
+    min_donors: int = MIN_DONORS,
+) -> SyntheticControlResult:
+    """Estimasi efek lewat unit sintetis dari kombinasi berbobot donor.
+
+    `donors_pre` dan `donors_post` HARUS memuat unit yang sama persis, dan
+    setiap deret pra-perlakuan donor harus sepanjang `treated_pre`.
+
+    Menolak (insufficient_data) kalau donor kurang dari `min_donors`, ATAU
+    kalau jumlah periode pra-perlakuan TIDAK LEBIH BANYAK dari jumlah donor.
+    Yang kedua bukan kehati-hatian berlebihan: dengan donor >= periode,
+    optimasi bisa mencocokkan deret unit terpapar secara SEMPURNA meski
+    donornya sama sekali tidak mirip secara substantif -- derajat kebebasan
+    yang cukup untuk overfit selalu ada. RMSPE pra-perlakuan yang tampak
+    bagus dalam keadaan itu tidak membuktikan apa-apa.
+    """
+    if set(donors_pre) != set(donors_post):
+        raise ValueError("donors_pre dan donors_post harus memuat unit yang sama persis")
+
+    n_donors = len(donors_pre)
+    n_pre = len(treated_pre)
+
+    if n_donors < min_donors:
+        return SyntheticControlResult(
+            effect=None, treated_post=None, synthetic_post=None,
+            donors_used=n_donors, n_pre_periods=n_pre,
+            insufficient_data=True,
+            note=f"Perlu minimal {min_donors} unit donor; tersedia {n_donors}.",
+        )
+    if any(len(s) != n_pre for s in donors_pre.values()):
+        raise ValueError(
+            "setiap donor harus punya jumlah periode pra-perlakuan yang sama "
+            "dengan unit terpapar"
+        )
+    if n_pre <= n_donors:
+        return SyntheticControlResult(
+            effect=None, treated_post=None, synthetic_post=None,
+            donors_used=n_donors, n_pre_periods=n_pre,
+            insufficient_data=True,
+            note=(
+                f"Jumlah periode pra-perlakuan ({n_pre}) harus lebih banyak "
+                f"dari jumlah donor ({n_donors}), kalau tidak kecocokan "
+                "pra-perlakuan bisa sempurna secara trivial tanpa berarti "
+                "apa-apa (derajat kebebasan cukup untuk overfit)."
+            ),
+        )
+
+    names = sorted(donors_pre)  # urutan deterministik -> hasil bisa direproduksi
+    pre_matrix = np.array([donors_pre[n] for n in names], dtype=float).T
+    treated_arr = np.array(treated_pre, dtype=float)
+
+    w = _fit_donor_weights(pre_matrix, treated_arr)
+    weights = {names[i]: round(float(w[i]), 4) for i in range(len(names)) if w[i] > 1e-4}
+
+    synthetic_pre = pre_matrix @ w
+    rmspe = float(np.sqrt(np.mean((treated_arr - synthetic_pre) ** 2)))
+    treated_sd = float(np.std(treated_arr))
+    fit_ok = rmspe <= REL_FIT_THRESHOLD * treated_sd if treated_sd > 1e-9 else rmspe < 1e-6
+
+    synthetic_post = float(sum(w[i] * donors_post[names[i]] for i in range(len(names))))
+    effect = treated_post - synthetic_post
+
+    # Placebo leave-one-out: tiap donor bergiliran diperlakukan seolah
+    # "terpapar" dengan sisa donor sebagai pool-nya sendiri. Distribusi efek
+    # placebo ini adalah dasar rank_p_value -- bukan asumsi distribusi normal.
+    placebo_effects: dict[str, float] = {}
+    for name in names:
+        others = [n for n in names if n != name]
+        if len(others) < 3:
+            continue
+        other_matrix = np.array([donors_pre[n] for n in others], dtype=float).T
+        placebo_target = np.array(donors_pre[name], dtype=float)
+        w_p = _fit_donor_weights(other_matrix, placebo_target)
+        synth_p_post = float(sum(w_p[i] * donors_post[others[i]] for i in range(len(others))))
+        placebo_effects[name] = round(donors_post[name] - synth_p_post, 3)
+
+    rank_p_value = None
+    if placebo_effects:
+        count_ge = sum(1 for v in placebo_effects.values() if abs(v) >= abs(effect))
+        rank_p_value = round((count_ge + 1) / (len(placebo_effects) + 1), 3)
+
+    limitations = [
+        "Efek dibandingkan terhadap unit SINTETIS (kombinasi berbobot donor), "
+        "bukan satu kelompok pembanding tunggal. Keandalannya bergantung "
+        "sepenuhnya pada seberapa dekat unit sintetis meniru unit terpapar "
+        "SEBELUM perlakuan -- lihat pre_fit_rmspe dan fit_quality_ok.",
+        "rank_p_value dari uji permutasi (placebo leave-one-out pada donor), "
+        "bukan uji-t klasik: ia menjawab 'seberapa ekstrem efek ini "
+        "dibandingkan seandainya perlakuan jatuh ke unit lain secara acak', "
+        "bukan probabilitas dari asumsi distribusi tertentu.",
+        "Efek rata-rata pada unit terpapar. Tidak mengatakan siapa yang "
+        "berubah, dan tidak menjamin efeknya bertahan.",
+    ]
+    if not fit_ok:
+        limitations.insert(
+            0,
+            "Unit sintetis TIDAK meniru unit terpapar dengan cukup baik pada "
+            "periode pra-perlakuan (RMSPE melebihi ambang). Efek pasca-"
+            "perlakuan di bawah ini tidak boleh ditafsirkan sebagai estimasi "
+            "yang bisa dipercaya.",
+        )
+
+    return SyntheticControlResult(
+        effect=round(effect, 3),
+        treated_post=round(treated_post, 3),
+        synthetic_post=round(synthetic_post, 3),
+        weights=weights,
+        donors_used=n_donors,
+        n_pre_periods=n_pre,
+        pre_fit_rmspe=round(rmspe, 3),
+        fit_quality_ok=fit_ok,
+        placebo_effects=placebo_effects,
+        rank_p_value=rank_p_value,
+        insufficient_data=False,
+        note=None if fit_ok else "Kecocokan pra-perlakuan buruk -- lihat limitations.",
         limitations=limitations,
     )

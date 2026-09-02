@@ -81,3 +81,95 @@ export async function analyzeImpact(
     throw e;
   }
 }
+
+export interface SyntheticControlOut {
+  effect: number | null;
+  treated_post: number | null;
+  synthetic_post: number | null;
+  weights: Record<string, number>;
+  donors_used: number;
+  n_pre_periods: number;
+  pre_fit_rmspe: number | null;
+  fit_quality_ok: boolean | null;
+  placebo_effects: Record<string, number>;
+  rank_p_value: number | null;
+  method: string;
+  insufficient_data: boolean;
+  note: string | null;
+  limitations: string[];
+}
+
+export interface SyntheticControlState {
+  result: SyntheticControlOut | null;
+  error: string | null;
+  input: {
+    metric: string;
+    treated_segment: string;
+    donor_segments: string;
+    pre_period_end: string;
+    post_period_end: string;
+  };
+}
+
+// Sama seperti ImpactState di atas — keadaan awal TIDAK diekspor dari sini,
+// ada di SyntheticControlForm.tsx.
+
+/**
+ * Jalankan analisis synthetic control (Abadie et al.) — alternatif dari DiD
+ * ketika tidak ada satu kelompok pembanding tunggal yang meyakinkan, tapi ada
+ * beberapa kandidat donor. Backend yang memutuskan penolakannya (donor
+ * kurang, periode pra-perlakuan tidak cukup); di sini hanya meneruskan.
+ */
+export async function analyzeSyntheticControl(
+  _prev: SyntheticControlState,
+  formData: FormData,
+): Promise<SyntheticControlState> {
+  const projectId = String(formData.get("projectId") ?? "");
+  const donorRaw = String(formData.get("donor_segments") ?? "");
+  const input = {
+    metric: String(formData.get("metric") ?? "approval"),
+    treated_segment: String(formData.get("treated_segment") ?? "").trim(),
+    donor_segments: donorRaw,
+    pre_period_end: String(formData.get("pre_period_end") ?? ""),
+    post_period_end: String(formData.get("post_period_end") ?? ""),
+  };
+
+  const donors = donorRaw
+    .split(/[\n,]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (!input.treated_segment) {
+    return { result: null, input, error: "Segmen terpapar wajib diisi." };
+  }
+  if (donors.length === 0) {
+    return {
+      result: null,
+      input,
+      error: "Daftar segmen donor wajib diisi — satu segmen per baris atau dipisah koma.",
+    };
+  }
+  if (!input.pre_period_end || !input.post_period_end) {
+    return { result: null, input, error: "Kedua periode pengukuran wajib diisi." };
+  }
+
+  try {
+    const result = await api<SyntheticControlOut>(
+      `/projects/${projectId}/impact/synthetic-control`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          metric: input.metric,
+          treated_segment: input.treated_segment,
+          donor_segments: donors,
+          pre_period_end: input.pre_period_end,
+          post_period_end: input.post_period_end,
+        }),
+      },
+    );
+    return { result, error: null, input };
+  } catch (e) {
+    if (e instanceof ApiError) return { result: null, error: e.message, input };
+    throw e;
+  }
+}

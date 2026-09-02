@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { apiOrNull } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { ImpactForm } from "./ImpactForm";
+import { SyntheticControlForm } from "./SyntheticControlForm";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,25 @@ export default async function DampakPage() {
           </p>
 
           <ImpactForm projectId={projectId} segments={segments.map((s) => s.name)} />
+        </Panel>
+
+        <Panel
+          kicker="Desain pembanding (alternatif)"
+          title="Synthetic control — tanpa satu pembanding tunggal"
+        >
+          <p style={{ fontSize: 13, color: "var(--txt2)", margin: "0 0 18px", maxWidth: 720 }}>
+            Dipakai ketika tidak ada satu kelompok pembanding tunggal yang meyakinkan,
+            tapi ada beberapa kandidat donor. <b>Synthetic control</b> (Abadie dkk.)
+            membangun "unit sintetis" dari kombinasi berbobot para donor yang paling
+            mirip lintasan segmen terpapar sebelum perlakuan, lalu membandingkan
+            segmen terpapar pasca-perlakuan dengan unit sintetis itu. Signifikansinya
+            berasal dari uji permutasi placebo, bukan p-value parametrik biasa.
+          </p>
+
+          <SyntheticControlForm
+            projectId={projectId}
+            segments={segments.map((s) => s.name)}
+          />
         </Panel>
 
         <Panel kicker="Syarat" title="Apa yang dibutuhkan sebuah klaim efek">
