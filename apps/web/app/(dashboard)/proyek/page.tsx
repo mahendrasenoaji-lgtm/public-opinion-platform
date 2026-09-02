@@ -25,7 +25,7 @@ export default async function ProyekPage() {
 
   return (
     <>
-      <PageHeader kicker="Ganti Proyek" title="Semua Proyek" isDemo={false} />
+      <PageHeader kicker="Current Trending Categories" title="Semua Proyek" isDemo={false} />
       <div className="body">
         <Panel
           kicker={`${projects.length} proyek di organisasi Anda`}
