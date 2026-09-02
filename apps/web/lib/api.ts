@@ -66,9 +66,29 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new ApiError(res.status, body.detail ?? "Permintaan gagal.");
+    throw new ApiError(res.status, detailToMessage(body.detail));
   }
   return res.json() as Promise<T>;
+}
+
+/**
+ * `detail` FastAPI bukan selalu string. `HTTPException(422, "pesan")` dari
+ * kode aplikasi memang string, tapi 422 dari validasi Pydantic sendiri
+ * (mis. daftar donor_segments kurang dari min_length) mengembalikan ARRAY
+ * objek `{loc, msg, type, ...}`. Tanpa ini, ApiError.message jatuh ke
+ * `Array.prototype.toString()` -> "[object Object]" yang tidak berarti
+ * apa-apa bagi pengguna — ketahuan lewat verifikasi browser synthetic
+ * control, bukan lewat tsc/build yang sama-sama hijau untuk keduanya.
+ */
+function detailToMessage(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+  if (Array.isArray(detail)) {
+    const pesan = detail
+      .map((d) => (d && typeof d === "object" && "msg" in d ? String((d as { msg: unknown }).msg) : null))
+      .filter((m): m is string => Boolean(m));
+    if (pesan.length > 0) return pesan.join("; ");
+  }
+  return "Permintaan gagal.";
 }
 
 /**

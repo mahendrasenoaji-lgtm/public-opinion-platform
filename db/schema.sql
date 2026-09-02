@@ -178,11 +178,19 @@ CREATE TABLE mentions (
     narrative_id  uuid,
     embedding     vector(1024),
     ingested_at   timestamptz NOT NULL DEFAULT now(),
+    -- Relasi balasan/kutipan (services/network.py), hanya diisi kalau
+    -- SUMBERNYA menyatakannya secara eksplisit (mis. field referenced_tweets
+    -- di X API) -- akun tujuan di-hash sama seperti author_hash.
+    reply_to_hash    text,
+    quote_of_hash    text,
+    conversation_id  text,
     UNIQUE (project_id, connector, external_id)
 );
 CREATE INDEX ON mentions (org_id, project_id, published_at DESC);
 CREATE INDEX ON mentions (project_id, source, published_at DESC);
 CREATE INDEX ON mentions USING hnsw (embedding vector_cosine_ops);
+CREATE INDEX ON mentions (project_id, reply_to_hash) WHERE reply_to_hash IS NOT NULL;
+CREATE INDEX ON mentions (project_id, quote_of_hash) WHERE quote_of_hash IS NOT NULL;
 
 CREATE TABLE topics (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -192,7 +200,17 @@ CREATE TABLE topics (
     label      text NOT NULL,
     keywords   text[] NOT NULL DEFAULT '{}',
     centroid   vector(1024),
-    volume     integer NOT NULL DEFAULT 0
+    volume     integer NOT NULL DEFAULT 0,
+    -- Verifikasi manusia atas label (gabungan kata kunci otomatis, lihat
+    -- services/topics.py). review_status memakai enum yang sama dengan
+    -- ai_outputs.human_review -- label tema BUKAN keluaran generatif, tapi
+    -- statusnya (belum ditinjau/disetujui/ditolak) semantiknya identik.
+    -- reviewed_label NULL berarti belum ada revisi manusia; kalau terisi,
+    -- itu yang ditampilkan menggantikan label kata kunci mentah.
+    reviewed_label text,
+    review_status  review_status NOT NULL DEFAULT 'PENDING',
+    reviewed_by    uuid REFERENCES users(id),
+    reviewed_at    timestamptz
 );
 
 CREATE TABLE narratives (

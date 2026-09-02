@@ -1,5 +1,9 @@
 # Status Deployment
 
+> Dokumen ini riwayat deploy, kredensial, dan catatan per sesi. Untuk status
+> ringkas per komponen beserta apa yang belum diverifikasi, lihat
+> [progress.md](progress.md).
+
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
 Update 2026-08-24 (sesi panjang, 11 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
@@ -21,6 +25,26 @@ dihitung penuh dari data segments Phase 1, bukan data reka-reka. Opinion
 Risk Score (skor gabungan 9 komponen) sengaja belum diekspos — lihat bagian
 "Polarization Index" di bawah untuk alasannya. Diverifikasi end-to-end di
 Postgres Docker lokal, **belum di-push/di-deploy ke production**.
+Update 2026-09-01 (sesi panjang, "kerjakan semua yang belum"): **Phase 2 dan
+Phase 3 sebagian besar dikerjakan** — konektor modular, pipeline ingestion,
+sentiment Indonesia + set evaluasi, topic discovery, AI Copilot RAG, forecast
+state-space yang benar-benar di-fit, Opinion Risk Score, influence estimate,
+dan Communication Impact (DiD). Backend 115 → 387 tes, enam halaman frontend
+baru. **Phase 4 sengaja tidak disentuh** — butuh keputusan penyedia SSO,
+penyedia pembayaran, dan komitmen kontrak API publik yang bukan wewenang
+agen. Baca bagian "Phase 2 + Phase 3 dikerjakan" di bawah, terutama
+sub-bagian "Yang BELUM diverifikasi", sebelum mengklaim apa pun ke pengguna.
+Update 2026-09-02 (sesi lanjutan, "kerjakan semua yang belum selesai"):
+menutup residual yang tercatat sesi 2026-09-01 — Command Center sekarang
+menarik "Isu publik" dan "Peringatan aktif" sungguhan (`services/alerts.py`
+baru), verifikasi manusia atas label tema (`topics.review_status`), dan dua
+fitur Phase 3 yang sebelumnya sengaja belum ada: **synthetic control**
+(alternatif DiD untuk Communication Impact) dan **graf jaringan interaksi**
+dari relasi balasan/kutipan X (`services/network.py`, halaman `/jaringan`
+baru). Backend 387 → 473 tes. **Semuanya di-push ke branch
+`claude/repo-ini-comparison-ior2z4` / PR #1, CI hijau — BELUM di-merge ke
+`main`, jadi BELUM live di Render/Vercel/Supabase production.** Baca bagian
+"Sesi lanjutan Phase 2/3" di bawah.
 
 ## Live sekarang
 
@@ -400,11 +424,12 @@ state benar, segmen tanpa sentimen diabaikan dari perhitungan (bukan
 dianggap 0). `ruff check app tests`, `mypy app/services app/ai`, dan
 `npm run typecheck` + `next build` semuanya tetap bersih 100%.
 
-**Belum diverifikasi di Supabase produksi** — perubahan ini belum di-push/
-di-deploy, baru diverifikasi di Postgres Docker lokal + `npm run dev`
-lokal. Langkah lanjutan: push ke `main`, tunggu Render+Vercel redeploy,
-lalu ulangi verifikasi manual di atas terhadap production (pola sama
-seperti disclaimer bagian lain dokumen ini).
+~~**Belum diverifikasi di Supabase produksi** — perubahan ini belum di-push/
+di-deploy~~ — **koreksi 2026-09-01**: commit `a27581a` ternyata SUDAH ada di
+`origin/main` (dicek dengan `git rev-parse origin/main`; kalimat di atas
+ditulis sebelum push di akhir sesi yang sama dan tidak pernah diperbarui
+sesudahnya). Yang masih benar: verifikasi manual di browser terhadap Supabase
+produksi belum dilakukan, baru di Postgres lokal.
 
 ## ✅ Registrasi self-service (`/daftar`) — selesai 2026-08-27
 
@@ -531,7 +556,9 @@ bukan cache basi atau tercampur.
 
 `npm run typecheck` dan `next build` bersih 100%. Backend tidak disentuh
 sama sekali sesi ini (`pytest` 115 tetap lulus, dijalankan ulang untuk
-memastikan). **Belum di-push/di-deploy ke production.**
+memastikan). ~~**Belum di-push/di-deploy ke production.**~~ — **koreksi
+2026-09-01**: `a0c2a61` sudah ada di `origin/main`, sama seperti koreksi di
+bagian Polarization Index di atas.
 
 ## ✅ Edit/hapus proyek di `/proyek` — selesai 2026-08-27
 
@@ -569,15 +596,18 @@ disentuh sama sekali.
   "Project switcher" di atas.
 - ~~Belum ada UI edit/hapus proyek~~ — **selesai 2026-08-27**, lihat
   bagian "Edit/hapus proyek" di atas.
-- "Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
-  Center — butuh topic modeling & anomaly detection (Phase 2/3) yang belum
-  ada.
-- **Bug dorman belum diperbaiki**: `AIOutput.confidence` dan
-  `AIOutput.human_review` di `models/governance.py` kemungkinan besar punya
-  bug yang sama seperti `MetricSnapshot.source` (dipetakan `String`, padahal
-  kolomnya enum Postgres native) — tidak bisa diverifikasi karena belum ada
-  kode yang menulis ke `ai_outputs` sama sekali. Perbaiki begitu Phase 2
-  mulai menulis ke tabel ini.
+- ~~"Isu publik" dan "Peringatan aktif" sengaja tidak dirender di Command
+  Center~~ — **selesai 2026-09-02**, lihat bagian "Sesi lanjutan Phase 2/3"
+  di bawah. `services/alerts.py` (anomaly detection z-score) sekarang ada,
+  dan Command Center menariknya bersama topic discovery.
+- ~~**Bug dorman belum diperbaiki**: `AIOutput.confidence` dan
+  `AIOutput.human_review`~~ — **sudah diperbaiki**, ternyata di sesi
+  2026-08-27 bersama Executive Brief (lihat bagian "Executive Brief" di atas
+  yang mencatatnya). Daftar residual ini yang tidak ikut diperbarui.
+  Diverifikasi ulang 2026-09-01: `models/governance.py` memakai
+  `SAEnum(..., create_type=False)` untuk kedua kolom, dan baris `ai_outputs`
+  yang ditulis Copilot terbaca kembali dengan benar lewat tes
+  `test_copilot_router.py::test_jawaban_tercatat_di_ai_outputs`.
 
 ### Infrastruktur & operasional
 - Render free tier: server tidur setelah 15 menit tidak dipakai, request
@@ -586,26 +616,255 @@ disentuh sama sekali.
 - ~~Belum ada CI~~ — selesai 2026-08-24, lihat bagian "Pengerasan Phase 1"
   di atas.
 
-### Phase 2 — sinyal (belum dimulai sama sekali)
-Konektor sosial (YouTube/X/Meta/TikTok), pipeline ingestion (dedup, bahasa,
-embedding), sentiment Indonesia + set evaluasi, topic discovery (embedding →
-HDBSCAN → label LLM → verifikasi manusia), narrative map + momentum, media
-monitoring, peta geografis (MapLibre — sekarang cuma grid provinsi statis),
-AI Copilot RAG.
-
-### Phase 3 — prediksi (Polarization Index selesai 2026-08-27, sisanya belum dimulai)
-~~Opinion Risk Score & Polarization Index~~ — **Polarization Index selesai**
-(lihat bagian di atas). Opinion Risk Score (skor gabungan 9 komponen) masih
-menunggu sinyal Phase 2 yang belum ada. Sisanya belum dimulai: model
-forecast nyata di worker (state-space/SARIMAX — `services/forecast.py`
-sudah ada tapi belum ada model yang benar-benar di-fit), influencer network,
-Communication Impact (**wajib** desain pembanding, tanpa itu dilarang klaim
-efek kausal — lihat CLAUDE.md).
+### Phase 2 & 3 — sebagian besar selesai 2026-09-01
+Lihat bagian "Phase 2 + Phase 3 dikerjakan" di bawah. `docs/roadmap.md` memuat
+status per-item beserta apa yang SENGAJA belum dikerjakan dan alasannya.
 
 ### Phase 4 — enterprise (belum dimulai)
 Multi-agent orchestration, SSO/SAML/MFA, API publik + webhook, report
 generator (PDF/DOCX/PPTX/XLSX), billing, observability (tracing, evaluasi
 model, deteksi drift).
+
+Sengaja tidak disentuh, bukan kehabisan waktu: fase ini butuh keputusan yang
+bukan wewenang agen — penyedia identitas untuk SSO, penyedia pembayaran untuk
+billing, dan komitmen kontrak API publik yang tidak bisa ditarik lagi setelah
+ada yang memakainya. Sesuai CLAUDE.md §8, lebih baik berhenti dan bertanya.
+
+
+## ✅ Phase 2 + Phase 3 dikerjakan — 2026-09-01
+
+Sesi panjang atas instruksi "kerjakan semua yang belum". Backend dari 115 ke
+387 tes, paket `app/connectors/` baru, enam halaman frontend baru.
+
+### Yang dibangun
+
+| Bagian | Berkas inti |
+|---|---|
+| Model sinyal | `app/models/signal.py` (Mention, Topic, DataSource) |
+| Pipeline ingestion | `app/services/ingestion.py`, `app/services/pipeline.py` |
+| Sentiment Indonesia | `app/services/sentiment.py` + `sentiment_eval.py` |
+| Konektor | `app/connectors/` — RSS, YouTube, X, unggahan manual |
+| Topic discovery | `app/services/topics.py` |
+| Copilot RAG | `app/ai/retrieval.py`, `app/ai/copilot.py` |
+| Forecast state-space | `app/services/timeseries.py` |
+| Opinion Risk Score | `app/services/risk.py:partial_risk_score()` |
+| Influence estimate | `app/services/influence.py` |
+| Communication Impact | `app/services/impact.py` |
+| Frontend | `/sinyal`, `/tema`, `/copilot`, `/risiko`, `/pengaruh`, `/dampak` |
+
+### Keputusan yang perlu diketahui sesi berikutnya
+
+**Topic discovery memakai TF-IDF, bukan embedding.** Roadmap menulis
+"embedding -> HDBSCAN -> label LLM"; yang dijalankan TF-IDF -> LSA -> HDBSCAN
+-> label kata kunci, dan `method` mengembalikan yang benar-benar dipakai.
+Belum ada provider embedding yang dikonfigurasi. Titik penggantinya satu
+fungsi (`_vectorize`); **label metodenya WAJIB ikut berubah di commit yang
+sama** saat itu diganti, kalau tidak metadata berbohong (R1).
+
+**Dimensi LSA diikat ke ukuran korpus.** 24 dokumen di 23 dimensi
+menghasilkan NOL klaster (kepadatan menguap di dimensi tinggi); korpus yang
+sama di 3 dimensi memisahkan temanya bersih. Jangan menaikkan
+`SVD_COMPONENTS` tanpa memperhitungkan `DOCUMENTS_PER_COMPONENT`.
+
+**Risk score memakai `partial_risk_score()`, bukan `risk_score()`.** Yang
+kedua tetap ada dan tetap menolak tanpa komponen lengkap. Yang pertama
+menghitung dari komponen yang tersedia, menolak di bawah cakupan bobot 60%,
+dan selalu mengembalikan `coverage`. Jangan menurunkan `MIN_COVERAGE` supaya
+kartunya terisi.
+
+**Skala komponen risiko belum dikalibrasi.** `SENTIMENT_DROP_AT_FULL_RISK`,
+`GROWTH_PCT_AT_FULL_RISK`, dan `POINT_DECLINE_AT_FULL_RISK` adalah penilaian
+tim, bukan hasil kalibrasi terhadap krisis nyata. Karena itu skornya untuk
+membandingkan periode atau proyek berskala sama, bukan ambang absolut — dan
+kalimat itu tampil di UI, bukan cuma di kode.
+
+**Communication Impact menolak tanpa pembanding, tanpa jalan pintas.**
+`NoControlGroup` bukan kekakuan yang bisa dilonggarkan nanti: ia satu-satunya
+penjaga antara platform ini dan klaim kausal yang tidak bisa
+dipertanggungjawabkan. `AIEnvelope._has_causal_design()` mengizinkan bahasa
+kausal justru karena modul ini ada.
+
+**Env var baru: `AUTHOR_HASH_SALT`.** Kosong = diturunkan dari `JWT_SECRET`
+lewat HMAC berpemisah domain, supaya deployment berjalan tidak mendadak gagal
+ingest karena ada env var baru. Kalau mau diset eksplisit, **setel sekali di
+awal**: menggantinya setelah ada data membuat akun yang sama terhitung
+sebagai dua akun berbeda sebelum dan sesudah pergantian. `YOUTUBE_API_KEY`
+dan `X_BEARER_TOKEN` juga baru; keduanya opsional, konektornya membalas 503
+yang menyebut nama env var-nya kalau kosong.
+
+### Dua bug yang ketahuan lewat verifikasi, bukan lewat build
+
+1. **Keadaan awal `useActionState` sempat diekspor dari modul `"use server"`.**
+   Modul itu hanya boleh mengekspor fungsi async; objeknya sampai ke client
+   sebagai `undefined` dan `/dampak` jatuh dengan "Cannot read properties of
+   undefined". **`next build` dan `tsc --noEmit` sama-sama hijau untuk kode
+   itu.** Ketahuan hanya karena halamannya benar-benar dibuka di browser.
+   Catatan pencegahnya sekarang ada di ketiga `actions.ts`.
+2. **`zip(dates, dates[1:], strict=True)`** di `timeseries.py` — `strict=True`
+   menuntut panjang sama, padahal `dates[1:]` memang satu lebih pendek.
+   Ketahuan lewat tes.
+
+### Yang diverifikasi, dan bagaimana
+
+Postgres 16 + pgvector lokal (cluster `initdb` sendiri di kontainer sesi,
+bukan Docker — Docker tidak jalan di sana), API asli lewat uvicorn, Next.js
+hasil `next build` asli, dan Chromium lewat Playwright:
+
+- **387 tes hijau** dengan role `pop_app` (RLS aktif, BUKAN superuser),
+  termasuk tes isolasi tenant baru untuk mentions, data_sources, topics,
+  riwayat copilot, risk score, influence, dan impact.
+- `ruff check app tests` dan `mypy app/services app/ai app/connectors` bersih
+  100%. `npm run typecheck` + `next build` bersih.
+- 160 konten percakapan dimasukkan lewat `POST /signals/ingest` sungguhan ->
+  14 tema ditemukan (10.6% tidak terpetakan) -> skor risiko 62 "High" dengan
+  cakupan 78% dan 3 komponen dilaporkan hilang -> 25 akun, 20 diperingkat.
+- Keenam halaman baru dibuka di browser setelah melewati gerbang
+  `SITE_PASSWORD` dan login user asli. Tombol "Temukan tema" benar-benar
+  menulis dan melaporkan porsi yang tidak terpetakan; Copilot menolak bersih
+  saat provider belum siap (bukan Application error); form dampak menolak
+  tanpa pembanding dengan alasan lengkap.
+
+### Yang BELUM diverifikasi — baca ini sebelum mengklaim apa pun ke pengguna
+
+- **Tidak ada satu pun yang diuji terhadap Supabase produksi.** Seluruh
+  verifikasi di atas memakai Postgres lokal di kontainer sesi. Langkah
+  lanjutan: tunggu Render + Vercel redeploy setelah push, lalu ulangi
+  pemeriksaan manual terhadap production (butuh login `SITE_PASSWORD`, yang
+  di luar kemampuan Claude — lihat aturan boundary kredensial di atas).
+- **Konektor RSS/YouTube/X belum pernah menarik data sungguhan.** Yang dites
+  adalah parsing responsnya (fungsi murni) dan penanganan kredensial kosong.
+  Menarik sungguhan butuh kunci di Render, dan untuk RSS butuh jaringan
+  keluar dari Render ke penerbitnya.
+- **Copilot belum pernah menjawab dengan LLM sungguhan.** Jalur suksesnya
+  diuji lewat provider tiruan yang mengembalikan JSON valid — yang terbukti
+  adalah pipa di sekelilingnya (envelope tersusun benar, baris `ai_outputs`
+  tertulis dan terbaca kembali), BUKAN mutu jawaban model. Sama seperti
+  Executive Brief, ini menunggu `ANTHROPIC_API_KEY` aktif di Render.
+- **Forecast state-space belum pernah di-fit pada data produksi.** Seed
+  Supabase hanya punya satu snapshot per metrik, jadi `/forecast/baseline`
+  akan membalas `insufficient_data` di sana sampai ada gelombang kedua. Itu
+  perilaku yang benar, bukan bug.
+- **Akurasi sentimen yang tampil di `/sinyal` adalah batas ATAS.** Ia diukur
+  pada 52 kalimat yang ditulis tim pengembang, bukan pada percakapan proyek
+  mana pun. Sebelum dipakai untuk keputusan, ukur ulang terhadap sampel
+  berlabel dari data proyek itu sendiri.
+
+## ✅ Sesi lanjutan Phase 2/3 — selesai 2026-09-02
+
+Kelanjutan langsung sesi 2026-09-01, dengan instruksi yang sama: "kerjakan
+semua yang belum selesai, lakukan yang terbaik". Enam pekerjaan yang di sesi
+sebelumnya tercatat sengaja belum dikerjakan atau baru separuh jalan, semua
+ditutup di sesi ini. Enam commit, semua di branch
+`claude/repo-ini-comparison-ior2z4` (PR #1), CI hijau di keenamnya.
+
+### Yang dibangun
+
+| Bagian | Berkas inti |
+|---|---|
+| Command Center: Isu publik + Peringatan aktif | `app/(dashboard)/command/page.tsx` menarik `/topics` dan `/alerts` yang sudah ada |
+| Anomaly detection (baru) | `app/services/alerts.py`, `app/routers/alerts.py` — `GET .../alerts` |
+| Verifikasi manusia atas label tema (baru) | kolom `topics.reviewed_label`/`review_status`, `PATCH .../topics/{id}/review`, `ReviewTopic.tsx` |
+| Synthetic control (baru, Communication Impact) | `services/impact.py:synthetic_control()`, `POST .../impact/synthetic-control`, panel kedua di `/dampak` |
+| Graf jaringan interaksi (baru) | `services/network.py`, `GET .../network`, halaman `/jaringan` baru; `connectors/x.py` mengekstrak `referenced_tweets` |
+| `lib/api.ts` — bugfix nyata | 422 dari validasi Pydantic (array objek) tidak lagi tampil sebagai `[object Object]` |
+
+### Keputusan yang perlu diketahui sesi berikutnya
+
+**Anomaly detection adalah z-score terhadap baseline historis DERET SENDIRI,
+bukan deteksi krisis.** `services/alerts.py` membandingkan titik terakhir
+suatu deret (volume/sentimen harian, snapshot metrik) dengan rata-rata dan
+simpangan baku titik-titik sebelumnya di deret yang SAMA. Kalau baseline-nya
+nyaris rata (SD ~0), z-score meledak jadi tak berarti — ada fallback ke
+ambang perubahan relatif untuk kasus itu. `method` dan `limitations`
+eksplisit menyebut ini BUKAN penilaian krisis. `MIN_BASELINE_POINTS=4`:
+deret yang lebih pendek dari itu dilaporkan "belum bisa diperiksa", beda
+dari "diperiksa, tidak ada penyimpangan" — dua keadaan itu tidak boleh
+disamakan di UI.
+
+**`topics.review_status` memakai ULANG tipe Postgres `review_status`** yang
+tadinya cuma untuk `ai_outputs.human_review` (lihat sesi 2026-08-27). Kolom
+baru: `reviewed_label`, `review_status`, `reviewed_by`, `reviewed_at`. Label
+asli (`label`, dari kata kunci TF-IDF) TIDAK PERNAH ditimpa — yang disunting
+manusia disimpan terpisah supaya keduanya bisa dibandingkan.
+`effective_label()` cuma mengganti label yang ditampilkan kalau
+`review_status == APPROVED`; ditolak atau masih pending tetap menampilkan
+label asli. **Migrasi kolom ini BELUM diterapkan ke Supabase production**
+(lihat di bawah).
+
+**Synthetic control (Abadie, Diamond & Hainmueller) butuh periode
+pra-perlakuan LEBIH BANYAK dari jumlah donor**, bukan sekadar donor yang
+banyak. Kalau tidak, kecocokan pra-perlakuan bisa sempurna secara trivial
+(derajat kebebasan cukup untuk overfit) tanpa berarti apa-apa —
+`MIN_DONORS=5` menjamin itu, bukan angka sembarang. Signifikansinya dari uji
+permutasi placebo (leave-one-out pada donor) → `rank_p_value`, secara
+eksplisit BUKAN p-value parametrik — jangan pernah dilabeli "p-value" polos
+di UI mana pun nanti.
+
+**Graf jaringan SELALU sebagian, dan itu bukan cacat yang bisa
+diperbaiki.** Ia cuma memuat relasi antar akun yang KEDUANYA muncul sebagai
+penulis dalam data yang berhasil diambil konektor. Akun yang dibalas tapi
+tidak ikut terambil (di luar jendela pencarian X, di luar kueri) tidak
+tercatat sebagai nol — tidak tercatat sama sekali. `MIN_ACCOUNTS=10`,
+`MIN_EDGES=15`. Tidak menyimpulkan koordinasi atau kendali atas opini
+(CLAUDE.md §3) — istilahnya "posisi struktural", bukan "pengaruh".
+**Migrasi kolom `mentions.reply_to_hash`/`quote_of_hash`/`conversation_id`
+juga BELUM diterapkan ke Supabase production.**
+
+**Lingkungan sesi ini sempat benar-benar kosong** — kontainer baru tanpa
+role/database Postgres sama sekali (bukan sekadar server yang mati). Role
+`pop`/`pop_app` dan tiga database (`pop`, `pop_test`, `pop_ci`) dibangun
+ulang dari `db/schema.sql` + `db/rls.sql` sebelum satu pun tes bisa
+dijalankan. Ini fakta lingkungan sesi, bukan sesuatu yang rusak di produk —
+dicatat di sini supaya sesi berikutnya tidak bingung kalau mengalami hal
+yang sama.
+
+### Bug ditemukan lewat verifikasi browser, bukan lewat build
+
+**`lib/api.ts` menampilkan `[object Object]` untuk error validasi
+Pydantic.** `HTTPException(422, "pesan")` dari kode aplikasi mengembalikan
+`detail` berupa string, tapi 422 dari validasi Pydantic BAWAAN (mis. daftar
+donor kurang dari minimum) mengembalikan `detail` berupa ARRAY objek
+`{msg, loc, ...}`. `ApiError` lama menelan itu lewat
+`Array.prototype.toString()` → `"[object Object]"`, tidak berarti apa-apa
+bagi pengguna. `tsc --noEmit` dan `next build` sama-sama hijau untuk kode
+lama — ketahuan hanya karena mencoba jalur penolakan (donor < 5) sungguhan
+di browser. `detailToMessage()` sekarang menyusun pesan dari field `msg`
+tiap item.
+
+### Yang diverifikasi, dan bagaimana
+
+- **473 tes backend hijau** (387 → 473; 86 baru) dengan role `pop_app`, RLS
+  aktif, BUKAN superuser. `ruff check app tests` dan
+  `mypy app/services app/ai app/connectors` bersih 100%.
+- `npm run typecheck` + `next build` bersih untuk kedua halaman baru
+  (`/dampak` dengan panel synthetic control, `/jaringan` baru).
+- **Empat halaman diverifikasi lewat browser sungguhan (Playwright)**
+  terhadap API asli (uvicorn) + Postgres lokal asli, bukan cuma build
+  hijau: Command Center (kartu Isu publik + Peringatan aktif, tombol
+  "Tinjau label" → "Setujui"), `/dampak` (jalur sukses synthetic control
+  dengan bobot donor & efek yang cocok dengan perhitungan tangan, DAN jalur
+  penolakan donor < 5), `/jaringan` (jalur data cukup dengan hash + in-degree
+  yang benar, DAN jalur data tidak cukup).
+- CI GitHub Actions hijau di keenam push sesi ini; PR #1 `mergeable_state:
+  clean`, tanpa review thread yang belum diselesaikan.
+
+### Yang BELUM diverifikasi
+
+- **Belum di-merge ke `main`, jadi belum live di Render/Vercel/Supabase
+  production.** Semua verifikasi di atas memakai Postgres lokal di
+  kontainer sesi. Merge PR #1 adalah keputusan yang diserahkan ke pengguna,
+  bukan diambil sepihak oleh agen — PR ini memuat seluruh Phase 2 + sebagian
+  besar Phase 3 (86 berkas berubah), dan belum ada review manusia atasnya.
+- **Migrasi skema untuk kolom baru BELUM diterapkan ke Supabase**: kolom
+  review topics (sesi ini) dan kolom relasi balasan/kutipan mentions (sesi
+  ini). `db/schema.sql` sudah memuat keduanya untuk instalasi baru, tapi
+  tabel yang sudah ada di Supabase butuh `ALTER TABLE ... ADD COLUMN IF NOT
+  EXISTS ...` manual per kolom sebelum fitur review label atau `/jaringan`
+  bisa dipakai di production.
+- **Konektor X masih belum pernah menarik data sungguhan** (sama seperti
+  sesi 2026-09-01) — parsing `referenced_tweets`/`conversation_id` yang baru
+  ditambahkan sesi ini teruji lewat payload buatan (fungsi murni), bukan
+  lewat panggilan API X asli. Butuh `X_BEARER_TOKEN` di Render.
 
 ## Arsitektur deploy (untuk referensi)
 

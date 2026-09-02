@@ -3,8 +3,10 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { Timeline, type TimelineEvent } from "@/components/Timeline";
+import { Info } from "lucide-react";
 import { TrendChart } from "@/components/TrendChart";
 import { apiOrNull, api, repeatedQuery, type Metric } from "@/lib/api";
+import { riskColor } from "@/lib/tokens";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -30,17 +32,52 @@ const TREND_SERIES = [
   { key: "social_positive", label: "Sosial", color: "#FF7A45" },
 ];
 
+interface TopicRow {
+  id: string;
+  effective_label: string;
+  volume: number;
+  share_pct: number | null;
+  momentum_pct: number | null;
+  review_status: string;
+}
+
+interface AlertRow {
+  key: string;
+  label: string;
+  direction: string | null;
+  latest_value: number;
+  latest_period: string;
+  z_score: number | null;
+  nearby_events: Array<{ label: string; kind: string; occurred_at: string }>;
+}
+
+interface AlertsOut {
+  alerts: AlertRow[];
+  checked: string[];
+  insufficient: string[];
+  limitations: string[];
+}
+
 export default async function CommandCenter() {
   const { id: projectId, name: projectName, is_demo: isDemo } = await getCurrentProject();
 
-  const [index, divergence, trend, timeline] = await Promise.all([
+  const [index, divergence, trend, timeline, topics, alerts] = await Promise.all([
     apiOrNull<{ index: Metric; limitations: string[] }>(`/projects/${projectId}/opinion/index`),
     apiOrNull<Divergence>(`/projects/${projectId}/opinion/divergence`),
     api<TrendPoint[]>(
       `/projects/${projectId}/opinion/trend${repeatedQuery({ metrics: [...TREND_METRICS], limit: 12 })}`,
     ),
     api<TimelineEvent[]>(`/projects/${projectId}/opinion/timeline${repeatedQuery({ limit: 8 })}`),
+    // apiOrNull, bukan api: fitur ini belum tentu tersedia di backend yang
+    // sedang aktif kalau Vercel naik lebih dulu daripada Render setelah
+    // rilis (lihat catatan yang sama di /sinyal).
+    apiOrNull<TopicRow[]>(`/projects/${projectId}/topics`),
+    apiOrNull<AlertsOut>(`/projects/${projectId}/alerts`),
   ]);
+  const topTopics = (topics ?? [])
+    .slice()
+    .sort((a, b) => b.volume - a.volume)
+    .slice(0, 5);
 
   return (
     <>
@@ -116,9 +153,79 @@ export default async function CommandCenter() {
           </Panel>
         </div>
 
-        {/* Isu publik dan peringatan aktif butuh topic modeling dan anomaly
-            detection (Phase 2/3, docs/roadmap.md) — belum ditampilkan supaya
-            tidak ada kartu tanpa data nyata di baliknya (CLAUDE.md §8). */}
+        <div className="grid-2">
+          <Panel kicker="Topic Discovery" title="Isu publik">
+            {topTopics.length === 0 ? (
+              <InsufficientData
+                reason={
+                  "Belum ada tema yang ditemukan. Masukkan percakapan lewat " +
+                  "Signal Monitor lalu jalankan penemuan tema di halaman Topic Discovery."
+                }
+              />
+            ) : (
+              <ul className="nolist">
+                {topTopics.map((t) => (
+                  <li key={t.id}>
+                    <b>{t.effective_label}</b>
+                    {" — "}
+                    {t.volume} konten
+                    {t.share_pct !== null && ` (${t.share_pct.toFixed(1)}%)`}
+                    {t.review_status === "PENDING" && (
+                      <span className="pill pill-warn" style={{ marginLeft: 8 }}>
+                        belum ditinjau
+                      </span>
+                    )}
+                    {t.momentum_pct !== null && t.momentum_pct > 50 && (
+                      <span className="pill pill-warn" style={{ marginLeft: 8 }}>
+                        momentum +{t.momentum_pct.toFixed(0)}%
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Provenance
+              method="TF-IDF + LSA(SVD) + HDBSCAN, label dari kata kunci teratas"
+              n={topTopics.reduce((a, t) => a + t.volume, 0)}
+              confidence="Rendah"
+              limits="Label belum ditinjau manusia adalah gabungan kata kunci, bukan interpretasi terverifikasi."
+            />
+          </Panel>
+
+          <Panel kicker="Anomaly Detection" title="Peringatan aktif">
+            {!alerts || alerts.alerts.length === 0 ? (
+              <InsufficientData
+                reason={
+                  alerts && alerts.checked.length > 0
+                    ? "Tidak ada penyimpangan mencolok terdeteksi pada deret yang bisa diperiksa saat ini."
+                    : "Belum ada deret dengan riwayat cukup panjang untuk diperiksa."
+                }
+              />
+            ) : (
+              <ul className="nolist">
+                {alerts.alerts.slice(0, 5).map((a) => (
+                  <li key={a.key}>
+                    <b style={{ color: riskColor(a.z_score ? Math.min(100, Math.abs(a.z_score) * 25) : 60) }}>
+                      {a.label}
+                    </b>{" "}
+                    {a.direction} di {a.latest_period}
+                    {a.z_score !== null && ` (z=${a.z_score})`}
+                    {a.nearby_events.length > 0 && (
+                      <div className="proj-s" style={{ marginTop: 2 }}>
+                        Berdekatan waktu dengan: {a.nearby_events.map((e) => e.label).join(", ")}
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="note">
+              <Info size={13} />
+              {alerts?.limitations[0] ??
+                "Deteksi penyimpangan statistik terhadap pola historis, bukan penilaian krisis dan bukan klaim penyebab."}
+            </p>
+          </Panel>
+        </div>
       </div>
     </>
   );

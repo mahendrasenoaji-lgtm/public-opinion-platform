@@ -69,8 +69,14 @@ jobs:
       - name: ruff
         run: ruff check app tests
 
-      - name: mypy (app/services + app/ai — cakupan strict sesuai CLAUDE.md §6)
-        run: mypy app/services app/ai
+      # app/connectors ditambahkan 2026-09-01 bersama paketnya sendiri. Ia
+      # bukan bagian dari cakupan wajib CLAUDE.md §6 (services + ai), tapi
+      # kodenya baru dan bersih sejak awal — memasukkannya sekarang jauh lebih
+      # murah daripada membersihkannya nanti. app/models sengaja TIDAK ikut:
+      # ia punya pelanggaran type-arg pra-ada di area pemetaan enum yang
+      # docs/roadmap.md tandai sensitif, dan itu pembersihan tersendiri.
+      - name: mypy (app/services + app/ai + app/connectors — strict)
+        run: mypy app/services app/ai app/connectors
 
       - name: pytest
         run: python -m pytest -q

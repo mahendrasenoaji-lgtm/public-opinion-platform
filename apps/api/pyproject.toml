@@ -54,3 +54,29 @@ strict = true
 # dari env, bukan argumen konstruktor) kurang argumen — false positive.
 # Ditemukan 2026-08-24 saat mengeraskan CI.
 plugins = ["pydantic.mypy"]
+
+# scikit-learn dan statsmodels tidak mengirim stub tipe maupun penanda py.typed,
+# jadi mypy --strict menolak impornya. Yang dilonggarkan HANYA pengetahuan mypy
+# soal isi paket pihak ketiga itu — kode kita sendiri tetap diperiksa penuh,
+# termasuk anotasi di sekeliling pemanggilannya (services/topics.py,
+# services/timeseries.py).
+[[tool.mypy.overrides]]
+module = ["sklearn.*", "statsmodels.*", "scipy.*"]
+ignore_missing_imports = true
+
+# app/models BUKAN bagian dari cakupan strict CLAUDE.md §6 (yang wajib bersih
+# hanya app/services dan app/ai, ditambah app/connectors sejak 2026-09-01).
+# Ia punya pelanggaran `type-arg` dan `name-defined` pra-ada, sebagian di area
+# pemetaan enum yang docs/roadmap.md tandai sensitif — membersihkannya adalah
+# pekerjaan tersendiri dengan verifikasi database sendiri, bukan efek samping
+# commit ini.
+#
+# `follow_imports = "silent"` membuat mypy TETAP membaca app/models untuk
+# menentukan tipe yang diimpor app/connectors, tapi tidak melaporkan
+# pelanggaran di dalamnya. Tanpa baris ini, menambahkan app/connectors ke
+# perintah mypy memerahkan CI karena connectors mengimpor
+# app.models.measurement — ketahuan saat menjalankan perintah CI-nya sendiri,
+# bukan setelah push.
+[[tool.mypy.overrides]]
+module = ["app.models.*"]
+follow_imports = "silent"

@@ -3,6 +3,10 @@
 Kerjakan berurutan. Setiap fase selesai berarti: berjalan, teruji, dan
 terdokumentasi — bukan sekadar ada di UI.
 
+Dokumen ini daftar centang per fase. Untuk status jujur per komponen —
+seberapa jauh sesuatu sudah dibuktikan bekerja, dan apa yang menahan yang
+belum — lihat [progress.md](progress.md).
+
 ## Phase 1 — fondasi
 
 - [x] Skema database + RLS
@@ -75,38 +79,87 @@ cookie httpOnly sebelum ada halaman publik.
 
 ## Phase 2 — sinyal
 
-- [ ] Konektor modular (YouTube, X, Meta, TikTok bila akses resmi tersedia)
-- [ ] Pipeline ingestion di worker: dedup, bahasa, embedding
-- [ ] Sentiment + emotion (model Indonesia; evaluasi terhadap set berlabel manual)
-- [ ] Topic discovery: embedding → HDBSCAN → label LLM → verifikasi manusia
-- [ ] Narrative map + momentum
-- [ ] Media monitoring + stance tingkat artikel
-- [ ] Peta geografis (MapLibre, hanya untuk data bergeoreferensi)
-- [ ] AI Copilot berbasis RAG atas data agregat
+- [x] Konektor modular — RSS (media, tanpa kunci), YouTube Data API v3, X API
+      v2, unggahan manual. `app/connectors/`, batas legal di `base.py`.
+      Meta/TikTok belum: keduanya butuh akses resmi yang belum dimiliki.
+- [x] Pipeline ingestion: dedup (MinHash+LSH), deteksi bahasa, hash author.
+      **Belum di worker terpisah** — `POST .../collect` jalan sinkron di dalam
+      permintaan, dengan batas `limit` supaya di bawah timeout. Pengumpulan
+      terjadwal berskala besar masih perlu worker.
+- [x] Sentiment + emotion (leksikon Indonesia; set evaluasi 52 kalimat
+      berlabel manual, akurasi dilaporkan lewat
+      `GET .../signals/sentiment-quality` dan tampil di `/sinyal`)
+- [x] Topic discovery — **TF-IDF → LSA → HDBSCAN → label kata kunci**, BUKAN
+      embedding → HDBSCAN → label LLM seperti tertulis semula. Belum ada
+      provider embedding yang dikonfigurasi, dan `method` mengembalikan yang
+      benar-benar dipakai. Verifikasi manusia atas label belum ada.
+- [x] Narrative map + momentum (momentum dari volume per periode;
+      `services/topics.py:momentum()`)
+- [x] Media monitoring lewat RSS. **Stance tingkat artikel belum** — yang ada
+      baru volume dan sentimen leksikon atas judul+ringkasan.
+- [ ] Peta geografis (MapLibre, hanya untuk data bergeoreferensi) — belum ada
+      sumber bergeoreferensi asli, jadi masih grid provinsi seperti prototipe.
+      Provinsi TIDAK diinferensi dari isi teks; lihat `services/ingestion.py`.
+- [x] AI Copilot berbasis RAG atas data agregat (`app/ai/retrieval.py`,
+      `app/ai/copilot.py`). Retrieval-nya pencocokan kata kunci atas kartu
+      fakta agregat — bukan pencarian semantik, dan bukan atas tabel mentions.
 
 **Perhatian:** sentiment berbahasa Indonesia adalah bagian yang paling mudah
 salah. Sediakan set evaluasi berlabel manual sebelum menyalakan fitur ini di
-proyek nyata, dan laporkan akurasinya di UI.
+proyek nyata, dan laporkan akurasinya di UI. — **Dipenuhi**, dengan catatan
+yang harus ikut dibaca: set evaluasi itu ditulis tim pengembang, bukan sampel
+acak dari percakapan proyek mana pun. Angkanya (macro-F1 0.902, akurasi 0.897
+di antara yang dinilai, abstain 25%) adalah batas ATAS. Sebelum dipakai untuk
+keputusan di sebuah proyek, ukur ulang terhadap sampel berlabel dari data
+proyek itu sendiri.
 
 ## Phase 3 — prediksi
 
-- [ ] Estimasi model forecast di worker (state-space/SARIMAX)
-- [ ] What-If simulator (lapisan API sudah ada di `services/forecast.py`)
+- [x] Estimasi model forecast state-space (`services/timeseries.py`,
+      `UnobservedComponents` di-fit pada riwayat `metric_snapshots`).
+      **Belum di worker terpisah** — di-fit saat permintaan datang. Untuk
+      jumlah pengamatan yang ada sekarang itu cepat; ia perlu pindah ke worker
+      begitu riwayatnya panjang atau proyeknya banyak.
+- [x] What-If simulator, sekarang di atas baseline yang di-fit. Kalau riwayat
+      belum cukup, hasilnya ditandai `fitted: false` dan model-nya bernama
+      "lebar interval bawaan (belum ada model terpasang)".
 - [x] Polarization Index (`GET /projects/{id}/risk/polarization`, selesai
       2026-08-27 — lihat `docs/deployment-status.md`)
-- [ ] Opinion Risk Score gabungan 9 komponen (`services/risk.py` sudah ada,
-      tapi 5 komponennya butuh sinyal Phase 2 yang belum ada — lihat
-      `app/routers/risk.py` untuk daftar lengkapnya)
-- [ ] Influencer network dengan istilah *influence estimate*
-- [ ] Communication Impact — **wajib** desain pembanding
-      (difference-in-differences atau synthetic control). Tanpa itu, modul ini
-      tidak boleh menghasilkan klaim efek.
+- [x] Opinion Risk Score gabungan 9 komponen (`GET .../risk/score`). Delapan
+      komponen dihitung dari data nyata; `geographic_spread` butuh geotag
+      resmi yang jarang ada. Skor tidak diterbitkan di bawah cakupan bobot
+      60%, dan `coverage` selalu ikut ditampilkan.
+- [x] Influencer network dengan istilah *influence estimate*
+      (`services/influence.py`, `GET .../influence`). Yang diukur porsi
+      percakapan dan keterlibatan — keterpaparan, bukan pengaruh kausal.
+- [x] Graf jaringan antar-akun dari relasi balasan/kutipan
+      (`services/network.py`, `GET .../network`, halaman `/jaringan`).
+      Konektor X (`connectors/x.py`) mengekstrak `referenced_tweets` jadi
+      `reply_to_handle`/`quote_of_handle`, di-hash lewat pipeline yang sama
+      dengan `author_handle`. Graf hanya memuat relasi antar akun yang
+      KEDUANYA muncul sebagai penulis dalam data yang berhasil diambil — akun
+      yang dibalas tapi tidak ikut terambil tidak jadi node, bukan node tanpa
+      relasi. Tidak menyimpulkan koordinasi atau kendali atas opini.
+- [x] Communication Impact dengan desain pembanding wajib
+      (`services/impact.py`, difference-in-differences DAN synthetic
+      control). `NoControlGroup` menolak menghitung DiD tanpa kelompok
+      pembanding, tanpa jalan pintas. Synthetic control (Abadie dkk.,
+      `POST .../impact/synthetic-control`) dipakai ketika tidak ada satu
+      pembanding tunggal yang meyakinkan tapi ada beberapa kandidat donor;
+      signifikansinya dari uji permutasi placebo, bukan p-value parametrik.
 
-## Phase 4 — enterprise
+## Phase 4 — enterprise (belum dimulai)
 
-- [ ] Orkestrasi multi-agent penuh
-- [ ] SSO/SAML, SCIM, MFA wajib
+- [ ] Orkestrasi multi-agent penuh — `app/ai/agents.py:Orchestrator` sudah ada
+      dan dipakai Brief + Copilot, tapi baru menjalankan satu agen berurutan
+- [ ] SSO/SAML, SCIM, MFA wajib (kolom `users.mfa_secret` sudah ada di schema,
+      belum ada kode yang memakainya)
 - [ ] API publik + webhooks + rate limiting per tenant
 - [ ] Report generator: PDF, DOCX, PPTX, XLSX
 - [ ] Billing: subscription + kredit survei/data/AI
 - [ ] Observability: tracing, evaluasi keluaran model, deteksi drift
+
+Fase ini butuh keputusan yang bukan wewenang agen: penyedia identitas mana
+untuk SSO, penyedia pembayaran mana untuk billing, dan komitmen kontrak API
+publik yang tidak bisa ditarik lagi setelah ada yang memakainya. Jangan
+dikerjakan tanpa keputusan itu diambil lebih dulu.
