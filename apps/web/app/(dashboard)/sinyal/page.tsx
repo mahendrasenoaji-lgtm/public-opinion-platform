@@ -3,7 +3,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
-import { api, apiOrNull, type Metric, type SignalSource } from "@/lib/api";
+import { apiOrNull, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -66,15 +66,33 @@ interface ConnectorRow {
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 
+//: Ditampilkan saat endpoint Phase 2 membalas 404 — biasanya karena backend
+//: belum selesai dideploy padahal frontend sudah. Pesannya menyebut penyebab
+//: yang sebenarnya, bukan "data tidak cukup" yang akan menyesatkan.
+const BACKEND_TERTINGGAL =
+  "Endpoint ini belum tersedia di backend yang sedang aktif. Biasanya berarti " +
+  "backend belum selesai dideploy setelah rilis frontend — coba lagi beberapa " +
+  "menit lagi.";
+
 export default async function SinyalPage() {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
 
+  // SEMUA panggilan pakai apiOrNull, termasuk dua yang secara logika "selalu
+  // ada" (sentiment-quality dan daftar konektor tidak bergantung pada data
+  // proyek sama sekali). Alasannya bukan data kosong, melainkan urutan deploy:
+  // frontend di Vercel dan backend di Render naik terpisah, dan Vercel jauh
+  // lebih cepat. Ada jendela waktu tiap rilis ketika halaman ini sudah baru
+  // tapi backend-nya masih lama dan membalas 404 untuk endpoint Phase 2 —
+  // dengan api() polos, satu panel yang hilang menjatuhkan SELURUH halaman
+  // jadi "Application error". Kelas bug yang sama pernah kena tiga halaman
+  // lain di repo ini (lihat docs/deployment-status.md, bagian registrasi
+  // self-service).
   const [summary, trend, quality, sources, connectors] = await Promise.all([
     apiOrNull<SignalSummary>(`/projects/${projectId}/signals/summary`),
     apiOrNull<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
-    api<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
+    apiOrNull<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNull<SourceRow[]>(`/projects/${projectId}/signals/sources`),
-    api<ConnectorRow[]>(`/signals/connectors`),
+    apiOrNull<ConnectorRow[]>(`/signals/connectors`),
   ]);
 
   const volume = summary?.volume.value ?? 0;
@@ -206,8 +224,14 @@ export default async function SinyalPage() {
         <Panel
           kicker="Mutu pengukuran"
           title="Akurasi leksikon sentimen"
-          right={<span className="pill pill-warn">{quality.model_version}</span>}
+          right={
+            quality && <span className="pill pill-warn">{quality.model_version}</span>
+          }
         >
+          {!quality ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : (
+            <>
           {/* docs/roadmap.md mensyaratkan akurasi sentimen dilaporkan di UI
               sebelum fitur ini dipakai di proyek nyata. Ini pemenuhannya. */}
           <div className="fc-out">
@@ -256,6 +280,8 @@ export default async function SinyalPage() {
             <Info size={13} />
             {quality.caveat}
           </p>
+            </>
+          )}
         </Panel>
 
         <Panel kicker="Pengaturan" title="Sumber data terdaftar">
@@ -293,6 +319,9 @@ export default async function SinyalPage() {
           )}
 
           <h3 className="kicker" style={{ marginTop: 22 }}>Konektor yang tersedia</h3>
+          {!connectors ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : (
           <table className="tbl" style={{ marginTop: 8 }}>
             <thead>
               <tr>
@@ -325,6 +354,7 @@ export default async function SinyalPage() {
               ))}
             </tbody>
           </table>
+          )}
         </Panel>
       </div>
     </>
