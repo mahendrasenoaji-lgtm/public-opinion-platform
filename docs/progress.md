@@ -33,9 +33,10 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **499**, semuanya dikonfirmasi lewat CI (role `pop_app`, RLS aktif): 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 via [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7) (+7: kolom `url` + `GET /projects/{id}/mentions`) |
-| Endpoint API | 61 (+1 — `GET /projects/{id}/mentions`, 2026-09-11 sesi ketiga; total termasuk `GET /projects/{id}/reports/summary` dari sesi kedua) |
-| Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
+| Tes backend | **548** = 499 dikonfirmasi CI + **49 baru** (konektor deret: Wikipedia 25, Open-Meteo 24). Yang 499 via CI (role `pop_app`, RLS aktif): 486 [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7). Yang 49 murni parsing tanpa database, jadi tidak butuh RLS — **belum lewat CI**. Sebagai pemeriksaan regresi, 391 tes yang tidak butuh database dijalankan bersama dan semuanya lulus |
+| Endpoint API | 64 (+3 — `GET /metrics/connectors`, `GET /projects/{id}/metrics`, `POST /projects/{id}/metrics/collect`, 2026-09-11 sesi keempat) |
+| Halaman dashboard | 18 (9 Phase 1 + 9 Phase 2/3, termasuk `/deret` baru) |
+| Konektor | 6 konten (rss, youtube, x, manual) + **2 deret waktu** (wikipedia_pageviews, openmeteo_air_quality), keduanya tanpa kunci API |
 | `ruff` | Bersih di `app` dan `tests` |
 | `mypy --strict` | Bersih di `app/services`, `app/ai`, `app/connectors` |
 | Frontend | `tsc --noEmit` dan `next build` hijau |
@@ -82,6 +83,9 @@ yang lulus tanpa database.
 | `connectors/youtube.py` — YouTube Data API v3 | Teruji parsing | Butuh `YOUTUBE_API_KEY` |
 | `connectors/x.py` — X API v2 recent search | Teruji parsing | Butuh `X_BEARER_TOKEN` |
 | `connectors/manual.py` — unggahan/ekspor vendor | Teruji | Jalur yang benar-benar dipakai sekarang |
+| `connectors/metrics.py` — kontrak konektor DERET | Teruji (2026-09-11) | Sejajar dengan `base.py`, bukan turunannya — lihat di bawah |
+| `connectors/wikipedia.py` — Wikimedia Pageviews | Teruji (25 tes) + payload produksi asli | Tanpa kunci API. 41 pengamatan harian nyata ditarik & diparse |
+| `connectors/openmeteo.py` — PM2.5 per provinsi | Teruji (24 tes) + payload produksi asli | Tanpa kunci API. Kovariat eksogen, BUKAN sinyal opini |
 | 9 endpoint `signals/*` | Teruji (28 tes) + Live lokal | |
 | 2 endpoint `topics/*` | Teruji + Live lokal | |
 | `ai/retrieval.py` + `ai/copilot.py` — RAG | Teruji (23 tes) | Jawaban LLM sungguhan belum diuji |
@@ -112,8 +116,23 @@ menarik satu sumber atas permintaan pengguna; pengumpulan terjadwal berskala
 besar masih perlu worker terpisah.
 
 **Peta geografis MapLibre belum ada.** Belum ada sumber data bergeoreferensi
-asli. Grid provinsi berperingkat tetap dipakai. Provinsi **tidak** diinferensi
-dari isi teks — hasilnya akan dipakai sebagai georeferensi padahal bukan.
+asli untuk OPINI. Grid provinsi berperingkat tetap dipakai. Provinsi **tidak**
+diinferensi dari isi teks — hasilnya akan dipakai sebagai georeferensi padahal
+bukan.
+
+**Berubah sebagian 2026-09-11 (sesi keempat), dan batasnya penting.**
+`connectors/openmeteo.py` memberi data yang georeferensinya memang ASLI —
+koordinat ibu kota provinsi yang diukur instrumen, bukan ditebak dari teks —
+untuk 20 provinsi. Syarat CLAUDE.md §6 terpenuhi **untuk lapisan kualitas
+udaranya sendiri**. Itu TIDAK berarti peta skor opini per provinsi boleh
+dibangun: opini per provinsi masih datang dari survei yang `achieved_n`-nya
+di bawah ambang di separuh provinsi (gating §3 tetap berlaku), dan sebaran
+percakapan masih tanpa geotag.
+
+Konsekuensi yang paling gampang salah: **komponen risiko `geographic_spread`
+TETAP KOSONG.** Ia menghitung sebaran PERCAKAPAN, bukan sebaran udara buruk.
+Mengisinya dari Open-Meteo akan mengubah arti skor risiko diam-diam — dan itu
+persis pelanggaran R1 yang paling mahal, karena angkanya akan tampak lengkap.
 
 ---
 
@@ -259,6 +278,47 @@ Ini bagian terpenting dari dokumen ini.
    Supabase hanya punya satu snapshot per metrik, jadi `/forecast/baseline`
    akan membalas `insufficient_data` di sana sampai ada gelombang kedua. Itu
    perilaku yang benar, bukan bug.
+
+   **Jalan memutar dibangun 2026-09-11 (sesi keempat) — BUKAN pengganti
+   gelombang survei kedua.** `timeseries.fit()` menuntut DERET
+   (`MIN_OBSERVATIONS = 8`, `MIN_OBSERVATIONS_FOR_TREND = 12`), bukan
+   menuntut data survei. Konektor `wikipedia_pageviews` yang baru memberi
+   deret harian nyata: tarikan sungguhan untuk artikel "Badan Gizi Nasional"
+   di id.wikipedia menghasilkan **41 pengamatan** (1 Agu – 10 Sep 2026), di
+   atas kedua ambang itu.
+
+   Yang ini betul-betul menjawab: "apakah modelnya bekerja pada deret nyata,
+   bukan hanya pada fixture tes". Yang ini TIDAK menjawab: "ke mana opini
+   publik bergerak" — tampilan halaman mengukur PERHATIAN, bukan sikap, dan
+   `source`-nya `DIGITAL` justru supaya tidak pernah tertukar dengan survei.
+   Gelombang survei kedua tetap satu-satunya jalan untuk mem-forecast POI,
+   dan itu tetap tugas pengumpulan data pengguna (lihat poin 5 di "Langkah
+   berikutnya").
+
+   **`timeseries.fit()` SUDAH dijalankan atas deret 41-titik itu** (sesi
+   keempat, setelah statsmodels terpasang di sandbox) — bukan disimpulkan
+   dari ambangnya:
+
+   ```
+   1 pengamatan  → insufficient_data=True
+                   "Perlu minimal 8 pengamatan historis; tersedia 1."
+   41 pengamatan → insufficient_data=False
+                   model    = state-space (level lokal + tren), di-fit pada riwayat proyek
+                   baseline = 84.0   span = 40 hari   median_step = 1.0 hari
+                   expected = {1: 90.82, 7: 89.30, 30: 83.45, 90: 68.19}
+                   spread ± = {1: 32.53, 7: 82.03, 30: 203.96, 90: 480.23}
+   ```
+
+   Perhatikan `spread` di horizon 90: **±480 di atas baseline 84**. Itu bukan
+   kegagalan, itu model yang mengatakan ia tidak tahu — dan `limitations`
+   menyebutnya sendiri ("Horizon terjauh (90 hari) melampaui panjang riwayat
+   yang tersedia (40 hari). Bagian itu ekstrapolasi, bukan estimasi.").
+   Modul ini berperilaku benar pada data lapangan, bukan cuma pada fixture.
+
+   **Yang masih belum diverifikasi**: jalur simpan
+   `POST /metrics/collect` → `metric_snapshots` → `GET /forecast/baseline`
+   terhadap Postgres sungguhan. Konektornya terbukti, `fit()`-nya terbukti;
+   yang belum adalah jahitan di antara keduanya lewat database.
 
 5. **Akurasi sentimen yang tampil di `/sinyal` adalah batas ATAS.** Ia diukur
    pada 52 kalimat yang ditulis tim pengembang, bukan pada percakapan proyek
@@ -414,7 +474,25 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    agen**: butuh respons manusia sungguhan, tidak bisa difabrikasi tanpa
    melanggar R1 (data sintetis tidak boleh disajikan sebagai hasil survei
    nyata). Ini murni tugas pengumpulan data pengguna/institusi, bukan
-   tugas rekayasa.
+   tugas rekayasa. **Konektor `wikipedia_pageviews` (2026-09-11) TIDAK
+   menggantikan ini** — lihat poin 4 di bagian "Yang BELUM diverifikasi":
+   ia membuka deret untuk menguji modelnya, bukan deret opini.
+
+7. **Jalankan `POST /projects/{id}/metrics/collect` terhadap Postgres
+   sungguhan** (lokal atau Supabase). Konektornya sudah terbukti terhadap
+   API aslinya, tapi jalur simpannya ke `metric_snapshots` baru lulus
+   pembacaan kode dan tipe — belum pernah benar-benar menulis satu baris.
+   Setelah itu panggil `GET /forecast/baseline?metric=pageviews_<artikel>`
+   dan periksa `fitted: true` beserta `model`-nya. **Ini yang menentukan
+   apakah klaim "forecast sekarang bisa di-fit" benar atau baru niat.**
+
+8. **Putuskan `SignalSource` untuk pengukuran instrumen.** Kualitas udara
+   sementara memakai `DIGITAL` dengan peringatan di `method`, karena nilai
+   enum baru (`SENSOR`) butuh `ALTER TYPE signal_source ADD VALUE` di
+   Supabase — kelas migrasi yang pernah menjatuhkan tiga halaman production
+   pada 2026-09-02, jadi tidak dilakukan diam-diam. Lihat
+   `docs/deployment-status.md` bagian "Redesain tema terang + dua konektor
+   deret publik".
 6. **Phase 4** — lihat tabel di bagian "Phase 4 — enterprise" di atas.
    Empat item pertama (SSO, MFA wajib, billing, API publik) tetap butuh
    keputusan vendor/kebijakan yang bukan wewenang agen, dan — di luar
