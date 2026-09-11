@@ -733,6 +733,32 @@ tidak punya endpoint hapus organisasi).
   `services/`, `routers/`, atau schema. Belum di-commit/push — menunggu
   keputusan pengguna (lihat laporan sesi untuk opsi).
 
+**Studi kasus tematik (sore harinya, sesi yang sama): karhutla Kalimantan/
+Sumatra — pemicunya jadi konfirmasi nyata dari batasan yang sebelumnya
+cuma diverifikasi lokal.** 20 artikel nyata (kurasi manual dari 445 item/
+7-10 feed, tema "karhutla"/"kabut asap", termasuk temuan real "Update
+Korban Karhutla di Enam Provinsi: 4 Meninggal, 347 Luka-luka") diinjeksi
+ke project test terpisah lewat `signals/ingest` sungguhan, lalu dihapus
+lagi setelah diperiksa. Hasil:
+- `topics/discover`: `n_analysed: 20` (pas ambang minimum, `insufficient_data`
+  jadi `false`) tapi **HDBSCAN tetap menghasilkan 0 klaster**
+  (`unclustered_pct: 100`). Ini konfirmasi PRODUCTION pertama dari catatan
+  `docs/roadmap.md`/sesi 2026-08-27: "24 dokumen di 23 dimensi menghasilkan
+  NOL klaster... korpus yang sama di 3 dimensi memisahkan temanya bersih" —
+  sebelumnya cuma diverifikasi di Postgres lokal, sekarang terbukti persis
+  sama di Supabase produksi dengan data media nyata, bukan data buatan.
+- `alerts` (anomaly detection): tetap `insufficient` meski `signals/trend`
+  sekarang punya 3 titik hari nyata (2026-08-22 vol 1, 09-10 vol 14, 09-11
+  vol 5) — baseline historisnya masih dianggap terlalu tipis untuk z-score.
+  Perilaku benar (menahan diri), bukan bug.
+- `risk/score`: sama seperti batch 16-item sebelumnya — `coverage: 0.22`
+  (skor gabungan ditahan), tapi `issue_growth` dan `media_escalation`
+  tetap konsisten `100.0` di kedua ukuran sampel — sinyal itu robust
+  terhadap ukuran data, bukan kebetulan sampel kecil.
+
+Tidak ada perubahan kode dari studi kasus ini — murni verifikasi. Detail
+percakapan lengkap ada di riwayat chat sesi ini, bukan diulang di sini.
+
 **Yang MASIH belum diverifikasi setelah sesi ini** (supaya tidak
 mengklaim lebih dari yang sudah dibuktikan): jalur RSS lewat
 `RSSConnector` + endpoint `/signals/collect` terjadwal (sesi ini masih
