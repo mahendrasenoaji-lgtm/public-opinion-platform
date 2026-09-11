@@ -1,4 +1,6 @@
-/** Bar atas tiap halaman dashboard — nama view + status data. */
+import { ThemeToggle } from "./ThemeToggle";
+
+/** Bar atas tiap halaman dashboard — nama view + status data + tema. */
 export function PageHeader({
   kicker,
   title,
@@ -20,6 +22,7 @@ export function PageHeader({
       </div>
       <div className="top-r">
         <span className="dot" /> {isDemo ? "Data demo sintetis" : "Data proyek Anda sendiri"}
+        <ThemeToggle />
       </div>
     </header>
   );

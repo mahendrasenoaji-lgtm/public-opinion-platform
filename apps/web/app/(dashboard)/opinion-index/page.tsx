@@ -102,7 +102,7 @@ export default async function IndexPage() {
           {trend.length > 0 ? (
             <TrendChart
               points={trend}
-              series={[{ key: "poi", label: "POI", color: "#4DA3FF" }]}
+              series={[{ key: "poi", label: "POI", color: "var(--survey)" }]}
               domain={[65, 80]}
               height={200}
             />

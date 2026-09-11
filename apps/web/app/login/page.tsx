@@ -31,32 +31,27 @@ function LoginForm() {
   }
 
   return (
-    <div style={{ width: "100%", maxWidth: 340 }}>
-      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, textAlign: "center" }}>
-        Akses Terproteksi
-      </h1>
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
-        autoFocus
-        placeholder="Masukkan password"
-        style={{
-          width: "100%", padding: "10px 12px", fontSize: 14, marginBottom: 8,
-          borderRadius: 8, border: "1px solid #ccc", outline: "none",
-        }}
-      />
-      {err && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{err}</div>}
-      <button
-        onClick={submit}
-        disabled={loading || !password}
-        style={{
-          width: "100%", padding: "10px 12px", fontSize: 14, fontWeight: 600,
-          borderRadius: 8, border: "none", cursor: "pointer",
-          background: "#111", color: "#fff", opacity: loading || !password ? 0.4 : 1,
-        }}
-      >
+    <div className="auth-card">
+      <h1 className="auth-title">Akses Terproteksi</h1>
+      <p className="auth-sub">Situs ini belum dibuka untuk umum.</p>
+
+      {err && <div className="form-err" role="alert">{err}</div>}
+
+      <div className="field">
+        <label htmlFor="gate-password">Password</label>
+        <input
+          id="gate-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          autoFocus
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
+      </div>
+
+      <button className="btn btn-block" onClick={submit} disabled={loading || !password} type="button">
         {loading ? "Memeriksa…" : "Masuk"}
       </button>
     </div>
@@ -65,7 +60,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="auth-wrap">
       <Suspense fallback={null}><LoginForm /></Suspense>
     </div>
   );

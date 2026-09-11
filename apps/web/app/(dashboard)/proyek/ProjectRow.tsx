@@ -113,41 +113,28 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
         <td className="strong">
           {editing ? (
             <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-              <input
-                ref={inputRef}
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={handleKeyDown}
-                disabled={pending}
-                maxLength={300}
-                style={{
-                  font: "inherit",
-                  background: "var(--bg2, #1a2332)",
-                  color: "var(--txt, #e2e8f0)",
-                  border: "1px solid var(--line, #2a3a4a)",
-                  borderRadius: 3,
-                  padding: "3px 6px",
-                  width: 220,
-                }}
-              />
-              <button
-                onClick={handleSave}
-                disabled={pending}
-                className="pill pill-ok"
-                style={{ border: "none", cursor: "pointer" }}
-              >
+              {/* Sebelumnya `var(--bg2, #1a2332)` — token `--bg2` tidak pernah
+                  ada di globals.css, jadi nilai fallback gelap itulah yang
+                  selalu dipakai. Sekarang pakai kelas .field yang bertema. */}
+              <span className="field" style={{ margin: 0, width: 220 }}>
+                <input
+                  ref={inputRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={pending}
+                  maxLength={300}
+                  aria-label="Nama proyek"
+                />
+              </span>
+              <button onClick={handleSave} disabled={pending} className="btn btn-sm" type="button">
                 {pending ? "…" : "Simpan"}
               </button>
               <button
                 onClick={handleCancelEdit}
                 disabled={pending}
-                className="pill"
-                style={{
-                  border: "1px solid var(--line, #2a3a4a)",
-                  cursor: "pointer",
-                  background: "transparent",
-                  color: "var(--txt3, #8a95a5)",
-                }}
+                className="btn btn-sm btn-ghost"
+                type="button"
               >
                 Batal
               </button>
@@ -169,12 +156,7 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
             {isActive ? (
               <span className="pill pill-ok">Aktif</span>
             ) : (
-              <button
-                onClick={handleActivate}
-                disabled={pending}
-                className="pill pill-warn"
-                style={{ border: "none", cursor: "pointer" }}
-              >
+              <button onClick={handleActivate} disabled={pending} className="btn btn-sm" type="button">
                 Aktifkan
               </button>
             )}
@@ -185,13 +167,8 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
                 <button
                   onClick={handleStartEdit}
                   disabled={pending}
-                  className="pill"
-                  style={{
-                    border: "1px solid var(--line, #2a3a4a)",
-                    cursor: "pointer",
-                    background: "transparent",
-                    color: "var(--txt3, #8a95a5)",
-                  }}
+                  className="btn btn-sm btn-ghost"
+                  type="button"
                 >
                   Ubah nama
                 </button>
@@ -199,13 +176,8 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
                   <button
                     onClick={() => { setConfirmDelete(true); setError(""); }}
                     disabled={pending}
-                    className="pill"
-                    style={{
-                      border: "1px solid rgba(239,68,68,.3)",
-                      cursor: "pointer",
-                      background: "transparent",
-                      color: "var(--neg, #ef4444)",
-                    }}
+                    className="btn btn-sm btn-danger"
+                    type="button"
                   >
                     Hapus
                   </button>
@@ -214,26 +186,17 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
                     <button
                       onClick={handleDelete}
                       disabled={pending}
-                      className="pill"
-                      style={{
-                        border: "none",
-                        cursor: "pointer",
-                        background: "rgba(239,68,68,.18)",
-                        color: "var(--neg, #ef4444)",
-                      }}
+                      className="btn btn-sm btn-danger"
+                      style={{ background: "var(--neg-bg)" }}
+                      type="button"
                     >
                       {pending ? "…" : "Ya, hapus"}
                     </button>
                     <button
                       onClick={() => setConfirmDelete(false)}
                       disabled={pending}
-                      className="pill"
-                      style={{
-                        border: "1px solid var(--line, #2a3a4a)",
-                        cursor: "pointer",
-                        background: "transparent",
-                        color: "var(--txt3, #8a95a5)",
-                      }}
+                      className="btn btn-sm btn-ghost"
+                      type="button"
                     >
                       Batal
                     </button>
@@ -248,7 +211,7 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
       {/* Baris error — muncul di bawah baris utama kalau ada */}
       {error && (
         <tr>
-          <td colSpan={4} style={{ color: "var(--neg, #ef4444)", fontSize: 11, paddingTop: 0, borderBottom: "none" }}>
+          <td colSpan={4} style={{ color: "var(--neg)", fontSize: 11, paddingTop: 0, borderBottom: "none" }}>
             {error}
           </td>
         </tr>

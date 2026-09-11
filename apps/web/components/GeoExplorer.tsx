@@ -6,6 +6,7 @@ import { Panel } from "./Panel";
 import { Provenance } from "./Provenance";
 import { InsufficientData } from "./Provenance";
 import type { Metric } from "@/lib/api";
+import { RISK_RAMP, rankColor } from "@/lib/tokens";
 
 export interface ProvinceMetrics {
   province_code: string;
@@ -16,14 +17,8 @@ export interface ProvinceMetrics {
 }
 
 //: Ambang warna mengikuti nilai POI, murni presentasi — bukan sumber R1.
-function rankColor(value: number | null): string {
-  if (value === null) return "#41526B";
-  if (value >= 75) return "#2FBF71";
-  if (value >= 70) return "#7FB45C";
-  if (value >= 66) return "#F5B301";
-  if (value >= 63) return "#EF8A3C";
-  return "#EF4B4B";
-}
+//: Pindah ke lib/tokens.ts supaya nilainya ikut berganti tema; ambangnya
+//: tidak berubah sama sekali.
 
 /**
  * Grid provinsi berperingkat — BUKAN peta MapLibre. CLAUDE.md §6: MapLibre
@@ -55,7 +50,7 @@ export function GeoExplorer({ provinces }: { provinces: ProvinceMetrics[] }) {
         </div>
         <div className="legend">
           <span>Rendah</span>
-          {["#EF4B4B", "#EF8A3C", "#F5B301", "#7FB45C", "#2FBF71"].map((c) => (
+          {[...RISK_RAMP].reverse().map((c) => (
             <i key={c} style={{ background: c }} />
           ))}
           <span>Tinggi</span>

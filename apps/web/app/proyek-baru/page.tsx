@@ -1,5 +1,5 @@
 "use client";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createFirstProject } from "./actions";
 
@@ -34,63 +34,36 @@ export default function ProyekBaruPage() {
     }
   }
 
-  const inputStyle: CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    fontSize: 14,
-    marginBottom: 8,
-    borderRadius: 8,
-    border: "1px solid #ccc",
-    outline: "none",
-  };
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 340 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, textAlign: "center" }}>
-          Buat Proyek Baru
-        </h1>
-        <p style={{ fontSize: 12, color: "#888", marginBottom: 16, textAlign: "center" }}>
-          Beri nama dulu — isinya (survei, segmen, narasi) bisa ditambah
-          nanti. Proyek ini langsung jadi proyek aktif Anda.
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <h1 className="auth-title">Buat proyek baru</h1>
+        <p className="auth-sub">
+          Beri nama dulu — isinya (survei, segmen, narasi) bisa ditambah nanti.
+          Proyek ini langsung jadi proyek aktif Anda.
         </p>
 
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          autoFocus
-          placeholder="Nama proyek (mis. Persepsi Kebijakan 2026)"
-          style={inputStyle}
-        />
+        {err && <div className="form-err" role="alert">{err}</div>}
 
-        {err && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{err}</div>}
+        <div className="field">
+          <label htmlFor="proj-name">Nama proyek</label>
+          <input
+            id="proj-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            autoFocus
+            placeholder="Persepsi Kebijakan 2026"
+          />
+        </div>
 
         <button
+          className="btn btn-block"
           onClick={submit}
           disabled={loading || !name.trim()}
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            fontSize: 14,
-            fontWeight: 600,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: "#111",
-            color: "#fff",
-            opacity: loading || !name.trim() ? 0.4 : 1,
-          }}
+          type="button"
         >
-          {loading ? "Membuat…" : "Buat Proyek"}
+          {loading ? "Membuat…" : "Buat proyek"}
         </button>
       </div>
     </div>

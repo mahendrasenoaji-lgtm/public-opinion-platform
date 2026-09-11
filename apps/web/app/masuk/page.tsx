@@ -3,6 +3,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import type { Route } from "next";
+import { Activity } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -34,50 +35,53 @@ function LoginForm() {
   }
 
   return (
-    <div style={{ width: "100%", maxWidth: 340 }}>
-      <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, textAlign: "center" }}>
-        Masuk ke Public Opinion Platform
-      </h1>
-      <input
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
-        autoFocus
-        placeholder="Email"
-        style={{
-          width: "100%", padding: "10px 12px", fontSize: 14, marginBottom: 8,
-          borderRadius: 8, border: "1px solid #ccc", outline: "none",
-        }}
-      />
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && submit()}
-        placeholder="Password"
-        style={{
-          width: "100%", padding: "10px 12px", fontSize: 14, marginBottom: 8,
-          borderRadius: 8, border: "1px solid #ccc", outline: "none",
-        }}
-      />
-      {err && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{err}</div>}
+    <div className="auth-card">
+      <div className="auth-brand">
+        <Activity size={18} strokeWidth={2.5} />
+        <span className="brand-n">PUBLIC OPINION</span>
+      </div>
+      <h1 className="auth-title">Masuk</h1>
+      <p className="auth-sub">Gunakan akun organisasi Anda.</p>
+
+      {err && <div className="form-err" role="alert">{err}</div>}
+
+      <div className="field">
+        <label htmlFor="login-email">Email</label>
+        <input
+          id="login-email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          autoFocus
+          autoComplete="email"
+          placeholder="nama@organisasi.id"
+        />
+      </div>
+      <div className="field">
+        <label htmlFor="login-password">Password</label>
+        <input
+          id="login-password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && submit()}
+          autoComplete="current-password"
+          placeholder="••••••••"
+        />
+      </div>
+
       <button
+        className="btn btn-block"
         onClick={submit}
         disabled={loading || !email || !password}
-        style={{
-          width: "100%", padding: "10px 12px", fontSize: 14, fontWeight: 600,
-          borderRadius: 8, border: "none", cursor: "pointer",
-          background: "#111", color: "#fff", opacity: loading || !email || !password ? 0.4 : 1,
-        }}
+        type="button"
       >
         {loading ? "Memeriksa…" : "Masuk"}
       </button>
-      <p style={{ fontSize: 12, color: "#888", textAlign: "center", marginTop: 12 }}>
-        Belum punya organisasi?{" "}
-        <Link href={"/daftar" as Route} style={{ color: "#111", fontWeight: 600 }}>
-          Daftar
-        </Link>
+
+      <p className="auth-alt">
+        Belum punya organisasi? <Link href={"/daftar" as Route}>Daftar</Link>
       </p>
     </div>
   );
@@ -85,7 +89,7 @@ function LoginForm() {
 
 export default function MasukPage() {
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+    <div className="auth-wrap">
       <Suspense fallback={null}><LoginForm /></Suspense>
     </div>
   );

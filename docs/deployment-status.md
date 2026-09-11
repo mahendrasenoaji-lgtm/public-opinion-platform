@@ -1151,6 +1151,223 @@ benar. Fix ini tetap menutup satu asimetri nyata di `/proyek` sendiri.
 Tidak ada tes otomatis baru — perubahan satu baris di client action
 handler. `tsc`+`next build` hijau, CI PR #8 hijau (backend+frontend+Vercel).
 
+## ✅ Redesain tema terang + dua konektor deret publik — 2026-09-11 (sesi keempat)
+
+Dipicu permintaan pengguna: sebuah tangkapan layar dashboard Sprout Social
+("saya suka dashboard seperti ini, lebih mudah menganalisa") plus "carikan
+API publik yang free atau mudah digunakan dalam dashboard ini".
+
+### Bagian 1 — sistem tema, bukan sekadar ganti warna
+
+Seluruh `apps/web/app/globals.css` ditulis ulang di atas satu blok token.
+Aturan barunya tercatat di komentar kepala file: **tidak ada literal warna di
+bawah blok token.** Sebelumnya ada ~30 hex tersebar langsung di selector
+(`#080D13`, `#16202C`, `#43566E`, `#22303F`, dst.) yang membuat file itu
+secara praktis tidak bisa di-retema.
+
+- Tema terang jadi **default**; tema gelap (palet lama, persis) jadi pilihan
+  lewat tombol di bar atas (`components/ThemeToggle.tsx`).
+- **`prefers-color-scheme` SENGAJA tidak dipakai.** Kalau dipakai, pengguna
+  bersistem gelap tidak akan pernah melihat desain terang yang justru diminta
+  tanpa mengubah setelan OS-nya. Preferensi disimpan di `localStorage` dan
+  dipasang lewat skrip inline di `app/layout.tsx` sebelum cat pertama —
+  tanpa itu halaman berkedip dari terang ke gelap tiap muat.
+- **Warna sumber R1 nilainya berubah, perannya tidak.** `#4DA3FF` hanya
+  mencapai rasio kontras 2.3:1 di atas putih (gagal WCAG AA), jadi tema
+  terang memakai `#0B6FD4` (4.9:1); jingga `#FF7A45`→`#C2481B`, ungu
+  `#9B8AFB`→`#5D45D1`. "Biru = survei" tetap berlaku di kedua tema.
+- `.stat-row` sekarang satu kartu yang dibagi garis rambut (pola dari
+  referensi Sprout), memakai `repeat(auto-fit,minmax(190px,1fr))` + `gap:1px`
+  di atas background garis. Dipilih begitu karena jumlah ubin berbeda-beda
+  per halaman (command 1, jaringan 2, sinyal/risiko/pengaruh 4) — grid
+  4-kolom tetap akan meninggalkan sel kosong besar. **Tidak ada TSX yang
+  diubah untuk ini.**
+- `.insufficient` naik kelas dari teks abu-abu jadi pita peringatan. Keadaan
+  "data tidak cukup" adalah pembeda produk (CLAUDE.md §8), bukan kegagalan
+  render — tapi tampilan lamanya persis seperti bug.
+
+**Tiga bug nyata ketemu saat mengerjakan ini, bukan dicari:**
+
+1. **`var(--bg2, #1a2332)` di `ProjectRow.tsx` merujuk token yang tidak
+   pernah ada.** `--bg2` tidak terdefinisi di mana pun, jadi nilai fallback
+   gelap itulah yang selalu dipakai — termasuk kalau temanya diganti.
+   Ketahuan karena baru sekarang ada yang menyisir seluruh literal warna.
+2. **Recharts membeku di tema gelap.** `TrendChart.tsx` dan
+   `ForecastSimulator.tsx` menyuntikkan hex ke `stroke`/`fill`. Yang paling
+   halus: `ForecastSimulator` memakai `fill="#0A1017"` untuk MEMOTONG pita
+   bawah — trik yang hanya benar kalau nilainya sama persis dengan latar
+   panel. Di tema terang itu akan menggambar balok hitam di tengah grafik.
+   Sekarang `var(--panel)`. Recharts meneruskan nilai ini apa adanya ke
+   atribut SVG, dan `var()` sah di sana.
+3. **Empat halaman form (`/masuk`, `/login`, `/daftar`, `/proyek-baru`)
+   seluruhnya buta tema** — `#ccc`, `#111`, `#888`, `#c0392b` inline, tidak
+   pernah ikut tema mana pun. Sekarang pakai kelas `.auth-*`/`.field`/`.btn`.
+
+`lib/tokens.ts` sekarang mengembalikan `var(--...)` alih-alih hex; hex-nya
+pindah ke field `hex` untuk konteks yang tidak bisa membaca CSS custom
+property (kanvas, ekspor gambar). `rankColor()` dipindah ke sana dari
+`GeoExplorer.tsx` supaya ikut bertema.
+
+`npm run typecheck` dan `next build` hijau.
+
+### Bagian 2 — API publik: enam diuji, empat dipakai
+
+Diuji langsung ke endpoint produksinya, bukan dari dokumentasi vendor:
+
+| API | Kunci | Hasil uji |
+|---|---|---|
+| Wikimedia Pageviews | tidak perlu | ✅ 200, data id.wikipedia nyata |
+| Open-Meteo Air Quality | tidak perlu | ✅ 200, PM2.5 per koordinat |
+| BMKG Data Terbuka | tidak perlu | ✅ 200, gempa + koordinat |
+| NASA FIRMS | gratis, daftar email | ⚠️ 401 tanpa kunci |
+| BPS Web API | gratis, daftar | belum diuji |
+| GDELT Doc API | tidak perlu | ❌ ditolak, batas laju 1 req/5 detik |
+
+**GDELT tidak direkomendasikan.** Ia menolak permintaan berulang dari alamat
+bersama dengan pesan batas laju, konsisten di beberapa percobaan berjarak.
+
+### Bagian 3 — abstraksi baru: konektor DERET, bukan konektor KONTEN
+
+`app/connectors/metrics.py` (baru) sejajar dengan `base.py`, bukan
+turunannya. Alasannya bukan kerapian: `base.Connector` mengembalikan
+`RawItem` (konten) yang lalu di-dedup dan dinilai sentimennya. Tampilan
+halaman harian bukan konten. Memaksanya lewat `RawItem` akan salah di tiga
+tempat sekaligus — `sentiment.score()` menilai string buatan seperti "142
+tampilan" seolah pernyataan seseorang, `ingestion.dedupe()` menganggap hari
+berangka mirip sebagai duplikat, dan tabel `mentions` terisi baris yang
+bukan sebutan siapa pun.
+
+Jadi `RawObservation` → `metric_snapshots`, tabel yang memang untuk itu dan
+yang sudah dibaca `/forecast/baseline` serta `/opinion/trend`. **Tidak ada
+satu pun modul lama yang diubah untuk mendukung ini** — ketiganya sudah
+metrik-agnostik.
+
+`RawObservation.__post_init__` menolak nilai di atas 99.999 (batas
+`NUMERIC(8,3)`) alih-alih memotong diam-diam: deret yang terpotong di
+puncaknya akan terbaca sebagai plateau yang tidak pernah terjadi.
+
+**Baru:**
+- `app/connectors/wikipedia.py` — Wikimedia Pageviews, `source=DIGITAL`
+- `app/connectors/openmeteo.py` — PM2.5 per ibu kota provinsi, 20 provinsi
+- `app/routers/metrics.py` — `GET /metrics/connectors`,
+  `GET /projects/{id}/metrics`, `POST /projects/{id}/metrics/collect`
+- `apps/web/app/(dashboard)/deret/` — halaman dashboard ke-18
+
+### Yang SENGAJA tidak dilakukan, dan alasannya
+
+**Open-Meteo TIDAK mengisi `geographic_spread`** — dan klaim awal ke pengguna
+di sesi ini bahwa ia akan mengisinya adalah **salah, sudah dikoreksi**.
+Komponen itu menghitung berapa provinsi yang PERCAKAPANNYA tersebar
+(`routers/risk.py`: provinsi berbeda di antara mention bergeotag resmi).
+Udara buruk di 12 provinsi bukan percakapan tersebar di 12 provinsi.
+Mengisinya dari sini akan mengubah arti skor risiko diam-diam. Komponen itu
+tetap kosong sampai ada mention yang benar-benar bergeotag.
+
+Yang benar-benar dibuka Open-Meteo: lapisan per-provinsi dengan georeferensi
+ASLI (koordinat terukur, bukan provinsi ditebak dari teks), yang memenuhi
+syarat CLAUDE.md §6 untuk MapLibre — **untuk lapisan kualitas udaranya
+sendiri, bukan untuk skor opini per provinsi.**
+
+**`source=DIGITAL` untuk kualitas udara adalah kompromi yang perlu ditinjau
+pengguna.** Tidak ada nilai `SignalSource` yang pas — enum-nya SURVEY /
+SOCIAL / MEDIA / DIGITAL, dan pengukuran instrumen bukan salah satunya;
+DIGITAL ("perilaku terukur") paling dekat tapi tetap meleset, kualitas udara
+bukan perilaku. Yang benar secara desain adalah nilai enum baru (mis.
+`SENSOR`), tapi itu butuh `ALTER TYPE signal_source ADD VALUE` di Supabase —
+migrasi manual yang, persis kelas ini, menjatuhkan tiga halaman production
+pada 2026-09-02. Tidak dilakukan diam-diam. Sampai diputuskan, setiap baris
+membawa peringatan "pengukuran instrumen, BUKAN opini" di kolom `method`
+yang ikut tampil di UI.
+
+**Koordinat 18 provinsi sisanya tidak ditebak.** Yang masuk hanya 20 yang
+kodenya dan ibu kotanya bisa dipastikan: 16 provinsi `db/seed.py` + 4
+provinsi inti karhutla (Jambi, Kalbar, Kalteng, Kalsel). Provinsi hasil
+pemekaran 2022 di Papua sengaja dilewati — koordinat salah akan tersimpan
+sebagai georeferensi "asli", dan itu kesalahan paling mahal di modul ini.
+Tes `test_koordinat_berada_di_kotak_indonesia` menjaga terhadap lintang/bujur
+tertukar.
+
+### Verifikasi
+
+**49 tes baru, semuanya lulus lokal**, `ruff check app tests` bersih.
+Keduanya parsing murni tanpa jaringan, sesuai CLAUDE.md §4.
+
+**Diuji terhadap payload produksi sungguhan** (bukan hanya fixture):
+
+- Wikipedia `Badan_Gizi_Nasional` di id.wikipedia, 1 Agu – 10 Sep 2026 →
+  **41 pengamatan harian**, min 55 / maks 146, enam hari terakhir
+  94 · 81 · 106 · 120 · 142 · 84.
+- Open-Meteo Palangka Raya (Kalteng, `62`), 5–10 Sep 2026 → 6 hari, masing-
+  masing dari 24 jam penuh. **PM2.5 210–526 µg/m³** — level berbahaya, dan
+  konsisten dengan karhutla yang sedang berlangsung.
+
+**Model forecast benar-benar di-fit atas deret nyata itu** (bukan
+disimpulkan dari ambangnya): 1 pengamatan → `insufficient_data=True`;
+41 pengamatan → `insufficient_data=False`, model "state-space (level lokal
++ tren), di-fit pada riwayat proyek", baseline 84.0, span 40 hari. Interval
+di horizon 90 melebar ke ±480 dan `limitations` menyebut sendiri bahwa
+bagian itu ekstrapolasi — gating berperilaku benar di data lapangan.
+
+**391 tes lulus** setelah statsmodels terpasang (seluruh suite yang tidak
+butuh database, termasuk `test_timeseries` dan `test_forecast` yang
+sebelumnya terhalang dependensi).
+
+**Satu bug ketemu dari pengecekan boot aplikasi, bukan dari tes:**
+`routers/metrics.py` mengimpor `Role` dari `app.models.user` — modul yang
+tidak ada (yang benar `app.deps`). `ruff` tidak menangkapnya (bukan
+pelanggaran lint) dan tes konektor juga tidak (tidak mengimpor router).
+Yang menangkapnya adalah `from app.main import app` — pengingat bahwa
+"tes hijau" dan "aplikasi bisa menyala" adalah dua hal berbeda. Sudah
+diperbaiki; `app.openapi()` sekarang mencantumkan ketiga endpoint baru
+(total 58 endpoint terdaftar).
+
+**Jahitan penuh diverifikasi terhadap Postgres sungguhan.** Docker memang
+tidak ada di sandbox, tapi ternyata **Postgres 16 sudah berjalan langsung di
+mesin pengguna** (Homebrew, port 5432) — jadi asumsi "butuh Docker" dari
+sesi-sesi sebelumnya keliru. Database `pop_test` sementara dibuat, schema +
+RLS diterapkan, lalu dijalankan lewat HTTP asli (httpx + ASGITransport)
+dengan role `pop_app` dan `FORCE ROW LEVEL SECURITY` aktif:
+
+```
+4. forecast SEBELUM  → insufficient=True,  n=0
+5. collect           → 200, fetched=60 stored=60, 2026-07-13..2026-09-10
+6. collect ULANG     → stored=0 replaced=60        ← idempoten
+7. GET /metrics      → n=60, national=true, latest=84.0
+8. forecast SESUDAH  → insufficient=False, n=60, span=59 hari
+                       model = state-space (level lokal + tren)
+9. isolasi tenant    → org lain baca deret ini: 200 []
+10. DELETE proyek    → 204, 60 baris metric_snapshots ikut terhapus
+```
+
+Dua hal terbukti di luar yang direncanakan: **idempotensi** (tarik ulang
+rentang yang sama tidak menggandakan baris — kalau menggandakan,
+`timeseries.fit()` akan melihat dua pengamatan di tanggal yang sama dan
+lebar intervalnya mengecil palsu) dan **isolasi tenant** untuk ketiga
+endpoint baru.
+
+Dua catatan jujur tentang lingkungan verifikasi:
+
+1. **`mentions` dan `topics` tidak ikut terbuat** — Postgres lokal tidak
+   punya extension `vector`, dan `db/schema.sql` baris 8 membutuhkannya.
+   Fitur ini tidak menyentuh kedua tabel itu, dan CI memakai
+   `pgvector/pgvector:pg16` sehingga suite penuh tetap berjalan dengan
+   keduanya ada.
+2. **Role `pop` lokal perlu `BYPASSRLS`** supaya fungsi `SECURITY DEFINER`
+   (`auth_register`) bisa menembus `FORCE ROW LEVEL SECURITY` di
+   `organizations`. Di CI hal ini tidak terlihat karena `pop` adalah
+   superuser kontainer (`POSTGRES_USER: pop`), dan superuser melewati RLS
+   secara otomatis. Bukan perbedaan perilaku aplikasi — perbedaan
+   provisioning. Relevan kalau nanti ada yang menyiapkan Postgres lokal
+   tanpa Docker.
+
+**Database `pop_test` beserta role `pop`/`pop_app` sudah dihapus lagi**
+setelah verifikasi; mesin pengguna kembali seperti semula. Untuk
+membuatnya ulang: `make test-db` (butuh `ADMIN_DATABASE_URL`).
+
+**CI PR #9 hijau penuh** — backend (suite lengkap, role `pop_app`, RLS
+aktif), frontend, dan Vercel preview. Jadi 49 tes baru itu **sudah
+terkonfirmasi CI**, bukan cuma lokal.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1

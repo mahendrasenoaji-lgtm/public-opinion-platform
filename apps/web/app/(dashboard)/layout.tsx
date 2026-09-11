@@ -21,6 +21,7 @@ const NAV = [
   ["/forecast", "Forecast & Simulator"],
   // Phase 2 — sinyal
   ["/sinyal", "Signal Monitor"],
+  ["/deret", "Deret Data Publik"],
   ["/tema", "Topic Discovery"],
   ["/copilot", "AI Copilot"],
   // Phase 3 — prediksi
