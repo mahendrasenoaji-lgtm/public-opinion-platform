@@ -915,6 +915,41 @@ urutannya di tes — tes yang menduplikasi urutan yang mau dijaganya tidak
 menjaga apa pun). **Dibuktikan menangkap regresinya**: urutan sengaja
 dibalik ke versi buggy → 2 tes gagal; dikembalikan → 10 hijau lagi.
 
+### Perbaikannya dikonfirmasi live (PR #6, merge commit `a3a1dd2`)
+
+CI PR #6: **492 tes lulus** (486 → +6), `ruff` bersih, `mypy` bersih di 34
+file. Tiga tes `test_reports_router.py` lulus terhadap Postgres nyata dengan
+role `pop_app` — termasuk kasus lintas-tenant, jadi perbaikan 404 itu terbukti,
+bukan cuma "tidak error".
+
+Setelah Render selesai redeploy (sempat 502 sebentar saat restart — transien),
+kedua bug diperiksa ulang dengan request sungguhan:
+
+```
+GET /projects/{uuid-acak}/reports/summary
+  → 404 {"detail":"Proyek tidak ditemukan."}      (sebelumnya 500)
+
+POST /v1/auth/login (request ke-12, jatah habis)
+  → 429
+    access-control-allow-origin: https://public-opinion-platform.vercel.app
+    retry-after: 45
+    x-request-id: 2bc25a9e-...                     (sebelumnya tidak ada)
+```
+
+Header CORS **tetap** terbawa di 429 — refaktor urutan middleware tidak
+merusak jaminan yang sudah diverifikasi sebelumnya. Sweep regresi jalur normal
+juga bersih: PDF untuk proyek nyata tetap 200/`application/pdf`/`%PDF`
+(4400 byte) dan membawa `X-Request-ID`, `segments`/`risk/polarization`/
+`topics`/`network`/`health` semuanya tetap 200. Project test dihapus lagi
+(204, daftar kembali `[]`).
+
+**Pelajaran yang layak diingat sesi berikutnya**: dua-duanya lolos CI hijau dan
+lolos `mypy --strict`, dan dua-duanya ketahuan dalam hitungan menit begitu
+deploy-nya benar-benar diketuk dengan request sungguhan. Pola yang sama persis
+dengan bug word-wrap PDF di PR #5 (ketahuan karena PDF-nya dirender dan dibaca,
+bukan diasumsikan benar dari kode) dan bug `apiOrNull` 2026-09-02. "CI hijau"
+bukan sinonim dari "deploy sehat".
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
