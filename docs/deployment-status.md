@@ -1110,6 +1110,7 @@ seminggu:
 | 5 | 16 Sep 08:00 / 01:00 | `trig_01JxK81kgD8FJarbBwuoWK31` |
 | 6 | 17 Sep 08:00 / 01:00 | `trig_0113P9wofQbwEw1jui8jfktP` |
 | 7 | 18 Sep 08:00 / 01:00 | `trig_0111pPT7yjpoYnqA9o2fxkoR` |
+| 8 | 19 Sep 08:00 / 01:00 | `trig_016J9Po9ehvj9Y9kcvQ8ymG8` (ditambah belakangan, atas permintaan pengguna) |
 
 Tiap rutinitas menulis ulang skrip lengkap dari nol di sandbox cloud
 ephemeral-nya sendiri (di-tempel penuh di prompt routine, bukan clone repo
