@@ -1,7 +1,7 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-09-02.
+menahannya.** Diperbarui 2026-09-11.
 
 Dokumen ini melengkapi dua yang lain, tidak menggantikannya:
 
@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **474 + 12 baru** (role `pop_app`, RLS aktif — bukan superuser; 473→474 dikonfirmasi via CI [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2). 12 tes baru 2026-09-11 — `test_reports.py` (4), `test_middleware.py` (7), `test_sentiment.py` (+1) — semuanya murni/tanpa DB, dijalankan lokal (43/43 hijau termasuk yang lama); **belum dikonfirmasi lewat CI penuh terhadap role `pop_app`**, Docker tidak tersedia di sandbox sesi ini, sama seperti sesi-sesi sebelumnya) |
+| Tes backend | **492** (role `pop_app`, RLS aktif — bukan superuser), **semuanya dikonfirmasi lewat CI**: 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5) (474 lama + 12 baru: `test_reports.py` 4, `test_middleware.py` 7, `test_sentiment.py` +1), lalu 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6) (+6: `test_reports_router.py` 3 end-to-end terhadap Postgres nyata, `test_middleware.py` +3 urutan middleware) |
 | Endpoint API | 60 (+1 — `GET /projects/{id}/reports/summary`, 2026-09-11) |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
@@ -166,9 +166,9 @@ secara maksimal").
 | MFA wajib | Belum disentuh — kolom `users.mfa_secret` sudah ada di schema; alur enrolmen dan pemulihan butuh keputusan kebijakan |
 | Billing + kredit survei/data/AI | Belum disentuh — penyedia pembayaran mana, dan model harga apa |
 | API publik + webhook | Belum disentuh — kontrak API publik tidak bisa ditarik lagi setelah ada yang memakainya |
-| ✅ Report generator PDF | **Selesai v1** — `GET /projects/{id}/reports/summary`, cakupan Segments + Polarization Index. Lihat `docs/deployment-status.md` bagian "Phase 4 — item tanpa vendor pihak ketiga (2026-09-11)". DOCX/PPTX/XLSX belum ada permintaan konkret soal formatnya, belum dikerjakan. |
-| ✅ Rate limiting per tenant | **Versi minimal selesai** — in-memory per-proses, BUKAN Redis/terdistribusi (batasannya didokumentasikan di `app/middleware/ratelimit.py`, harus diganti sebelum API publik/skala horizontal beneran ada). |
-| ✅ Observability dasar | **Selesai** — request ID + log JSON per request (`app/middleware/observability.py`). Ini BUKAN APM/tracing distribusi (Datadog/Sentry/dst) — itu tetap butuh keputusan vendor, belum dikerjakan. |
+| ✅ Report generator PDF | **Live production** — `GET /projects/{id}/reports/summary`, cakupan Segments + Polarization Index. Diverifikasi setelah deploy: 200, `application/pdf`, word-wrap benar, "data tidak cukup" tidak dipalsukan jadi angka. Bug 500-bukan-404 untuk proyek tidak ada ditemukan pasca-deploy dan diperbaiki ([PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6)). DOCX/PPTX/XLSX belum ada permintaan konkret soal formatnya, belum dikerjakan. |
+| ✅ Rate limiting per tenant | **Live production** — diverifikasi: 10 login lolos, ke-11 → 429 + `Retry-After`, `/health` tetap lolos, header CORS terbawa di 429. In-memory per-proses, BUKAN Redis/terdistribusi (batasannya didokumentasikan di `app/middleware/ratelimit.py`, harus diganti sebelum API publik/skala horizontal beneran ada). |
+| ✅ Observability dasar | **Live production** — `X-Request-ID` diverifikasi ada dan unik per request. Bug "429 tidak ikut tercatat" ditemukan pasca-deploy dan diperbaiki ([PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6)). Ini BUKAN APM/tracing distribusi (Datadog/Sentry/dst) — itu tetap butuh keputusan vendor, belum dikerjakan. |
 | Orkestrasi multi-agent penuh | **Sengaja tidak disentuh** — `ai/agents.py:Orchestrator` SUDAH mendukung banyak agen sekaligus (`run(agents: list[Agent], ctx)`), tapi kedua pemanggilnya (`brief.py`, `copilot.py`) selalu mengirim satu agen. Memperluas ini jadi "beneran multi-agent" butuh keputusan desain (agen apa, tugas apa, kenapa) yang bukan wewenang agen untuk diputuskan sendiri tanpa digunakan siapa pun dulu — beda kelas dengan tiga item di atas yang implementasinya mekanis begitu tahu tujuannya. |
 
 Empat item pertama tetap butuh keputusan yang bukan wewenang agen. Sesuai
