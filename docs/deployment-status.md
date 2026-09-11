@@ -1125,6 +1125,32 @@ dibuat sebelum migrasi dijalankan, ingest pertama akan gagal 500. Sudah
 tidak masalah untuk pengguna ini (migrasi sudah jalan), tapi relevan kalau
 pola ini diulang untuk project riset baru di Supabase lain.
 
+## ✅ Fix tombol "Aktifkan" proyek tidak refresh — PR #8, di-merge 2026-09-11 (masih sesi ketiga)
+
+Ketahuan lewat laporan pengguna sungguhan setelah pakai project switcher
+untuk pindah dari "MBG AGUSTUS 2026" balik ke "KEBAKARAN HUTAN": *"datanya
+tidak tampil"*. Data di server dicek dulu (bukan diasumsikan hilang) —
+utuh, 157 item, `200 OK`. Baru setelah itu dicurigai bug frontend.
+
+Akar masalah: `handleActivate()` di `ProjectRow.tsx` satu-satunya handler
+yang tidak memanggil `router.refresh()`/`router.push()` setelah action-nya
+selesai — `handleSave` (rename) dan `handleDelete` di file yang sama sudah
+benar sejak awal. Cookie `pop_project_id` memang berubah di server, tapi
+halaman `/proyek` sendiri tidak menampilkan status "Aktif" terbaru tanpa
+reload manual.
+
+**Catatan jujur soal cakupan fix**: Next.js 15.5.23 (terpasang) secara
+default tidak nge-cache halaman `force-dynamic` di client, jadi navigasi
+baru lewat `<Link>` semestinya selalu ambil data segar terlepas dari bug
+ini. Penyebab paling mungkin untuk laporan pengguna spesifik itu kemungkinan
+besar tab dashboard yang sudah terbuka *sebelum* klik "Aktifkan" — itu
+butuh reload manual, tidak ada mekanisme cross-tab yang bisa memperbaikinya
+dari kode. Dikonfirmasi pengguna: reload manual menampilkan data yang
+benar. Fix ini tetap menutup satu asimetri nyata di `/proyek` sendiri.
+
+Tidak ada tes otomatis baru — perubahan satu baris di client action
+handler. `tsc`+`next build` hijau, CI PR #8 hijau (backend+frontend+Vercel).
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
