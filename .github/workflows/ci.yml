@@ -59,7 +59,14 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install pytest pytest-asyncio ruff mypy
+          # types-reportlab: reportlab (app/services/reports.py) tidak ship
+          # stub bawaan -- tanpa ini mypy --strict gagal (ketahuan 2026-09-11,
+          # PR #5: fix pertama SALAH TEMPAT, nambah ke pyproject.toml
+          # [project.optional-dependencies] yang job ini TIDAK PERNAH baca --
+          # baris ini yang jadi sumber kebenaran untuk dev tools CI, bukan
+          # pyproject.toml, meski nama langkahnya sama-sama "install
+          # dependencies").
+          pip install pytest pytest-asyncio ruff mypy types-reportlab
 
       - name: Terapkan schema + RLS (role pop_app dibuat oleh rls.sql sendiri)
         run: |
