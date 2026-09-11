@@ -1321,12 +1321,52 @@ Yang menangkapnya adalah `from app.main import app` — pengingat bahwa
 diperbaiki; `app.openapi()` sekarang mencantumkan ketiga endpoint baru
 (total 58 endpoint terdaftar).
 
-**Belum diverifikasi:** jahitan `POST /metrics/collect` →
-`metric_snapshots` → `GET /forecast/baseline` terhadap Postgres sungguhan
-(butuh database; sandbox sesi ini tidak punya Docker, pola yang sama
-seperti sesi-sesi 2026-09-11 sebelumnya). Konektornya terbukti terhadap API
-aslinya dan `fit()`-nya terbukti terhadap deret aslinya — yang belum adalah
-jalur simpannya.
+**Jahitan penuh diverifikasi terhadap Postgres sungguhan.** Docker memang
+tidak ada di sandbox, tapi ternyata **Postgres 16 sudah berjalan langsung di
+mesin pengguna** (Homebrew, port 5432) — jadi asumsi "butuh Docker" dari
+sesi-sesi sebelumnya keliru. Database `pop_test` sementara dibuat, schema +
+RLS diterapkan, lalu dijalankan lewat HTTP asli (httpx + ASGITransport)
+dengan role `pop_app` dan `FORCE ROW LEVEL SECURITY` aktif:
+
+```
+4. forecast SEBELUM  → insufficient=True,  n=0
+5. collect           → 200, fetched=60 stored=60, 2026-07-13..2026-09-10
+6. collect ULANG     → stored=0 replaced=60        ← idempoten
+7. GET /metrics      → n=60, national=true, latest=84.0
+8. forecast SESUDAH  → insufficient=False, n=60, span=59 hari
+                       model = state-space (level lokal + tren)
+9. isolasi tenant    → org lain baca deret ini: 200 []
+10. DELETE proyek    → 204, 60 baris metric_snapshots ikut terhapus
+```
+
+Dua hal terbukti di luar yang direncanakan: **idempotensi** (tarik ulang
+rentang yang sama tidak menggandakan baris — kalau menggandakan,
+`timeseries.fit()` akan melihat dua pengamatan di tanggal yang sama dan
+lebar intervalnya mengecil palsu) dan **isolasi tenant** untuk ketiga
+endpoint baru.
+
+Dua catatan jujur tentang lingkungan verifikasi:
+
+1. **`mentions` dan `topics` tidak ikut terbuat** — Postgres lokal tidak
+   punya extension `vector`, dan `db/schema.sql` baris 8 membutuhkannya.
+   Fitur ini tidak menyentuh kedua tabel itu, dan CI memakai
+   `pgvector/pgvector:pg16` sehingga suite penuh tetap berjalan dengan
+   keduanya ada.
+2. **Role `pop` lokal perlu `BYPASSRLS`** supaya fungsi `SECURITY DEFINER`
+   (`auth_register`) bisa menembus `FORCE ROW LEVEL SECURITY` di
+   `organizations`. Di CI hal ini tidak terlihat karena `pop` adalah
+   superuser kontainer (`POSTGRES_USER: pop`), dan superuser melewati RLS
+   secara otomatis. Bukan perbedaan perilaku aplikasi — perbedaan
+   provisioning. Relevan kalau nanti ada yang menyiapkan Postgres lokal
+   tanpa Docker.
+
+**Database `pop_test` beserta role `pop`/`pop_app` sudah dihapus lagi**
+setelah verifikasi; mesin pengguna kembali seperti semula. Untuk
+membuatnya ulang: `make test-db` (butuh `ADMIN_DATABASE_URL`).
+
+**CI PR #9 hijau penuh** — backend (suite lengkap, role `pop_app`, RLS
+aktif), frontend, dan Vercel preview. Jadi 49 tes baru itu **sudah
+terkonfirmasi CI**, bukan cuma lokal.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 

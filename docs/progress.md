@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **548** = 499 dikonfirmasi CI + **49 baru** (konektor deret: Wikipedia 25, Open-Meteo 24). Yang 499 via CI (role `pop_app`, RLS aktif): 486 [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7). Yang 49 murni parsing tanpa database, jadi tidak butuh RLS — **belum lewat CI**. Sebagai pemeriksaan regresi, 391 tes yang tidak butuh database dijalankan bersama dan semuanya lulus |
+| Tes backend | **548** = 499 dikonfirmasi CI + **49 baru** (konektor deret: Wikipedia 25, Open-Meteo 24). Yang 499 via CI (role `pop_app`, RLS aktif): 486 [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7). Yang 49 (konektor deret) **dikonfirmasi CI lewat [PR #9](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/9)** |
 | Endpoint API | 64 (+3 — `GET /metrics/connectors`, `GET /projects/{id}/metrics`, `POST /projects/{id}/metrics/collect`, 2026-09-11 sesi keempat) |
 | Halaman dashboard | 18 (9 Phase 1 + 9 Phase 2/3, termasuk `/deret` baru) |
 | Konektor | 6 konten (rss, youtube, x, manual) + **2 deret waktu** (wikipedia_pageviews, openmeteo_air_quality), keduanya tanpa kunci API |
@@ -315,10 +315,33 @@ Ini bagian terpenting dari dokumen ini.
    yang tersedia (40 hari). Bagian itu ekstrapolasi, bukan estimasi.").
    Modul ini berperilaku benar pada data lapangan, bukan cuma pada fixture.
 
-   **Yang masih belum diverifikasi**: jalur simpan
-   `POST /metrics/collect` → `metric_snapshots` → `GET /forecast/baseline`
-   terhadap Postgres sungguhan. Konektornya terbukti, `fit()`-nya terbukti;
-   yang belum adalah jahitan di antara keduanya lewat database.
+   **Jahitan lengkapnya JUGA sudah diverifikasi** — `POST /metrics/collect`
+   → `metric_snapshots` → `GET /forecast/baseline`, lewat HTTP asli
+   (httpx + ASGITransport) terhadap Postgres 16 lokal dengan role `pop_app`
+   dan `FORCE ROW LEVEL SECURITY` aktif, bukan superuser:
+
+   ```
+   4. forecast SEBELUM  → insufficient=True,  n=0
+                          "Perlu minimal 8 pengamatan historis; tersedia 0."
+   5. collect           → 200, fetched=60 stored=60, 2026-07-13..2026-09-10
+   6. collect ULANG     → stored=0 replaced=60        ← idempoten
+   8. forecast SESUDAH  → insufficient=False, n=60, span=59 hari
+                          model = state-space (level lokal + tren)
+   9. isolasi tenant    → org lain baca deret ini: 200 []
+   10. DELETE proyek    → 204, metric_snapshots ikut terhapus (cascade)
+   ```
+
+   Dua hal yang baru terbukti di sini, di luar yang direncanakan:
+   **idempotensi** (tarik ulang rentang sama tidak menggandakan baris — kalau
+   menggandakan, `timeseries.fit()` akan melihat dua pengamatan di tanggal
+   yang sama dan estimasi lebar intervalnya mengecil palsu), dan **isolasi
+   tenant** untuk endpoint baru ini.
+
+   **Catatan tentang lingkungan verifikasi**: Postgres lokal tidak punya
+   extension `vector`, jadi `mentions` dan `topics` tidak ikut terbuat dan
+   RLS untuk keduanya tidak diuji di sini. Fitur ini tidak menyentuh kedua
+   tabel itu, dan CI (`pgvector/pgvector:pg16`) menjalankan suite penuh
+   dengan keduanya ada — PR #9 hijau.
 
 5. **Akurasi sentimen yang tampil di `/sinyal` adalah batas ATAS.** Ia diukur
    pada 52 kalimat yang ditulis tim pengembang, bukan pada percakapan proyek
@@ -478,13 +501,12 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    menggantikan ini** — lihat poin 4 di bagian "Yang BELUM diverifikasi":
    ia membuka deret untuk menguji modelnya, bukan deret opini.
 
-7. **Jalankan `POST /projects/{id}/metrics/collect` terhadap Postgres
-   sungguhan** (lokal atau Supabase). Konektornya sudah terbukti terhadap
-   API aslinya, tapi jalur simpannya ke `metric_snapshots` baru lulus
-   pembacaan kode dan tipe — belum pernah benar-benar menulis satu baris.
-   Setelah itu panggil `GET /forecast/baseline?metric=pageviews_<artikel>`
-   dan periksa `fitted: true` beserta `model`-nya. **Ini yang menentukan
-   apakah klaim "forecast sekarang bisa di-fit" benar atau baru niat.**
+7. ~~**Jalankan `POST /projects/{id}/metrics/collect` terhadap Postgres
+   sungguhan.**~~ — **selesai 2026-09-11 (sesi keempat).** Ternyata tidak
+   butuh Docker seperti diasumsikan: Postgres 16 sudah berjalan langsung di
+   mesin pengguna. Seluruh jahitan terverifikasi lewat HTTP asli dengan role
+   `pop_app` dan RLS aktif, termasuk idempotensi tarik-ulang dan isolasi
+   tenant. Lihat poin 4 di bagian "Yang BELUM diverifikasi" untuk hasilnya.
 
 8. **Putuskan `SignalSource` untuk pengukuran instrumen.** Kualitas udara
    sementara memakai `DIGITAL` dengan peringatan di `method`, karena nilai
