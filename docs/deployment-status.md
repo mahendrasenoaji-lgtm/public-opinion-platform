@@ -4,6 +4,106 @@
 > ringkas per komponen beserta apa yang belum diverifikasi, lihat
 > [progress.md](progress.md).
 
+---
+
+# 🟢 MULAI DARI SINI — serah-terima sesi, 11 September 2026 (sesi keempat)
+
+**Ditulis khusus untuk sesi berikutnya di komputer lain.** Riwayat chat tidak
+ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
+`docs/progress.md`.
+
+## Keadaan sekarang
+
+**`main` sudah di-merge dan sudah hidup di production.** [PR #9](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/9)
+(tema terang + dua konektor deret waktu) di-merge 2026-09-11 16:17 UTC, lalu
+**diverifikasi benar-benar tayang**, bukan diasumsikan:
+
+- **Vercel** — diperiksa dari bundel CSS yang sungguh dilayani:
+  `--ink:#EDF1F6`, `--panel:#FFFFFF`, `--survey:#0B6FD4` ada; blok
+  `[data-theme=dark]` beserta `--ink:#0A1017`/`--survey:#4DA3FF` juga ada
+  (tema gelap tetap bisa dipilih); skrip boot `localStorage.getItem("pop-theme")`
+  ada di HTML; kelas `.auth-wrap`/`.theme-btn`/`.form-err` ada.
+- **Render** — `/v1/metrics/connectors` berubah dari `404` ke `401`, lalu
+  dengan akun test membalas kedua konektor lengkap dengan `notes`-nya.
+
+Situs sekarang **bertema terang** dengan tombol Gelap/Terang di bar atas tiap
+halaman dashboard, dan punya halaman ke-18: `/deret`.
+
+## ⚠️ Satu bug production yang BELUM selesai
+
+`POST /projects/{id}/metrics/collect` dari Render **gagal 502** dengan
+`"Wikimedia menolak permintaan (403)"`. Jalur yang sama lulus dari mesin
+lokal. Ditemukan dari verifikasi setelah merge, bukan dari tes.
+
+**Yang sudah diselidiki** (supaya tidak diulang):
+
+| User-Agent | Hasil dari mesin lokal |
+|---|---|
+| UA lama konektor | **200** |
+| tanpa UA sama sekali | 403 — "set a user-agent and respect our robot policy" |
+| UA dengan URL kontak | **200** |
+
+Jadi **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat: IP
+datacenter Render kena kebijakan robot Wikimedia (pesan 403-nya menyebut
+`phabricator T400119`).
+
+**[PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10) sudah dibuka, CI hijau, BELUM di-merge** — menunggu keputusan
+pengguna. Isinya dua hal: UA memuat kontak yang benar-benar bisa dibuka (URL
+repo), dan **badan respons Wikimedia diteruskan apa adanya** ke pesan error.
+Yang kedua itu yang penting: pesan lama tidak memberi petunjuk apakah 403-nya
+soal UA, kebijakan robot, atau IP.
+
+## Langkah pertama sesi berikutnya
+
+1. **Merge PR #10** (kalau pengguna setuju), tunggu Render redeploy, lalu
+   panggil `/metrics/collect` sekali lagi. Wikimedia sendiri yang akan
+   menyebut alasannya di badan respons.
+2. **Kalau ternyata memang IP datacenter**: jalan keluarnya adalah pola
+   "tarik dari mesin lokal lalu kirim lewat endpoint" — persis yang sudah
+   dipakai routine harian MBG. Keterbatasan sejenis sudah tercatat untuk
+   konektor RSS di `docs/progress.md` poin 2. Catat sebagai keterbatasan
+   yang diketahui, jangan dipaksakan.
+3. **Keputusan yang menunggu pengguna, bukan wewenang agen**: `SignalSource`
+   untuk pengukuran instrumen. Kualitas udara sementara memakai `DIGITAL`
+   dengan peringatan di kolom `method`. Yang benar adalah nilai enum baru
+   (mis. `SENSOR`), tapi itu butuh `ALTER TYPE signal_source ADD VALUE` di
+   Supabase — kelas migrasi yang menjatuhkan tiga halaman production pada
+   2026-09-02. Jangan dilakukan diam-diam.
+4. Sisanya lihat "Langkah berikutnya yang paling masuk akal" di
+   `docs/progress.md`.
+
+## Yang TIDAK perlu dikhawatirkan
+
+- **Tidak ada migrasi tertunda.** Seluruh pekerjaan sesi ini nol perubahan di
+  `db/`, `app/services/`, `app/models/`, dan router lama. `main.py` cuma
+  bertambah dua baris pendaftaran router.
+- **Data dua project riset pengguna aman.** `KEBAKARAN HUTAN` (157 item) dan
+  `MBG AGUSTUS 2026` ada di tabel `mentions`; fitur baru menulis ke
+  `metric_snapshots`. Tidak ada jalur baru yang menyentuh `mentions`.
+- **Routine harian MBG tetap jalan** sampai 19 September — ia memakai
+  `POST /signals/ingest` yang tidak disentuh sesi ini.
+- Proyek uji yang dibuat di production selama verifikasi **sudah dihapus**
+  (`DELETE` → 204, dikonfirmasi 404).
+
+## Cara menjalankan tes lokal tanpa Docker
+
+Temuan sesi ini: **Docker tidak dibutuhkan** — Postgres 16 sudah terpasang
+lewat Homebrew di mesin pengguna dan berjalan di port 5432. Asumsi
+"butuh Docker" di sesi-sesi sebelumnya keliru. Dua hal yang perlu diketahui
+kalau menyiapkannya lagi:
+
+- `db/schema.sql` baris 8 butuh extension `vector` (pgvector). Tanpa itu,
+  `mentions` dan `topics` tidak terbuat dan blok RLS-nya ikut batal
+  seluruhnya (blok `DO $$` gagal utuh, bukan sebagian).
+- Role `pop` perlu atribut `BYPASSRLS` supaya fungsi `SECURITY DEFINER`
+  (`auth_register`) bisa menembus `FORCE ROW LEVEL SECURITY`. Di CI ini
+  tidak terlihat karena `pop` adalah superuser kontainer.
+
+Database `pop_test` dan role `pop`/`pop_app` yang dipakai verifikasi sesi
+ini **sudah dihapus lagi**; mesin pengguna bersih.
+
+---
+
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
 Update 2026-08-24 (sesi panjang, 11 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
@@ -1151,7 +1251,7 @@ benar. Fix ini tetap menutup satu asimetri nyata di `/proyek` sendiri.
 Tidak ada tes otomatis baru — perubahan satu baris di client action
 handler. `tsc`+`next build` hijau, CI PR #8 hijau (backend+frontend+Vercel).
 
-## ✅ Redesain tema terang + dua konektor deret publik — 2026-09-11 (sesi keempat)
+## ✅ Redesain tema terang + dua konektor deret publik — PR #9, di-merge & LIVE 2026-09-11 (sesi keempat)
 
 Dipicu permintaan pengguna: sebuah tangkapan layar dashboard Sprout Social
 ("saya suka dashboard seperti ini, lebih mudah menganalisa") plus "carikan
@@ -1367,6 +1467,81 @@ membuatnya ulang: `make test-db` (butuh `ADMIN_DATABASE_URL`).
 **CI PR #9 hijau penuh** — backend (suite lengkap, role `pop_app`, RLS
 aktif), frontend, dan Vercel preview. Jadi 49 tes baru itu **sudah
 terkonfirmasi CI**, bukan cuma lokal.
+
+### Di-merge dan diverifikasi tayang — 2026-09-11 16:17 UTC
+
+Di-merge atas persetujuan eksplisit pengguna, lalu **diperiksa benar-benar
+hidup**, bukan diasumsikan karena CI hijau:
+
+- **Vercel** — diperiksa dari bundel CSS yang sungguh dilayani (bukan dari
+  build lokal): `--ink:#EDF1F6`, `--panel:#FFFFFF`, `--survey:#0B6FD4` ada;
+  `[data-theme=dark]` beserta `--ink:#0A1017`/`--survey:#4DA3FF` juga ada,
+  jadi tema gelap tetap bisa dipilih; skrip boot
+  `localStorage.getItem("pop-theme")` ada di HTML `/login`; kelas
+  `.auth-wrap`/`.theme-btn`/`.form-err`/`.btn-ghost` ada.
+
+  Catatan kecil supaya tidak membingungkan sesi berikutnya: minifier
+  menghapus tanda kutip, jadi yang tampak di bundel adalah
+  `[data-theme=dark]`, bukan `[data-theme="dark"]`. Dan kemunculan
+  `#080D13` di bundel BUKAN literal warna yang tertinggal — itu nilai token
+  `--nav-bg` di dalam blok tema gelap, persis seperti seharusnya.
+
+- **Render** — `/v1/metrics/connectors` berubah `404` → `401`, lalu dengan
+  akun test yang didaftarkan sendiri membalas kedua konektor lengkap dengan
+  `notes` metodologisnya. Proyek uji yang dibuat untuk ini **sudah dihapus**
+  (`DELETE` → 204, dikonfirmasi 404).
+
+**Satu bug production ditemukan dari verifikasi ini** — lihat bagian
+"Wikimedia menolak Render dengan 403" di bawah, dan blok "MULAI DARI SINI"
+di kepala dokumen ini.
+
+## ⚠️ Wikimedia menolak Render dengan 403 — PR #10 dibuka, BELUM di-merge
+
+Ditemukan saat memverifikasi PR #9 di production, bukan dari tes:
+`POST /projects/{id}/metrics/collect` membalas **502** dengan
+`"Wikimedia menolak permintaan (403)"`. Jalur yang sama lulus dari mesin
+lokal beberapa menit sebelumnya.
+
+**Diselidiki dulu sebelum menambal.** Tiga varian diuji terhadap endpoint
+Wikimedia yang sama dari mesin lokal:
+
+| User-Agent | Hasil |
+|---|---|
+| UA lama konektor | **200** |
+| tanpa UA sama sekali | 403 — "Please set a user-agent and respect our robot policy https://w.wiki/4wJS" |
+| UA dengan URL kontak | **200** |
+
+Artinya **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat:
+alamat IP datacenter Render kena kebijakan robot Wikimedia — pesan 403
+Wikimedia sendiri menyebut `phabricator T400119`.
+
+[PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10)
+berisi dua perbaikan yang berguna terlepas dari akar masalahnya:
+
+1. **User-Agent memuat titik kontak yang benar-benar bisa dibuka** (URL repo
+   ini). Kebijakan Wikimedia meminta pemanggil otomatis menyebut diri DAN
+   menyertakan kontak; versi lama menulis "contact via platform admin", yang
+   bukan kontak apa pun. Tetap BUKAN string peramban — menyamar dilarang di
+   `connectors/base.py`.
+2. **Badan respons Wikimedia diteruskan apa adanya** ke `ConnectorError`,
+   bukan cuma kode statusnya. Ini yang akan menjawab pertanyaannya: pesan
+   lama tidak memberi satu pun petunjuk apakah 403-nya soal UA, kebijakan
+   robot, atau IP — padahal Wikimedia menjelaskannya sendiri di badan
+   respons lengkap dengan tautan kebijakan.
+
+**CI PR #10 hijau penuh** (backend, frontend, Vercel). **Belum di-merge** —
+menunggu keputusan pengguna, dan sengaja tidak ditutup sebagai "selesai"
+karena belum terbukti menyelesaikan 403-nya.
+
+**Kalau ternyata memang soal IP datacenter**, jalan keluarnya bukan memaksa:
+pola "tarik dari mesin lokal lalu kirim lewat endpoint" sudah dipakai
+routine harian MBG dan sudah tercatat sebagai keterbatasan sejenis untuk
+konektor RSS (`docs/progress.md` poin 2). Catat sebagai keterbatasan yang
+diketahui.
+
+Yang tidak terpengaruh sama sekali: konektor Open-Meteo (Open-Meteo tidak
+punya kebijakan robot semacam ini), seluruh tampilan tema terang, dan kedua
+project riset pengguna.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 

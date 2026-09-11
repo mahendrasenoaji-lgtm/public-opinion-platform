@@ -458,6 +458,12 @@ Ini bagian terpenting dari dokumen ini.
 
 ## Langkah berikutnya yang paling masuk akal
 
+> **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
+> konkret per 2026-09-11 malam ada di blok "🟢 MULAI DARI SINI" di kepala
+> `docs/deployment-status.md` — ringkasnya: PR #9 sudah di-merge dan hidup
+> di production, dan ada satu bug production terbuka (Wikimedia membalas 403
+> ke Render) dengan PR #10 yang sudah siap tapi belum di-merge.
+
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
 1. ~~**Verifikasi Phase 2/3 terhadap production.**~~ — **selesai
@@ -515,6 +521,20 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    pada 2026-09-02, jadi tidak dilakukan diam-diam. Lihat
    `docs/deployment-status.md` bagian "Redesain tema terang + dua konektor
    deret publik".
+
+9. **Tutup bug 403 Wikimedia terhadap Render.** Ini yang paling atas dari
+   semua yang terbuka, karena ia menghalangi satu-satunya fitur baru yang
+   sudah tayang tapi belum bisa dipakai dari UI. PR #10 sudah siap dan CI-nya
+   hijau; yang dibutuhkan adalah merge, tunggu Render redeploy, panggil
+   `/metrics/collect` sekali, lalu BACA pesan Wikimedia yang sekarang ikut
+   diteruskan. Detail lengkap penyelidikannya (tiga varian User-Agent yang
+   sudah diuji, supaya tidak diulang) ada di `docs/deployment-status.md`
+   bagian "Wikimedia menolak Render dengan 403".
+
+   Kalau ternyata memang IP datacenter: **jangan dipaksakan.** Catat sebagai
+   keterbatasan yang diketahui, dan pakai pola "tarik dari mesin lokal lalu
+   kirim lewat endpoint" yang sudah dipakai routine harian MBG — sama persis
+   dengan keterbatasan konektor RSS di poin 2 bagian atas.
 6. **Phase 4** — lihat tabel di bagian "Phase 4 — enterprise" di atas.
    Empat item pertama (SSO, MFA wajib, billing, API publik) tetap butuh
    keputusan vendor/kebijakan yang bukan wewenang agen, dan — di luar
