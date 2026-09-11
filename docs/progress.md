@@ -33,8 +33,8 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **474 lulus** (role `pop_app`, RLS aktif — bukan superuser; 473→474 dikonfirmasi via CI [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2), bukan lokal — Docker tidak tersedia di sandbox sesi 2026-09-02) |
-| Endpoint API | 59 |
+| Tes backend | **474 + 12 baru** (role `pop_app`, RLS aktif — bukan superuser; 473→474 dikonfirmasi via CI [PR #2](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/2). 12 tes baru 2026-09-11 — `test_reports.py` (4), `test_middleware.py` (7), `test_sentiment.py` (+1) — semuanya murni/tanpa DB, dijalankan lokal (43/43 hijau termasuk yang lama); **belum dikonfirmasi lewat CI penuh terhadap role `pop_app`**, Docker tidak tersedia di sandbox sesi ini, sama seperti sesi-sesi sebelumnya) |
+| Endpoint API | 60 (+1 — `GET /projects/{id}/reports/summary`, 2026-09-11) |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
 | `mypy --strict` | Bersih di `app/services`, `app/ai`, `app/connectors` |
@@ -152,23 +152,26 @@ panjang atau proyeknya banyak.
 
 ---
 
-## Phase 4 — enterprise · **BELUM DIMULAI**
+## Phase 4 — enterprise · **DIMULAI SEBAGIAN (2026-09-11)**
 
-Tidak ada satu pun item Phase 4 yang dikerjakan. Ini keputusan, bukan
-kehabisan waktu.
+Empat item pertama (SSO, MFA wajib, billing, API publik) tetap **belum
+disentuh** — keputusan vendor/kebijakan yang bukan wewenang agen. Tiga item
+lain yang TIDAK butuh vendor pihak ketiga **mulai dikerjakan** sesi
+2026-09-11, atas instruksi eksplisit pengguna ("kerjakan no 1, 3, dan 4
+secara maksimal").
 
-| Item | Yang menahan |
+| Item | Status |
 |---|---|
-| SSO / SAML / SCIM | Penyedia identitas mana yang dipakai — keputusan organisasi |
-| MFA wajib | Kolom `users.mfa_secret` sudah ada di schema; alur enrolmen dan pemulihan butuh keputusan kebijakan |
-| Billing + kredit survei/data/AI | Penyedia pembayaran mana, dan model harga apa |
-| API publik + webhook | Kontrak API publik tidak bisa ditarik lagi setelah ada yang memakainya |
-| Rate limiting per tenant | Menyusul API publik |
-| Report generator PDF/DOCX/PPTX/XLSX | Bisa dikerjakan kapan saja; belum ada permintaan konkret soal format laporan |
-| Observability: tracing, evaluasi model, deteksi drift | Bisa dikerjakan; paling berguna setelah ada trafik produksi nyata |
-| Orkestrasi multi-agent penuh | `ai/agents.py:Orchestrator` sudah ada dan dipakai Brief + Copilot, tapi baru menjalankan satu agen berurutan |
+| SSO / SAML / SCIM | Belum disentuh — penyedia identitas mana yang dipakai adalah keputusan organisasi |
+| MFA wajib | Belum disentuh — kolom `users.mfa_secret` sudah ada di schema; alur enrolmen dan pemulihan butuh keputusan kebijakan |
+| Billing + kredit survei/data/AI | Belum disentuh — penyedia pembayaran mana, dan model harga apa |
+| API publik + webhook | Belum disentuh — kontrak API publik tidak bisa ditarik lagi setelah ada yang memakainya |
+| ✅ Report generator PDF | **Selesai v1** — `GET /projects/{id}/reports/summary`, cakupan Segments + Polarization Index. Lihat `docs/deployment-status.md` bagian "Phase 4 — item tanpa vendor pihak ketiga (2026-09-11)". DOCX/PPTX/XLSX belum ada permintaan konkret soal formatnya, belum dikerjakan. |
+| ✅ Rate limiting per tenant | **Versi minimal selesai** — in-memory per-proses, BUKAN Redis/terdistribusi (batasannya didokumentasikan di `app/middleware/ratelimit.py`, harus diganti sebelum API publik/skala horizontal beneran ada). |
+| ✅ Observability dasar | **Selesai** — request ID + log JSON per request (`app/middleware/observability.py`). Ini BUKAN APM/tracing distribusi (Datadog/Sentry/dst) — itu tetap butuh keputusan vendor, belum dikerjakan. |
+| Orkestrasi multi-agent penuh | **Sengaja tidak disentuh** — `ai/agents.py:Orchestrator` SUDAH mendukung banyak agen sekaligus (`run(agents: list[Agent], ctx)`), tapi kedua pemanggilnya (`brief.py`, `copilot.py`) selalu mengirim satu agen. Memperluas ini jadi "beneran multi-agent" butuh keputusan desain (agen apa, tugas apa, kenapa) yang bukan wewenang agen untuk diputuskan sendiri tanpa digunakan siapa pun dulu — beda kelas dengan tiga item di atas yang implementasinya mekanis begitu tahu tujuannya. |
 
-Empat item pertama butuh keputusan yang bukan wewenang agen. Sesuai
+Empat item pertama tetap butuh keputusan yang bukan wewenang agen. Sesuai
 CLAUDE.md §8, lebih baik berhenti dan bertanya daripada memilih sendiri lalu
 mengunci proyek ke pilihan itu.
 
@@ -178,10 +181,23 @@ mengunci proyek ke pilihan itu.
 
 Ini bagian terpenting dari dokumen ini.
 
-1. **Tidak ada satu pun fitur Phase 2/3 yang diuji terhadap Supabase
-   produksi.** Seluruh verifikasi memakai Postgres lokal. Langkah lanjutan:
-   tunggu Render + Vercel redeploy, lalu ulangi pemeriksaan manual terhadap
-   production. Itu butuh login `SITE_PASSWORD` yang di luar kemampuan agen.
+1. ~~**Tidak ada satu pun fitur Phase 2/3 yang diuji terhadap Supabase
+   produksi.**~~ — **ditutup 2026-09-11.** Ternyata verifikasi TIDAK butuh
+   login `SITE_PASSWORD` seperti diasumsikan di bawah — gerbang itu cuma di
+   middleware Next.js, API FastAPI publik (`pop-api-ptug.onrender.com`) bisa
+   diverifikasi langsung lewat akun test yang didaftarkan sendiri lewat
+   `/v1/auth/register`. Detail lengkap di `docs/deployment-status.md` bagian
+   "Verifikasi production 2026-09-11". Ringkas: `GET /topics` dan
+   `GET /network` (dulu 500) sekarang `200`; `PATCH /topics/{id}/review`
+   (jalur TULIS ke kolom migrasi) juga `200`; 195 artikel media asli
+   diinjeksi lewat `POST /signals/ingest` sungguhan lalu `topics/discover`,
+   `risk/score`, `forecast/baseline`, `copilot/ask`, `brief/latest`,
+   `impact/analyze` semua diverifikasi berperilaku benar (bukan cuma "tidak
+   500" — gating `insufficient_data`/`coverage` juga bekerja seperti
+   didesain). Project test dihapus lagi setelahnya, production bersih.
+
+   Isi asli catatan ini (sebelum ditutup), untuk konteks sejarah:
+
    **Migrasi skema belum diterapkan ke Supabase** untuk dua perubahan Phase 3
    terakhir — kolom `topics.reviewed_label`/`review_status`/`reviewed_by`/
    `reviewed_at`, dan `mentions.reply_to_hash`/`quote_of_hash`/
@@ -206,10 +222,7 @@ Ini bagian terpenting dari dokumen ini.
    SQL lengkapnya ada di deskripsi PR #4 dan di `docs/deployment-status.md`
    bagian "Fix crash Command Center/Tema/Jaringan". **Migrasi kolom
    Supabase sudah dijalankan pengguna** (2026-09-02, sesi keempat) —
-   `Success. No rows returned` di SQL Editor. **Masih belum diverifikasi
-   live di aplikasi** — butuh login `SITE_PASSWORD` manual pengguna ke
-   `/command`, `/tema`, `/jaringan` untuk konfirmasi fitur review-label
-   dan network graph benar-benar berfungsi, bukan cuma tidak crash.
+   `Success. No rows returned` di SQL Editor.
 
 2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
    kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS
@@ -219,11 +232,19 @@ Ini bagian terpenting dari dokumen ini.
    CNN Indonesia, Tempo, Republika, CNBC Indonesia), menghasilkan 215 item
    nyata. Dua URL feed yang dicoba pertama kali (Kompas, Detik) ternyata
    404/mati — bukti kecil bahwa URL RSS memang rapuh dan berubah, persis
-   seperti disinggung di `connectors/rss.py`. **Yang BELUM ikut teruji di
-   sini**: jalur lewat endpoint `POST .../signals/collect`, database (skrip
-   ini murni memanggil fungsi, tanpa Postgres sama sekali — Docker tidak
-   tersedia di sandbox sesi ini), dan jaringan keluar dari Render sendiri ke
-   penerbit (kemungkinan besar sama, tapi belum dicoba dari Render). Pipeline
+   seperti disinggung di `connectors/rss.py`. **Update 2026-09-11**: jalur
+   lewat endpoint sungguhan dan database production **sekarang teruji** —
+   195 item nyata (4 feed, ditarik ulang hari ini) dikirim lewat
+   `POST /v1/signals/ingest` ke `pop-api-ptug.onrender.com` sungguhan
+   (bukan panggilan fungsi lokal), tersimpan di Supabase, dan berhasil
+   diagregasi lewat `signals/summary`, `signals/trend`, `topics/discover`.
+   Jadi jaringan keluar dari Render ke Postgres/Supabase **teruji**; yang
+   **masih belum teruji** cuma jalur `POST .../signals/sources/{id}/collect`
+   (konektor RSS terdaftar sebagai `DataSource` + jaringan Render → penerbit
+   RSS langsung) — sesi ini masih menarik feed dari mesin lokal lalu
+   mengirim hasilnya lewat `ingest`, bukan memicu `collect` dari Render
+   sendiri. Detail lengkap di `docs/deployment-status.md` bagian
+   "Verifikasi production 2026-09-11". Pipeline
    ingestion (`normalize_text`, `detect_language`, `dedupe`) dan sentiment
    (`sentiment.score`) dijalankan di atas ke-215 item nyata itu tanpa satu
    pun exception — lihat poin 5 di bawah untuk apa yang ditemukan dari situ.
@@ -316,6 +337,20 @@ Ini bagian terpenting dari dokumen ini.
    batas perbaikan amannya — perbaikan lanjutan yang berarti butuh model,
    bukan kamus kata, persis seperti diakui docstring modul sejak awal.
 
+   **Ronde ketiga diambil 2026-09-11 (sesi verifikasi production) — sampel
+   naik ke 445 item (7 feed, nambah CNN Indonesia/Tempo/Media Indonesia),
+   KALI INI ADA satu bug baru yang aman diperbaiki.** `hebat` (leksikon
+   positif, 0.9) — 3/3 kemunculan adalah penguat keparahan di depan kata
+   negatif ("Kebakaran Hebat Lahap Sekolah, 17 Orang Tewas", "Kebakaran
+   hebat melanda kantor PUPR", "Gadis AS Muntah Hebat"), 0/3 makna pujian —
+   pola identik "asal", **dihapus dari leksikon** (bukan cuma dicatat).
+   `manfaat` juga diperiksa (7 kemunculan) tapi SENGAJA tidak diperbaiki:
+   6/7 benar (genre artikel "manfaat kesehatan X"), cuma 1/7 salah karena
+   negasi/pencabutan ("dikeluarkan dari daftar penerima manfaat") — beda
+   kelas dengan `hebat`/`asal` yang salah di hampir semua kemunculan.
+   Detail lengkap di `docs/deployment-status.md` bagian "Verifikasi
+   production 2026-09-11". Abstain rate 78.0%, konsisten dengan ronde 1-2.
+
 6. **15 dari 17 halaman dashboard rentan crash "Application error" pada
    error backend APA PUN — ditemukan+diperbaiki 2026-09-02 (sesi
    keempat), atas laporan pengguna "banyak yang belum bisa diklik".**
@@ -342,32 +377,52 @@ Ini bagian terpenting dari dokumen ini.
 
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
-1. **Verifikasi Phase 2/3 terhadap production.** Semua kodenya sudah di
-   `main`; yang kurang cuma menjalankannya di sana.
+1. ~~**Verifikasi Phase 2/3 terhadap production.**~~ — **selesai
+   2026-09-11**, lihat `docs/deployment-status.md` bagian "Verifikasi
+   production 2026-09-11". Ternyata tidak perlu menunggu apa pun — bisa
+   langsung lewat API publik dengan akun test sendiri.
 2. **Aktifkan `ANTHROPIC_API_KEY` di Render**, lalu verifikasi Executive Brief
    dan Copilot menghasilkan jawaban yang masuk akal dan tidak memuat klaim di
-   luar fakta yang dikirim.
+   luar fakta yang dikirim. **Sengaja ditunda ke urutan TERAKHIR** atas
+   instruksi eksplisit pengguna sesi 2026-09-11 (dikerjakan setelah poin 1/3/4
+   di sini, bukan sebelumnya).
 3. ~~**Sambungkan satu konektor sungguhan** — RSS paling murah, tidak butuh
    kunci — dan lihat apakah pipeline bertahan pada data lapangan yang
-   berantakan.~~ — **dikerjakan sebagian 2026-09-02**, lihat poin 2 di bagian
-   "Yang BELUM diverifikasi" di atas. Bertahan (tidak ada exception atas 215
-   item nyata); yang belum: lewat endpoint asli + Postgres + dari Render
-   sendiri.
+   berantakan.~~ — **selesai 2026-09-11**: 195 item nyata dikirim lewat
+   `POST /signals/ingest` sungguhan ke production (bukan panggilan fungsi
+   lokal), tersimpan, teragregasi, ter-cluster jadi topics. Sisa yang belum:
+   memicu `collect` dari Render sendiri lewat `DataSource` konektor RSS
+   terdaftar (bukan cuma `ingest` manual) — beda kelas, bukan penghalang
+   berarti.
 4. **Ukur ulang akurasi sentimen** terhadap sampel berlabel dari data nyata
    itu. Ini yang menentukan apakah seluruh lapisan sinyal layak dipakai untuk
-   keputusan, atau baru layak untuk eksplorasi. **Dua ronde langkah kecil
-   diambil 2026-09-02, bukan pengganti langkah ini** — lihat poin 5 di
-   bagian "Yang BELUM diverifikasi": ronde pertama menemukan+memperbaiki 1
-   bug leksikon nyata ("asal") dari 215 item/5 feed; ronde kedua (385
-   item/7 feed, dua kali lebih besar) **tidak menemukan bug baru yang aman
-   diperbaiki** — 3 temuan baru semuanya batas struktural yang sudah
-   diketahui ("meningkat" pada bencana, "korupsi" pada berita
-   anti-korupsi, "sulit" pada idiom), dikonfirmasi ganda sebagai batas
-   metode leksikon, bukan kekurangan pencarian. **Sinyal untuk sesi
-   berikutnya**: ronde manual seperti ini sudah mendekati titik jenuh —
-   perbaikan akurasi lebih lanjut kemungkinan besar butuh (a) sampel
-   berlabel sistematis dari penilai independen (yang sebenarnya diminta
-   poin ini, masih belum ada), atau (b) metode berbasis model, bukan ronde
-   pull-RSS-dan-baca-manual ketiga dengan feed berbeda lagi.
-5. Baru setelah itu: gelombang survei kedua (membuka forecast), lalu Phase 4
-   dengan keputusan-keputusan yang sudah diambil lebih dulu.
+   keputusan, atau baru layak untuk eksplorasi. **Tiga ronde langkah kecil
+   diambil (2026-09-02 x2, 2026-09-11 x1), bukan pengganti langkah ini** —
+   lihat poin 5 di bagian "Yang BELUM diverifikasi": ronde 1 (215 item)
+   menemukan+memperbaiki "asal"; ronde 2 (385 item) tidak menemukan bug baru
+   yang aman diperbaiki; **ronde 3 (445 item, 2026-09-11) menemukan+
+   memperbaiki satu lagi ("hebat", pola sama seperti "asal")** — jadi titik
+   jenuhnya belum semutlak yang disimpulkan ronde 2, tapi masih dalam
+   kategori "perbaikan kecil dari perluasan sampel", bukan lompatan mutu.
+   `manfaat` diperiksa di ronde 3 dan SENGAJA tidak diperbaiki (6/7 kasus
+   benar). **Kesimpulan tetap sama seperti ronde 2**: perbaikan akurasi yang
+   BERARTI (bukan cuma nambah satu-dua kata per ronde) tetap butuh (a)
+   sampel berlabel sistematis dari penilai independen, atau (b) metode
+   berbasis model — dua-duanya di luar yang bisa diselesaikan lewat ronde
+   pull-RSS-dan-baca-manual lagi.
+5. **Gelombang survei kedua (membuka forecast)** — **masih di luar wewenang
+   agen**: butuh respons manusia sungguhan, tidak bisa difabrikasi tanpa
+   melanggar R1 (data sintetis tidak boleh disajikan sebagai hasil survei
+   nyata). Ini murni tugas pengumpulan data pengguna/institusi, bukan
+   tugas rekayasa.
+6. **Phase 4** — lihat tabel di bagian "Phase 4 — enterprise" di atas.
+   Empat item pertama (SSO, MFA wajib, billing, API publik) tetap butuh
+   keputusan vendor/kebijakan yang bukan wewenang agen, dan — di luar
+   keputusan itu — melibatkan pembuatan akun pihak ketiga (identity
+   provider, payment provider) yang juga di luar batas yang boleh
+   dilakukan agen atas nama pengguna tanpa persetujuan eksplisit per
+   platform. Tiga item sisanya (rate limiting, report generator,
+   observability dasar, orkestrasi multi-agent) **tidak butuh keputusan
+   vendor** — lihat `docs/deployment-status.md` bagian "Phase 4 — item yang
+   tidak butuh vendor pihak ketiga (2026-09-11)" untuk apa yang mulai
+   dikerjakan.

@@ -54,6 +54,19 @@ class TestKataAmbigu:
         r = score("Aktor asal Inggris Raya bergabung dalam film itu")
         assert r.abstained, "'asal' (arti 'dari') tidak boleh memicu skor apa pun"
 
+    def test_hebat_penguat_keparahan_tidak_lagi_dianggap_positif(self) -> None:
+        """Regresi dari verifikasi production 2026-09-11 (445 item, 7 feed).
+
+        "hebat" sempat ada di leksikon positif (arti pujian), tapi 3/3
+        kemunculannya di media nyata adalah penguat keparahan di depan kata
+        negatif ("kebakaran hebat", "muntah hebat") — 0/3 arti pujian.
+        Dihapus dari leksikon karena itu, pola sama seperti "asal".
+        """
+        r = score("Kebakaran hebat melanda sekolah itu, beberapa korban tewas")
+        assert r.abstained or (r.score is not None and r.score <= 0), (
+            "'hebat' sebagai penguat keparahan tidak boleh mendorong skor positif"
+        )
+
 
 class TestNegasi:
     def test_negasi_membalik_polaritas(self) -> None:

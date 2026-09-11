@@ -22,10 +22,23 @@ dependencies = [
   "statsmodels>=0.14",
   "scikit-learn>=1.5",
   "email-validator>=2.2",
+  "reportlab>=4.2",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.3", "pytest-asyncio>=0.24", "ruff>=0.7", "mypy>=1.13"]
+dev = [
+  "pytest>=8.3",
+  "pytest-asyncio>=0.24",
+  "ruff>=0.7",
+  "mypy>=1.13",
+  # types-reportlab: reportlab (app/services/reports.py) tidak ship stub
+  # bawaan -- tanpa ini, `mypy --strict app/services` gagal di CI (ketahuan
+  # 2026-09-11: lolos di sandbox lokal cuma karena stub-nya sempat
+  # ter-install manual di venv scratch, tidak pernah masuk manifest --
+  # persis kelas bug yang sama seperti email-validator yang hilang dari
+  # sini sebelumnya, lihat docs/deployment-status.md 2026-08-27).
+  "types-reportlab>=4.2",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

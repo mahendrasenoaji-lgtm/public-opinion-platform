@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.middleware.observability import RequestLoggingMiddleware
+from app.middleware.ratelimit import RateLimitMiddleware
 from app.routers import (
     alerts,
     auth,
@@ -20,6 +22,7 @@ from app.routers import (
     network,
     opinion,
     projects,
+    reports,
     risk,
     segments,
     signals,
@@ -45,6 +48,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Urutan add_middleware PENTING: Starlette membungkus dari yang terakhir
+# ditambahkan ke luar (yang terakhir = paling luar). CORSMiddleware HARUS
+# paling luar supaya respons apa pun dari middleware di dalamnya --
+# termasuk 429 dari RateLimitMiddleware -- tetap membawa header CORS;
+# kalau tidak, browser akan memblokir frontend membaca pesan errornya
+# sendiri (lihat app/middleware/ratelimit.py untuk batasan rate limit-nya).
+app.add_middleware(RequestLoggingMiddleware)
+if settings.rate_limit_enabled:
+    app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -84,5 +96,6 @@ for r in (
     impact,
     alerts,
     network,
+    reports,
 ):
     app.include_router(r.router, prefix="/v1")

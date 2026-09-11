@@ -77,7 +77,7 @@ CLAUSE_BREAKS = wordset("""
 #: tidak dimasukkan — "harga naik" negatif tapi "bantuan naik" positif, dan
 #: leksikon tidak bisa membedakannya.
 _POSITIVE: dict[str, float] = {
-    "bagus": 0.8, "baik": 0.7, "mantap": 0.9, "hebat": 0.9, "keren": 0.8,
+    "bagus": 0.8, "baik": 0.7, "mantap": 0.9, "keren": 0.8,
     "puas": 0.8, "senang": 0.8, "gembira": 0.8, "lega": 0.7, "bangga": 0.8,
     "setuju": 0.7, "mendukung": 0.8, "dukung": 0.7, "apresiasi": 0.8,
     "berhasil": 0.8, "sukses": 0.8, "membantu": 0.7, "bermanfaat": 0.8,
@@ -101,6 +101,18 @@ _POSITIVE: dict[str, float] = {
 #: hubung ("asal-asalan" -> "asal" "asalan"), jadi entri tunggal ini tidak
 #: bisa membedakan kedua makna tanpa konteks kata di sekitarnya — di luar
 #: kemampuan leksikon kata-tunggal ini (lihat docstring modul).
+#:
+#: "hebat" (arti "sangat"/pujian, mis. "dia hebat!") SENGAJA tidak
+#: dimasukkan lagi ke sini (dihapus 2026-09-11). Dalam liputan media
+#: Indonesia kata ini jauh lebih sering dipakai sebagai penguat keparahan
+#: di depan kata NEGATIF ("kebakaran hebat", "muntah hebat") daripada
+#: sebagai pujian berdiri sendiri — dikonfirmasi via 445 item nyata dari
+#: 7 feed RSS media Indonesia (sesi verifikasi production 2026-09-11,
+#: bukan 52 kalimat set evaluasi): 3/3 kemunculan token "hebat" adalah
+#: penguat keparahan (kebakaran sekolah 17 tewas +0.9, kebakaran kantor
+#: +0.9, muntah hebat +0.9), 0/3 makna pujian. Sama persis pola "asal" di
+#: atas — kata yang maknanya berbalik total tergantung kata benda/kerja
+#: yang mengikutinya, di luar kemampuan leksikon kata-tunggal ini.
 _NEGATIVE: dict[str, float] = {
     "buruk": 0.8, "jelek": 0.8, "parah": 0.9, "hancur": 0.9, "kacau": 0.9,
     "amburadul": 0.9, "gagal": 0.9, "kecewa": 0.8, "mengecewakan": 0.9,
