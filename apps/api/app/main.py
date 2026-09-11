@@ -48,22 +48,43 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Urutan add_middleware PENTING: Starlette membungkus dari yang terakhir
-# ditambahkan ke luar (yang terakhir = paling luar). CORSMiddleware HARUS
-# paling luar supaya respons apa pun dari middleware di dalamnya --
-# termasuk 429 dari RateLimitMiddleware -- tetap membawa header CORS;
-# kalau tidak, browser akan memblokir frontend membaca pesan errornya
-# sendiri (lihat app/middleware/ratelimit.py untuk batasan rate limit-nya).
-app.add_middleware(RequestLoggingMiddleware)
-if settings.rate_limit_enabled:
-    app.add_middleware(RateLimitMiddleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def install_middleware(app: FastAPI, *, rate_limit_enabled: bool) -> None:
+    """Pasang middleware pada urutan yang benar.
+
+    Fungsi tersendiri (bukan tiga baris di ruang modul) supaya urutannya bisa
+    dites langsung tanpa mengimpor ulang modul ini -- lihat
+    `tests/test_middleware.py::TestUrutanMiddleware`. Urutan di sini pernah
+    salah dan lolos CI justru karena tidak ada yang bisa mengetesnya.
+
+    Urutan add_middleware PENTING: Starlette membungkus dari yang terakhir
+    ditambahkan ke luar (yang terakhir = paling luar). Dari dalam ke luar:
+    RateLimitMiddleware -> RequestLoggingMiddleware -> CORSMiddleware.
+
+    - CORSMiddleware HARUS paling luar supaya respons apa pun dari middleware
+      di dalamnya -- termasuk 429 dari RateLimitMiddleware -- tetap membawa
+      header CORS; kalau tidak, browser akan memblokir frontend membaca pesan
+      errornya sendiri (lihat `app/middleware/ratelimit.py` untuk batasan rate
+      limit-nya).
+    - RequestLoggingMiddleware HARUS di LUAR RateLimitMiddleware. Urutan
+      sebaliknya (dipasang 2026-09-11, ketahuan hari yang sama lewat
+      verifikasi production) membuat respons 429 di-short-circuit sebelum
+      sampai ke logger: tidak ada baris log JSON-nya dan tidak ada header
+      X-Request-ID -- padahal justru request inilah yang paling perlu terlihat
+      di log (percobaan brute-force login).
+    """
+    if rate_limit_enabled:
+        app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(RequestLoggingMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+
+install_middleware(app, rate_limit_enabled=settings.rate_limit_enabled)
 
 
 @app.exception_handler(ValueError)

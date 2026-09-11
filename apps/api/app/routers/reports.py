@@ -17,7 +17,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy import select
 
 from app.deps import CurrentUser, TenantSession
@@ -40,7 +40,14 @@ async def get_summary_report(
     """Laporan ringkasan proyek (Segments + Polarization Index) sebagai PDF."""
     project = (
         await session.execute(select(Project).where(Project.id == project_id))
-    ).scalar_one()
+    ).scalar_one_or_none()
+    # scalar_one() akan melempar NoResultFound di sini, dan main.py cuma punya
+    # handler untuk ValueError -- hasilnya 500, bukan 404. Proyek milik tenant
+    # lain juga sampai ke cabang ini: RLS menyaringnya jadi nol baris, jadi
+    # dari luar tidak bisa dibedakan dari proyek yang memang tidak ada. Itu
+    # disengaja -- membedakan keduanya akan membocorkan keberadaan proyek org lain.
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyek tidak ditemukan.")
 
     segments = (
         (await session.execute(select(Segment).where(Segment.project_id == project_id)))

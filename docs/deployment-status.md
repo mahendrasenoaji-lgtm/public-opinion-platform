@@ -855,6 +855,66 @@ melanggar semangat CLAUDE.md §8 ("kalau ragu, berhenti dan tanya"), beda
 kelas dengan tiga item di atas yang implementasinya mekanis begitu tahu
 tujuannya (rate limit, log, PDF).
 
+## ✅ PR #5 di-merge + verifikasi pasca-deploy — 2026-09-11 (sesi kedua)
+
+PR #5 di-merge ke `main` (merge commit `8677c55`, bukan squash — docs di repo
+merujuk ke commit-commit individualnya). Render dan Vercel auto-deploy; Render
+selesai dalam ~40 detik, Vercel build hijau di merge commit.
+
+**Yang dikonfirmasi hidup di production setelah deploy** (semua lewat request
+sungguhan ke `pop-api-ptug.onrender.com`, bukan dibaca dari kode):
+
+| Item | Bukti |
+|---|---|
+| Observability | `X-Request-ID` ada di tiap respons dan berbeda antar-request |
+| Report PDF | `GET /projects/{id}/reports/summary` → 200, `application/pdf`, 4406 byte, 1 halaman |
+| Isi PDF | Word-wrap benar (fix `Paragraph` bertahan di production), legenda provenance R1 lengkap, polarisasi tampil "data tidak cukup" — bukan angka palsu (CLAUDE.md §3) |
+| Rate limiter | 10 `POST /auth/login` lolos, ke-11 → `429` + `Retry-After: 45` |
+| CORS di 429 | `access-control-allow-origin` terbawa di respons 429 — klaim urutan middleware terbukti di production, bukan cuma di `app.user_middleware` |
+| Exempt & isolasi jatah | `/health` tetap 200 dan `GET /projects` tetap 200 saat login sedang diblokir |
+| Frontend | Gerbang `SITE_PASSWORD` redirect normal, build Vercel hijau |
+
+Project test dihapus (`DELETE /projects` → 204, daftar kembali `[]`). Satu org
+test kosong tertinggal lagi — API masih belum punya endpoint hapus organisasi.
+
+### Dua bug yang lolos CI dan baru ketahuan di production
+
+Keduanya berasal dari PR #5 sendiri, ditemukan justru karena deploy-nya
+diverifikasi dengan request sungguhan alih-alih dianggap beres begitu CI hijau.
+
+**1. `reports/summary` balas 500, bukan 404, untuk proyek yang tidak ada.**
+`routers/reports.py` memakai `.scalar_one()` — satu-satunya di seluruh
+`app/routers/`. Proyek tidak ada (atau milik tenant lain, disaring RLS jadi nol
+baris) → `NoResultFound`, dan `main.py` cuma punya exception handler untuk
+`ValueError` → 500. Terbukti live: `reports/summary` → 500 sementara
+`segments`/`risk/polarization`/`topics`/`network` dengan UUID acak yang sama
+→ 200. Diperbaiki jadi `scalar_one_or_none()` + `HTTPException(404,
+"Proyek tidak ditemukan.")`, sesuai konvensi `surveys.py`/`topics.py`/
+`signals.py`.
+
+**Kenapa CI tidak menangkapnya**: 4 tes di `tests/test_reports.py` semuanya
+menguji fungsi murni `build_summary_pdf`; tidak satu pun memanggil
+endpoint-nya. Celah itu ditutup `tests/test_reports_router.py` (3 tes
+end-to-end terhadap Postgres role `pop_app`), termasuk kasus lintas-tenant
+yang **harus** balas 404 identik dengan "proyek tidak ada" — balasan yang
+berbeda akan membocorkan keberadaan proyek milik org lain.
+
+**2. Request yang kena rate limit tidak tercatat di log sama sekali.**
+Respons 429 tidak membawa `X-Request-ID`. Sebabnya urutan `add_middleware`:
+`RequestLoggingMiddleware` ditambahkan pertama = paling dalam, rate limiter di
+luarnya, jadi 429 di-short-circuit sebelum logger sempat jalan — tidak ada
+baris log JSON-nya. Ironisnya justru request inilah yang paling perlu terlihat
+di log (percobaan brute-force login). Urutan dibalik: rate limiter paling
+dalam, logger di tengah, CORS tetap paling luar.
+
+Urutan middleware sekarang dipasang lewat `main.py:install_middleware()` —
+fungsi tersendiri supaya bisa dites langsung, bukan tiga baris di ruang modul
+yang tidak bisa disentuh tes. `tests/test_middleware.py::TestUrutanMiddleware`
+menguji fungsi yang sama persis dipakai `main.py` (bukan menyusun ulang
+urutannya di tes — tes yang menduplikasi urutan yang mau dijaganya tidak
+menjaga apa pun). **Dibuktikan menangkap regresinya**: urutan sengaja
+dibalik ke versi buggy → 2 tes gagal; dikembalikan → 10 hijau lagi.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1

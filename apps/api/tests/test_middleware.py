@@ -6,7 +6,9 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.middleware.cors import CORSMiddleware
 
+from app.main import install_middleware
 from app.middleware.observability import RequestLoggingMiddleware
 from app.middleware.ratelimit import STRICT_LIMIT_PER_WINDOW, RateLimitMiddleware
 
@@ -107,3 +109,50 @@ class TestRateLimit:
         assert client_a.get("/dummy").status_code == 429
         # klien B pakai IP beda -> bucket beda -> belum kena limit
         assert client_b.get("/dummy").status_code == 200
+
+
+class TestUrutanMiddleware:
+    """Urutan tumpukan middleware seperti yang dipasang `app/main.py`.
+
+    Dites lewat `install_middleware` yang sama persis dipakai `main.py`, bukan
+    dengan menyusun ulang tumpukannya di sini -- tes yang menduplikasi urutan
+    yang mau dijaganya tidak menjaga apa pun.
+    """
+
+    def test_respons_429_tetap_membawa_request_id(self) -> None:
+        """Regresi 2026-09-11: rate limiter sempat dipasang di LUAR logger,
+        jadi 429 di-short-circuit sebelum logger sempat jalan -- request yang
+        diblokir tidak muncul di log sama sekali, padahal justru itu yang
+        paling perlu terlihat (brute-force login).
+        """
+        app = _dummy_app()
+        install_middleware(app, rate_limit_enabled=True)
+        client = TestClient(app)
+
+        for _ in range(STRICT_LIMIT_PER_WINDOW):
+            assert client.post("/v1/auth/login").status_code == 200
+        blocked = client.post("/v1/auth/login")
+
+        assert blocked.status_code == 429
+        assert "x-request-id" in blocked.headers, (
+            "respons 429 harus tetap melewati RequestLoggingMiddleware"
+        )
+
+    def test_cors_paling_luar_rate_limit_paling_dalam(self) -> None:
+        app = FastAPI()
+        install_middleware(app, rate_limit_enabled=True)
+
+        # user_middleware[0] = paling luar (Starlette membungkus dari belakang).
+        urutan = [m.cls for m in app.user_middleware]
+        assert urutan == [
+            CORSMiddleware,
+            RequestLoggingMiddleware,
+            RateLimitMiddleware,
+        ]
+
+    def test_rate_limit_bisa_dimatikan_tanpa_mengubah_urutan_sisanya(self) -> None:
+        app = FastAPI()
+        install_middleware(app, rate_limit_enabled=False)
+
+        urutan = [m.cls for m in app.user_middleware]
+        assert urutan == [CORSMiddleware, RequestLoggingMiddleware]
