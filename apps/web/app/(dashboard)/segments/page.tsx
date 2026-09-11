@@ -36,7 +36,7 @@ const POLARIZATION_TONE: Record<string, string> = {
 const SEG_COLOR = (sent: number | null) => {
   if (sent === null) return "var(--txt3)";
   if (sent > 30) return "var(--pos)";
-  if (sent > 0) return "#5FA98A";
+  if (sent > 0) return "var(--pos-soft)";
   if (sent > -40) return "var(--warn)";
   return "var(--neg)";
 };

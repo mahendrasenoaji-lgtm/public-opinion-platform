@@ -27,9 +27,9 @@ interface TrendPoint {
 
 const TREND_METRICS = ["survey_positive", "social_positive", "media_positive"] as const;
 const TREND_SERIES = [
-  { key: "survey_positive", label: "Survei", color: "#4DA3FF" },
-  { key: "media_positive", label: "Media", color: "#9B8AFB" },
-  { key: "social_positive", label: "Sosial", color: "#FF7A45" },
+  { key: "survey_positive", label: "Survei", color: "var(--survey)" },
+  { key: "media_positive", label: "Media", color: "var(--media)" },
+  { key: "social_positive", label: "Sosial", color: "var(--social)" },
 ];
 
 interface TopicRow {

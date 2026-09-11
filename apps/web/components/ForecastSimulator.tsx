@@ -17,10 +17,17 @@ import { Panel } from "./Panel";
 import { Provenance } from "./Provenance";
 import { runWhatIf, type WhatIfResult } from "@/app/(dashboard)/forecast/actions";
 
-const chartAxis = { stroke: "#41526B", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" };
+//: Sama seperti TrendChart — chrome grafik lewat var(), bukan hex, supaya
+//: ikut berganti tema. Lihat catatan di components/TrendChart.tsx.
+const chartAxis = {
+  stroke: "var(--txt3)",
+  fontSize: 10,
+  fontFamily: "'IBM Plex Mono', monospace",
+};
 const tipStyle = {
-  background: "#0D141D", border: "1px solid #22303F", borderRadius: 2,
-  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#E6EDF6",
+  background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 6,
+  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "var(--txt)",
+  boxShadow: "var(--shadow)",
 };
 
 const DRIVERS = [
@@ -101,14 +108,17 @@ export function ForecastSimulator({
         <div className="chart">
           <ResponsiveContainer width="100%" height={260}>
             <AreaChart data={chartData} margin={{ top: 6, right: 8, left: -22, bottom: 0 }}>
-              <CartesianGrid stroke="#1A2532" vertical={false} />
-              <XAxis dataKey="d" {...chartAxis} tickLine={false} axisLine={{ stroke: "#1F2B3C" }} />
+              <CartesianGrid stroke="var(--line)" vertical={false} />
+              <XAxis dataKey="d" {...chartAxis} tickLine={false} axisLine={{ stroke: "var(--line)" }} />
               <YAxis domain={["auto", "auto"]} {...chartAxis} tickLine={false} axisLine={false} />
               <Tooltip contentStyle={tipStyle} />
-              <Area type="monotone" dataKey="high" stroke="none" fill="#4DA3FF" fillOpacity={0.14} name="Batas atas" />
-              <Area type="monotone" dataKey="low" stroke="none" fill="#0A1017" fillOpacity={1} name="Batas bawah" />
-              <Line type="monotone" dataKey="exp" stroke="#4DA3FF" strokeWidth={2.5} dot={false} name="Ekspektasi" />
-              <ReferenceLine y={baseline} stroke="#41526B" strokeDasharray="3 3" />
+              <Area type="monotone" dataKey="high" stroke="none" fill="var(--survey)" fillOpacity={0.14} name="Batas atas" />
+              {/* Pita bawah ditimpa warna PERMUKAAN kartu, bukan warna halaman:
+                  trik potong ini hanya benar kalau nilainya sama persis dengan
+                  latar panel di tema yang sedang aktif. */}
+              <Area type="monotone" dataKey="low" stroke="none" fill="var(--panel)" fillOpacity={1} name="Batas bawah" />
+              <Line type="monotone" dataKey="exp" stroke="var(--survey)" strokeWidth={2.5} dot={false} name="Ekspektasi" />
+              <ReferenceLine y={baseline} stroke="var(--txt3)" strokeDasharray="3 3" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

@@ -1,7 +1,8 @@
 "use client";
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Activity } from "lucide-react";
 
 // Field & aturan validasi di sini SENGAJA harus persis sama dengan
 // app/schemas/auth.py:RegisterRequest -- validasi klien cuma UX (pesan
@@ -73,98 +74,83 @@ export default function DaftarPage() {
     }
   }
 
-  const inputStyle: CSSProperties = {
-    width: "100%",
-    padding: "10px 12px",
-    fontSize: 14,
-    marginBottom: 8,
-    borderRadius: 8,
-    border: "1px solid #ccc",
-    outline: "none",
-  };
-
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 340 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, textAlign: "center" }}>
-          Daftarkan Organisasi Baru
-        </h1>
-        <p style={{ fontSize: 12, color: "#888", marginBottom: 16, textAlign: "center" }}>
+    <div className="auth-wrap">
+      <div className="auth-card wide">
+        <div className="auth-brand">
+          <Activity size={18} strokeWidth={2.5} />
+          <span className="brand-n">PUBLIC OPINION</span>
+        </div>
+        <h1 className="auth-title">Daftarkan organisasi baru</h1>
+        <p className="auth-sub">
           Membuat tenant baru dengan Anda sebagai SUPER_ADMIN pertamanya.
         </p>
 
-        <input
-          value={orgName}
-          onChange={(e) => onOrgNameChange(e.target.value)}
-          placeholder="Nama organisasi"
-          style={inputStyle}
-        />
-        <input
-          value={orgSlug}
-          onChange={(e) => {
-            setSlugTouched(true);
-            setOrgSlug(e.target.value);
-          }}
-          placeholder="slug-organisasi"
-          style={inputStyle}
-        />
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Nama lengkap Anda"
-          style={inputStyle}
-        />
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          style={inputStyle}
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && submit()}
-          placeholder="Password (min. 8 karakter)"
-          style={inputStyle}
-        />
+        {err && <div className="form-err" role="alert">{err}</div>}
 
-        {err && <div style={{ color: "#c0392b", fontSize: 13, marginBottom: 8 }}>{err}</div>}
+        <div className="field">
+          <label htmlFor="reg-org">Nama organisasi</label>
+          <input
+            id="reg-org"
+            value={orgName}
+            onChange={(e) => onOrgNameChange(e.target.value)}
+            placeholder="Lembaga Riset Opini Publik"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="reg-slug">Slug organisasi</label>
+          <input
+            id="reg-slug"
+            value={orgSlug}
+            onChange={(e) => {
+              setSlugTouched(true);
+              setOrgSlug(e.target.value);
+            }}
+            placeholder="lembaga-riset"
+          />
+          <span className="field-hint">Huruf kecil, angka, dan tanda hubung saja.</span>
+        </div>
+        <div className="field">
+          <label htmlFor="reg-name">Nama lengkap Anda</label>
+          <input
+            id="reg-name"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            autoComplete="name"
+            placeholder="Nama lengkap"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="reg-email">Email</label>
+          <input
+            id="reg-email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            placeholder="nama@organisasi.id"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="reg-password">Password</label>
+          <input
+            id="reg-password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            autoComplete="new-password"
+            placeholder="••••••••"
+          />
+          <span className="field-hint">Minimal 8 karakter.</span>
+        </div>
 
-        <button
-          onClick={submit}
-          disabled={loading}
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            fontSize: 14,
-            fontWeight: 600,
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: "#111",
-            color: "#fff",
-            opacity: loading ? 0.4 : 1,
-            marginBottom: 12,
-          }}
-        >
+        <button className="btn btn-block" onClick={submit} disabled={loading} type="button">
           {loading ? "Mendaftarkan…" : "Daftar"}
         </button>
 
-        <p style={{ fontSize: 12, color: "#888", textAlign: "center" }}>
-          Sudah punya akun?{" "}
-          <Link href="/masuk" style={{ color: "#111", fontWeight: 600 }}>
-            Masuk
-          </Link>
+        <p className="auth-alt">
+          Sudah punya akun? <Link href="/masuk">Masuk</Link>
         </p>
       </div>
     </div>

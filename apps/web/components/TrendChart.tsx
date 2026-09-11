@@ -4,10 +4,18 @@ import {
   CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 
-const chartAxis = { stroke: "#41526B", fontSize: 10, fontFamily: "'IBM Plex Mono', monospace" };
+//: Chrome grafik lewat CSS custom property, bukan hex. Recharts meneruskan
+//: `stroke`/`fill` apa adanya ke atribut SVG, dan var() sah di sana — jadi
+//: sumbu, grid, dan tooltip ikut berganti tema tanpa kode kondisional.
+const chartAxis = {
+  stroke: "var(--txt3)",
+  fontSize: 10,
+  fontFamily: "'IBM Plex Mono', monospace",
+};
 const tipStyle = {
-  background: "#0D141D", border: "1px solid #22303F", borderRadius: 2,
-  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "#E6EDF6",
+  background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 6,
+  fontFamily: "'IBM Plex Mono', monospace", fontSize: 11, color: "var(--txt)",
+  boxShadow: "var(--shadow)",
 };
 
 export interface TrendSeries {
@@ -47,10 +55,10 @@ export function TrendChart({
     <div className="chart">
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 6, right: 8, left: -22, bottom: 0 }}>
-          <CartesianGrid stroke="#1A2532" vertical={false} />
-          <XAxis dataKey="period" {...chartAxis} tickLine={false} axisLine={{ stroke: "#1F2B3C" }} />
+          <CartesianGrid stroke="var(--line)" vertical={false} />
+          <XAxis dataKey="period" {...chartAxis} tickLine={false} axisLine={{ stroke: "var(--line)" }} />
           <YAxis domain={domain} {...chartAxis} tickLine={false} axisLine={false} />
-          <Tooltip contentStyle={tipStyle} cursor={{ stroke: "#2A3A4D" }} />
+          <Tooltip contentStyle={tipStyle} cursor={{ stroke: "var(--line-2)" }} />
           {series.map((s) => (
             <Line
               key={s.key}
