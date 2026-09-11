@@ -55,7 +55,8 @@ app = FastAPI(
 # kalau tidak, browser akan memblokir frontend membaca pesan errornya
 # sendiri (lihat app/middleware/ratelimit.py untuk batasan rate limit-nya).
 app.add_middleware(RequestLoggingMiddleware)
-app.add_middleware(RateLimitMiddleware)
+if settings.rate_limit_enabled:
+    app.add_middleware(RateLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

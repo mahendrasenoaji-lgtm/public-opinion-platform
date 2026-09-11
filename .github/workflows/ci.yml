@@ -46,6 +46,10 @@ jobs:
       # sini, setdefault jadi no-op dan test_auth_service.py gagal verifikasi
       # tanda tangan token (ketahuan di run CI pertama, 2026-08-24).
       JWT_SECRET: test-secret-for-unit-tests
+      # tests/conftest.py sudah men-setdefault ini ke "false" -- eksplisit di
+      # sini juga supaya siapa pun yang baca ci.yml langsung tahu tanpa perlu
+      # buka conftest.py (lihat conftest.py untuk alasan lengkapnya).
+      RATE_LIMIT_ENABLED: "false"
     defaults:
       run:
         working-directory: apps/api

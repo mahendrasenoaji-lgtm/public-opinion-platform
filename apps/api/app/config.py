@@ -44,6 +44,14 @@ class Settings(BaseSettings):
 
     cors_origins: list[str] = ["http://localhost:3000"]
 
+    # app/middleware/ratelimit.py. Default AKTIF di produksi. Tes/CI mematikan
+    # ini (lihat tests/conftest.py) -- rate limiter per-IP in-memory akan
+    # menjatuhkan ratusan request tes yang semuanya berbagi satu "IP" test
+    # client palsu dalam hitungan detik, sesuatu yang tidak pernah terjadi di
+    # lalu lintas produksi sungguhan (ketahuan di CI 2026-09-11: 113 tes gagal
+    # dengan 429 begitu middleware ini terpasang tanpa jalan keluar ini).
+    rate_limit_enabled: bool = Field(default=True, alias="RATE_LIMIT_ENABLED")
+
     def author_salt(self) -> str:
         """Salt untuk hash author, dengan turunan sebagai jaring pengaman.
 
