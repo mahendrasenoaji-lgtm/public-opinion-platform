@@ -81,6 +81,28 @@ persetujuan eksplisit pengguna — lihat bagian "Fix crash Command
 Center/Tema/Jaringan" di bawah untuk detail merge dan apa yang masih
 tersisa (migrasi Supabase).
 
+**Update 2026-09-11 (sesi verifikasi production, dipicu email peringatan
+auto-pause Supabase)**: item #1 dari "Langkah berikutnya" di
+`docs/progress.md` akhirnya dikerjakan — **migrasi kolom Supabase yang sejak
+2026-09-02 cuma "sudah dijalankan tapi belum diverifikasi live" sekarang
+dikonfirmasi bekerja di production**, lewat jalur yang sebelumnya selalu
+terhalang gerbang `SITE_PASSWORD` (di luar wewenang agen): API backend
+publik (`pop-api-ptug.onrender.com`) tidak ikut di-gate — cuma frontend
+Next.js yang di-gate — jadi verifikasi dilakukan langsung ke API dengan
+akun test yang didaftarkan sendiri lewat `/v1/auth/register` (bukan akun
+demo pengguna, tidak butuh kredensial siapa pun). Lihat bagian
+"Verifikasi production 2026-09-11" di bawah untuk detail lengkap. Project
+test dan datanya **sudah dihapus** setelah verifikasi (`DELETE
+/v1/projects/{id}` → 204) — production bersih kembali, cuma tersisa satu
+org kosong (`verif-prod-20260911@example.com`) yang tidak punya endpoint
+penghapusan sendiri di API ini.
+
+Sesi yang sama juga menutup sebagian item #3 ("ukur ulang akurasi
+sentimen"): 445 item nyata (naik dari 385) dari 7 feed RSS, satu bug
+leksikon baru ditemukan+diperbaiki (`hebat`, pola sama seperti `asal`) —
+lihat "Verifikasi production 2026-09-11" untuk detail dan kenapa `manfaat`
+SENGAJA tidak ikut diperbaiki meski juga ditemukan salah pada 1/7 kasus.
+
 ## Live sekarang
 
 | Layer | Platform | URL | Status |
@@ -619,6 +641,193 @@ Kelanjutan langsung dari project switcher di atas — endpoint `PATCH` dan
 
 Build bersih 100% (`npm run typecheck` + `next build`). Backend tidak
 disentuh sama sekali.
+
+## ✅ Verifikasi production 2026-09-11 — migrasi Supabase & Phase 2/3 dikonfirmasi live
+
+Dipicu email auto-pause Supabase ("proyek tidak aktif >7 hari, akan
+di-pause"). Sambil mengecek itu, ditemukan bahwa item #1 dari
+"Langkah berikutnya" (`docs/progress.md`) — verifikasi migrasi kolom
+Supabase yang sejak 2026-09-02 "sudah dijalankan tapi belum diverifikasi
+live" — masih terbuka, dan **tidak butuh menunggu gerbang `SITE_PASSWORD`
+seperti diasumsikan sesi-sesi sebelumnya**: gerbang itu cuma ada di
+middleware Next.js (`apps/web/middleware.ts`), API FastAPI-nya sendiri
+(`pop-api-ptug.onrender.com`) publik dan bisa diverifikasi langsung.
+
+**Metode**: daftar org+akun test baru lewat `POST /v1/auth/register`
+(bukan akun demo pengguna — tidak perlu kredensial siapa pun), bukan
+lewat browser/`SITE_PASSWORD`. RLS multi-tenant mencegah akun ini membaca
+data org demo (diverifikasi memang begitu), jadi semua pengecekan pakai
+project baru yang dibuat sendiri.
+
+**Hasil — kedua endpoint yang dulu 500 karena kolom belum bermigrasi
+sekarang 200:**
+- `GET /v1/projects/{id}/topics` → `200 []` (dulu 500, kolom
+  `reviewed_label`/`review_status`/dst belum ada)
+- `GET /v1/projects/{id}/network` → `200` dengan `insufficient_data`
+  (dulu 500, kolom `reply_to_hash`/`quote_of_hash`/`conversation_id`
+  belum ada)
+- `PATCH /v1/projects/{id}/topics/{topic_id}/review` → `200`, **jalur
+  TULIS ke kolom migrasi juga dikonfirmasi**, bukan cuma baca
+
+**Data asli diinjeksi lewat endpoint sungguhan untuk pertama kalinya**
+(sesi-sesi sebelumnya cuma memanggil fungsi `RSSConnector`/`sentiment.py`
+secara lokal tanpa Postgres — gap yang eksplisit dicatat di
+`docs/progress.md` poin 2 "Yang BELUM diverifikasi"): 195 artikel nyata
+dari 4 feed (Antara, CNBC Indonesia, Republika, Sindonews) dikirim lewat
+`POST /v1/projects/{id}/signals/ingest` → `200`, `stored: 195`,
+`duplicate_rate: 0.0`. Setelahnya:
+- `GET .../signals/summary` → volume 195, sentimen rata-rata 0.044
+- `GET .../signals/trend` → agregasi harian benar
+- `POST .../topics/discover` → tema ter-cluster dari data asli (bukan
+  kosong), label kata kunci masuk akal ("2026 / indonesia / gunung", dst)
+- `GET .../risk/score` → `coverage: 0.18`, skor **benar-benar ditahan**
+  (null) karena di bawah ambang `MIN_COVERAGE` 60% — gating bekerja
+  seperti didesain, bukan dipaksakan tampil
+- `GET .../forecast/baseline` → `insufficient_data: true` (POI butuh
+  snapshot survei, bukan sinyal media) — benar, bukan bug
+- `POST .../copilot/ask` → `409` dengan pesan jelas ("belum punya data
+  agregat"), bukan crash
+- `GET .../brief/latest` → `404` dengan pesan jelas ("belum ada Executive
+  Brief"), bukan crash
+- `POST .../impact/analyze` → `422` validasi field wajib, bukan crash
+
+Kesimpulan: **seluruh permukaan API Phase 2/3 sehat di production**, baik
+untuk proyek kosong maupun proyek berisi data media asli. Project test
+dan datanya dihapus (`DELETE /v1/projects/{id}` → `204`, ikut
+terverifikasi) setelah pengecekan selesai — production kembali bersih,
+kecuali satu org kosong tanpa data yang tidak sempat dihapus (API ini
+tidak punya endpoint hapus organisasi).
+
+**Temuan sentimen (memperluas verifikasi 2026-09-02 dari 385 → 445 item,
+5 → 7 feed — nambah CNN Indonesia, Tempo, Media Indonesia):**
+- Abstain rate 78.0% (naik tipis dari 79.5%), konsisten dengan temuan
+  sebelumnya, sekarang sekaligus dikonfirmasi lewat endpoint ingest asli
+  (lihat di atas), bukan cuma panggilan fungsi lokal.
+- **Bug baru ditemukan & diperbaiki**: kata `hebat` (leksikon positif,
+  bobot 0.9) — 3/3 kemunculannya di 445 item adalah penguat keparahan di
+  depan kata negatif ("Kebakaran Hebat Lahap Sekolah, 17 Orang Tewas",
+  "Kebakaran hebat melanda kantor PUPR", "Gadis AS Muntah Hebat"), 0/3
+  makna pujian. Pola identik "asal" (2026-09-02): kata yang berbalik
+  makna total tergantung kata yang mengikutinya. Dihapus dari
+  `_POSITIVE` di `app/services/sentiment.py`, tes regresi
+  `test_hebat_penguat_keparahan_tidak_lagi_dianggap_positif` ditambahkan,
+  tidak muncul sama sekali di `sentiment_eval.py:LABELED` (32 tes
+  sentiment lokal tetap hijau, termasuk kelas `TestEvaluasi` yang
+  menjaga lantai macro-F1/akurasi 0.80 — **belum dijalankan lewat CI**,
+  Docker tidak tersedia di sandbox sesi ini seperti sesi-sesi sebelumnya,
+  jadi belum lulus role `pop_app` RLS test suite yang 474 tes; hanya
+  32 tes sentiment murni yang tanpa database yang dijalankan lokal).
+- **`manfaat` diperiksa juga (7 kemunculan), TIDAK diperbaiki**: 6/7
+  benar (genre artikel "manfaat kesehatan X" — konteks positif asli,
+  mis. "5 Manfaat Labu Kuning untuk Kesehatan Pencernaan"), cuma 1/7
+  salah (BGN "mengeluarkan 1.653 sekolah dari daftar penerima manfaat" —
+  soal negasi/pencabutan, bukan makna kata itu sendiri). Berbeda dari
+  `hebat`/`asal` yang salah di HAMPIR SEMUA kemunculan, menghapus
+  `manfaat` akan merusak lebih banyak kasus benar daripada memperbaiki.
+  Didokumentasikan sebagai keterbatasan struktural (leksikon kata-tunggal
+  tidak menangani negasi "keluar dari daftar penerima X"), bukan bug
+  kata yang aman diperbaiki — konsisten dengan keputusan `meningkat` dan
+  `korupsi` di sesi-sesi sebelumnya.
+- **Perubahan kode SATU-SATUNYA sesi ini** adalah penghapusan `hebat`
+  dari leksikon + tes regresinya. Tidak ada perubahan lain ke
+  `services/`, `routers/`, atau schema. Belum di-commit/push — menunggu
+  keputusan pengguna (lihat laporan sesi untuk opsi).
+
+**Yang MASIH belum diverifikasi setelah sesi ini** (supaya tidak
+mengklaim lebih dari yang sudah dibuktikan): jalur RSS lewat
+`RSSConnector` + endpoint `/signals/collect` terjadwal (sesi ini masih
+pakai `parse_feed()` lokal lalu `POST /signals/ingest` manual, sama
+seperti pola sesi 2026-09-02, BUKAN memanggil `collect` dengan
+`DataSource` konektor RSS terdaftar); konektor YouTube/X (masih butuh
+API key); Executive Brief & Copilot dengan LLM sungguhan (masih butuh
+`ANTHROPIC_API_KEY` — lihat bagian "Executive Brief" di atas, sengaja
+ditunda ke akhir atas instruksi eksplisit pengguna sesi ini).
+
+## 🟡 Phase 4 — item tanpa vendor pihak ketiga (2026-09-11)
+
+Atas instruksi eksplisit pengguna ("no 1, 3, dan 4 kerjakan secara
+maksimal"). Tiga dari tujuh item Phase 4 dikerjakan — persis yang tidak
+butuh keputusan vendor/akun pihak ketiga (lihat tabel lengkap di
+`docs/progress.md` bagian "Phase 4 — enterprise"). **Semua kode di bawah
+ini baru diverifikasi lokal (43 tes murni tanpa DB, ruff bersih, mypy
+--strict bersih di file baru) — BELUM di-deploy ke Render/Vercel**,
+menunggu keputusan pengguna soal commit/push/PR.
+
+### ✅ Report generator PDF (`GET /projects/{id}/reports/summary`)
+
+`app/services/reports.py` (fungsi murni, dites tanpa DB) + 
+`app/routers/reports.py`. Cakupan v1 sengaja terbatas ke Segments +
+Polarization Index — bukan AIEnvelope (statistik murni, sama seperti
+`routers/segments.py`/`routers/risk.py`). Warna kolom Sumber sinkron
+dengan token R1 (`apps/web/lib/tokens.ts`).
+
+**Bug ditemukan+diperbaiki lewat verifikasi visual PDF sungguhan** (bukan
+cuma "tidak error"): nilai teks panjang di kolom "Nilai" tumpang tindih ke
+kolom "Sumber" karena sel tabel `reportlab` diisi string mentah (tidak
+word-wrap). Diperbaiki dengan membungkus tiap sel jadi `Paragraph`.
+Ketahuan justru karena PDF-nya benar-benar dirender dan dibaca kembali,
+bukan diasumsikan benar dari kode.
+
+4 tes di `tests/test_reports.py`, termasuk yang mengecek `insufficient_data`
+tidak pernah membocorkan `value` yang seharusnya ditahan (CLAUDE.md §3) —
+dites lewat pencarian byte mentah karena `pageCompression=0` sengaja
+dimatikan di `build_summary_pdf` supaya PDF-nya bisa dites tanpa parser
+terpisah.
+
+### ✅ Rate limiting per tenant (`app/middleware/ratelimit.py`)
+
+In-memory sliding-window per proses, BUKAN Redis/terdistribusi. `redis`
+sudah jadi dependency proyek sejak awal (`config.py:redis_url`) tapi tidak
+pernah benar-benar dipakai di mana pun — menyambungkannya butuh instance
+Redis sungguhan yang belum ter-provisioning di Render, keputusan infra
+tersendiri, bukan cuma kode. **Batasan yang harus diketahui**: reset ke nol
+tiap restart/redeploy; kalau nanti Render dijalankan >1 instance, limit
+efektif jadi (limit × jumlah instance). Cukup untuk kondisi sekarang (Render
+free tier, satu instance) tapi WAJIB diganti backend Redis sebelum API
+publik beneran dibuka.
+
+Endpoint auth (`/v1/auth/login`, `/v1/auth/register`) dapat limit lebih
+ketat (10/menit per IP) karena rawan brute-force/spam — endpoint lain
+120/menit per org (atau per IP kalau tidak ada token valid). `/health` dan
+dokumentasi API dikecualikan total.
+
+7 tes di `tests/test_middleware.py`: lolos di bawah limit, ditolak 429 di
+atas limit (dengan header `Retry-After`), `/health` tidak pernah kena
+limit, endpoint ketat tidak memotong jatah endpoint lain, dan dua klien
+berbeda (IP berbeda) tidak saling memotong jatah.
+
+**Urutan middleware di `main.py` sengaja diperhatikan**: `CORSMiddleware`
+harus paling luar (ditambah PALING TERAKHIR — Starlette membungkus dari
+yang terakhir ditambahkan ke luar) supaya respons 429 dari rate limiter
+tetap membawa header CORS; kalau tidak, browser akan memblokir frontend
+membaca pesan errornya sendiri. Dikonfirmasi lewat `app.user_middleware`
+setelah app di-boot penuh.
+
+### ✅ Observability dasar (`app/middleware/observability.py`)
+
+Request ID (UUID4) + log JSON satu baris per request (method, path,
+status, duration_ms), dikembalikan juga lewat header `X-Request-ID` di
+respons. **Ini BUKAN APM/tracing distribusi** (Datadog/Sentry/Honeycomb/
+dst) — itu tetap butuh keputusan vendor + akun pihak ketiga, belum
+dikerjakan. Render menangkap stdout sebagai log platform tanpa konfigurasi
+tambahan, jadi ini langsung berguna tanpa infra baru.
+
+Sengaja TIDAK mencatat `org_id`/`user_id` di log ini (lihat docstring
+modul) — mendekode JWT di middleware berarti dua jalur validasi token yang
+bisa berbeda perilaku diam-diam dari `app/deps.py`.
+
+2 tes: header `X-Request-ID` ada di tiap respons, dan berbeda antar-request.
+
+### Sengaja TIDAK dikerjakan: orkestrasi multi-agent penuh
+
+`ai/agents.py:Orchestrator` sudah mendukung banyak agen sekaligus
+(`run(agents: list[Agent], ctx)`), tapi `brief.py`/`copilot.py` selalu
+memanggilnya dengan satu agen. "Memperluas" ini jadi "beneran multi-agent"
+butuh keputusan produk dulu (agen tambahan apa, tugas apa, kenapa) —
+membuat agen baru tanpa tujuan konkret cuma supaya kotaknya tercentang
+melanggar semangat CLAUDE.md §8 ("kalau ragu, berhenti dan tanya"), beda
+kelas dengan tiga item di atas yang implementasinya mekanis begitu tahu
+tujuannya (rate limit, log, PDF).
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 
