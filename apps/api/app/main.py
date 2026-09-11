@@ -18,6 +18,7 @@ from app.routers import (
     governance,
     impact,
     influence,
+    metrics,
     narratives,
     network,
     opinion,
@@ -118,5 +119,6 @@ for r in (
     alerts,
     network,
     reports,
+    metrics,
 ):
     app.include_router(r.router, prefix="/v1")
