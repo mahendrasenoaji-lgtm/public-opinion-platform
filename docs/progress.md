@@ -33,8 +33,8 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **492** (role `pop_app`, RLS aktif — bukan superuser), **semuanya dikonfirmasi lewat CI**: 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5) (474 lama + 12 baru: `test_reports.py` 4, `test_middleware.py` 7, `test_sentiment.py` +1), lalu 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6) (+6: `test_reports_router.py` 3 end-to-end terhadap Postgres nyata, `test_middleware.py` +3 urutan middleware) |
-| Endpoint API | 60 (+1 — `GET /projects/{id}/reports/summary`, 2026-09-11) |
+| Tes backend | **499 ditulis** (role `pop_app`, RLS aktif — bukan superuser). 492 **dikonfirmasi lewat CI**: 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6). **7 tes kolom `url`/`mentions` (sesi ketiga) BELUM lewat CI** — Docker tidak tersedia di sandbox, menunggu PR berikutnya |
+| Endpoint API | 61 (+1 — `GET /projects/{id}/mentions`, 2026-09-11 sesi ketiga; total termasuk `GET /projects/{id}/reports/summary` dari sesi kedua) |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
 | `mypy --strict` | Bersih di `app/services`, `app/ai`, `app/connectors` |

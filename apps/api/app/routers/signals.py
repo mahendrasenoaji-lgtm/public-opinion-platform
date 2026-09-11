@@ -103,6 +103,15 @@ class IngestItem(BaseModel):
     external_id: str = Field(min_length=1, max_length=512)
     text: str = Field(min_length=1)
     published_at: datetime
+    url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description=(
+            "URL ke halaman aslinya, untuk validasi manual -- BUKAN pengganti "
+            "external_id (yang tetap wajib jadi identitas unik, sekalipun "
+            "keduanya kebetulan sama untuk sumber yang guid-nya memang URL)."
+        ),
+    )
     author_handle: str | None = Field(
         default=None,
         description=(
@@ -156,6 +165,20 @@ class IngestResult(BaseModel):
     sentiment_abstain_rate: float
     empty_dropped: int
     caveats: list[str]
+
+
+class MentionOut(BaseModel):
+    """Satu item mentah, untuk validasi manual lewat GET .../mentions."""
+
+    id: UUID
+    external_id: str
+    url: str | None
+    text: str
+    published_at: datetime
+    source: SignalSource
+    connector: str
+    engagement: int
+    sentiment: float | None
 
 
 class SignalSummary(BaseModel):
@@ -367,6 +390,7 @@ async def _store(
                 published_at=p.published_at,
                 author_hash=p.author_hash,
                 text=p.text,
+                url=p.url,
                 lang=p.lang,
                 engagement=p.engagement,
                 reach_est=p.reach_est,
@@ -424,6 +448,7 @@ async def ingest(
                 author_handle=i.author_handle,
                 engagement=i.engagement,
                 reach_est=i.reach_est,
+                url=i.url,
                 province_code=i.province_code,
                 reply_to_handle=i.reply_to_handle,
                 quote_of_handle=i.quote_of_handle,
@@ -509,6 +534,7 @@ async def collect(
                 author_handle=r.author_handle,
                 engagement=r.engagement,
                 reach_est=r.reach_est,
+                url=r.url,
                 province_code=r.province_code,
                 reply_to_handle=r.reply_to_handle,
                 quote_of_handle=r.quote_of_handle,
@@ -679,6 +705,50 @@ async def trend(
             scored=int(row.scored),
         )
         for row in (await session.execute(query)).all()
+    ]
+
+
+@router.get("/projects/{project_id}/mentions", response_model=list[MentionOut])
+async def list_mentions(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    source: SignalSource | None = None,
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> list[MentionOut]:
+    """Daftar item mentah, satu per satu, untuk validasi manual.
+
+    Ini SATU-SATUNYA endpoint di paket ini yang mengembalikan konten mentah
+    alih-alih agregat -- ditambahkan atas kebutuhan akuntabilitas riset:
+    setiap angka di dashboard bisa ditelusuri balik ke sumbernya lewat `url`
+    (kalau ada -- lihat catatan kolom `url` di `models/signal.py`), bukan
+    cuma dipercaya begitu saja. Bukan pengganti Signal Monitor/Topic
+    Discovery, yang tetap sumber kebenaran untuk agregat.
+
+    `url` bisa `None` untuk mention yang diingest sebelum kolom ini ada
+    (2026-09-11) atau dari sumber yang memang tidak punya URL publik --
+    tampilkan sebagai "tidak ada URL sumber", jangan ditebak dari field lain.
+    """
+    since, until = _window(days)
+    query = _scoped(select(Mention), project_id, since, until)
+    if source is not None:
+        query = query.where(Mention.source == ModelSignalSource(source.value))
+    query = query.order_by(Mention.published_at.desc()).limit(limit).offset(offset)
+    return [
+        MentionOut(
+            id=m.id,
+            external_id=m.external_id,
+            url=m.url,
+            text=m.text,
+            published_at=m.published_at,
+            source=SignalSource(m.source.value),
+            connector=m.connector,
+            engagement=m.engagement,
+            sentiment=float(m.sentiment) if m.sentiment is not None else None,
+        )
+        for m in (await session.execute(query)).scalars()
     ]
 
 

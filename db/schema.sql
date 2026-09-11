@@ -168,6 +168,12 @@ CREATE TABLE mentions (
     published_at  timestamptz NOT NULL,
     author_hash   text,                     -- akun di-hash, bukan disimpan mentah
     text          text NOT NULL,
+    -- URL ke halaman aslinya (artikel, video, status) untuk validasi manual --
+    -- BUKAN identitas unik (itu tetap external_id). NULL untuk mention lama
+    -- yang diingest sebelum kolom ini ada, dan untuk sumber yang memang tidak
+    -- pernah punya URL publik (mis. survei -- tapi survei tidak lewat tabel
+    -- ini). Ditambahkan 2026-09-11, lihat GET /projects/{id}/mentions.
+    url           text,
     lang          text DEFAULT 'id',
     engagement    integer NOT NULL DEFAULT 0,
     reach_est     integer,

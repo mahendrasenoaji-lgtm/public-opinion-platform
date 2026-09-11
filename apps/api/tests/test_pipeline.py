@@ -56,3 +56,20 @@ class TestRelasiBalasanKutipan:
         a = prepare_batch([item], author_salt="salt-a").prepared[0]
         b = prepare_batch([item], author_salt="salt-b").prepared[0]
         assert a.reply_to_hash != b.reply_to_hash
+
+
+class TestUrl:
+    """url diteruskan apa adanya -- BUKAN identitas (itu tetap external_id),
+    jadi tidak boleh ikut di-hash atau divalidasi sama sekali di sini.
+    Ditambahkan 2026-09-11 bersama GET /projects/{id}/mentions.
+    """
+
+    def test_url_diteruskan_apa_adanya(self) -> None:
+        item = _item(url="https://contoh.id/artikel/123")
+        report = prepare_batch([item], author_salt=SALT)
+        assert report.prepared[0].url == "https://contoh.id/artikel/123"
+
+    def test_tanpa_url_tetap_none(self) -> None:
+        item = _item()
+        report = prepare_batch([item], author_salt=SALT)
+        assert report.prepared[0].url is None

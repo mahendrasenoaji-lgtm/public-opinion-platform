@@ -950,6 +950,92 @@ dengan bug word-wrap PDF di PR #5 (ketahuan karena PDF-nya dirender dan dibaca,
 bukan diasumsikan benar dari kode) dan bug `apiOrNull` 2026-09-02. "CI hijau"
 bukan sinonim dari "deploy sehat".
 
+## ✅ Studi kasus karhutla + kolom `url` untuk akuntabilitas riset — 2026-09-11 (sesi ketiga)
+
+Dipicu kebutuhan pengguna: studi kasus penelitian akademis "karhutla
+Kalimantan/Sumatra" butuh data yang **keasliannya bisa ditelusuri balik**,
+bukan cuma diklaim asli.
+
+**Data dikumpulkan (project pengguna sendiri "kebakaran hutan", BUKAN
+project test yang dihapus)**:
+- 42 artikel RSS nyata (Antara nasional + 6 edisi regional Kalteng/Kalbar/
+  Kaltim/Kalsel/Sumsel/Riau/Jambi, CNBC Indonesia, Republika, Sindonews, CNN
+  Indonesia, Tempo, Liputan6) via `POST /signals/ingest` sungguhan.
+- 115 komentar YouTube dari 9 video berita resmi (KOMPASTV, tvOneNews,
+  Official iNews, SINDOnews, METRO TV, BeritaSatu — semua diverifikasi
+  nyata lewat oEmbed publik sebelum didaftarkan) via `POST
+  .../sources/{id}/collect` sungguhan, konektor `youtube_api`.
+- **Data TIDAK dihapus** — beda dari studi kasus 20-item sebelumnya
+  (bagian "Verifikasi production 2026-09-11" di atas) yang memang sengaja
+  dihapus karena itu project test sekali-pakai.
+- Hasil: `topics/discover` atas 157 item gabungan menemukan **4-9 klaster
+  nyata** (beda dari batch 20-item yang 0 klaster) — volume lebih besar
+  memang membantu HDBSCAN, konsisten dengan catatan `roadmap.md`
+  2026-08-27. Sentimen jadi **terukur untuk pertama kalinya** (0.406,
+  `insufficient_data: false`) karena kombinasi MEDIA+SOCIAL melewati
+  ambang 30 item bernilai — sebelumnya cuma MEDIA yang nyaris tidak pernah
+  cukup banyak per topik sempit.
+- **Temuan metodologis yang HARUS didokumentasikan, bukan disembunyikan**:
+  satu klaster komentar bertema "sawit" bersentimen 0.75 (positif) yang
+  patut dicurigai bias leksikon terhadap sarkasme (komentar warganet
+  marah soal sawit penyebab karhutla seringnya bernada sindiran, bukan
+  pujian tulus) — pola yang sama persis dengan bug "hebat"/"asal" yang
+  sudah ditemukan+diperbaiki di leksikon media sebelumnya, tapi kali ini
+  di data SOCIAL dan **belum diverifikasi manual** (API ini sengaja tidak
+  punya cara baca komentar mentah satu-satu — sampai sekarang, lihat di
+  bawah). Jangan pakai angka 0.75 itu di kesimpulan tanpa spot-check.
+
+**Gap akuntabilitas yang ditemukan lewat kebutuhan riset ini, lalu
+diperbaiki**: `RawItem.url` (URL artikel/video) sudah lama ditangkap di
+level konektor (`connectors/rss.py`, `connectors/youtube.py`, `connectors/
+x.py`) tapi **dibuang total** sebelum sempat tersimpan — `IncomingItem`/
+`PreparedMention`/tabel `mentions` tidak pernah punya kolom untuknya. Untuk
+RSS, tambal sulam sesi ini menaruh URL di `external_id` (jalan, tapi satu
+kolom dipakai dua tujuan). Untuk YouTube, URL-nya benar-benar hilang tanpa
+jejak. Dan yang lebih mendasar: **tidak ada satu endpoint pun** di API ini
+untuk membuka daftar item mentah satu-satu — cuma ada agregat.
+
+**Diperbaiki dengan benar** (bukan tambal sulam lagi):
+- Kolom `url text` ditambah ke tabel `mentions` (`db/schema.sql` + migrasi
+  `ALTER TABLE` — lihat langkah migrasi di bawah, BELUM dijalankan ke
+  Supabase production sampai pengguna menjalankannya).
+- `url` dialirkan penuh: `RawItem` (sudah ada) → `IncomingItem` →
+  `PreparedMention` → `Mention` lewat `_store()`. `IngestItem` (unggahan
+  manual) juga dapat field `url` opsional baru.
+- Endpoint baru `GET /projects/{id}/mentions` — pertama kalinya API ini
+  mengembalikan konten mentah, bukan agregat. Filter `source`/`days`,
+  paginasi `limit`/`offset`, urut terbaru dulu. `url: null` untuk mention
+  lama (sebelum kolom ini ada) atau sumber tanpa URL publik — dibedakan
+  eksplisit dari string kosong.
+- Frontend: panel baru "Item terbaru (untuk validasi manual)" di halaman
+  Signal Monitor (`/sinyal`) — tiap baris punya link "Buka sumber ↗"
+  berwarna token sumbernya (R1), atau "tidak ada URL sumber" kalau memang
+  tidak ada, bukan link mati.
+
+**Migrasi yang perlu dijalankan pengguna di Supabase SQL editor** (sama
+pola dengan migrasi kolom `reviewed_label` dkk sebelumnya):
+
+```sql
+ALTER TABLE mentions ADD COLUMN IF NOT EXISTS url text;
+```
+
+Sampai ini dijalankan, `GET /projects/{id}/mentions` akan gagal dengan
+error kolom tidak ada (500, bukan dikira bug kode) — pola identik dengan
+migrasi `topics.reviewed_label` dkk 2026-09-02/09-11. 157 item yang sudah
+terlanjur masuk sesi ini (URL RSS numpang di `external_id`, URL YouTube
+sudah terlanjur hilang) TIDAK di-backfill otomatis — re-ingest akan
+menduplikasi kontennya. Manifest lokal (dikirim ke pengguna lewat
+SendUserFile, bukan disimpan di repo) tetap sumber kebenaran untuk 157
+item itu; kolom `url` di database baru berlaku penuh untuk data BARU
+setelah migrasi dijalankan.
+
+**Tes**: 2 tes murni baru (`test_pipeline.py::TestUrl`) + 5 tes end-to-end
+baru (`test_mentions_router.py`, terhadap Postgres role `pop_app`,
+termasuk isolasi tenant) — **belum dikonfirmasi lewat CI**, Docker tidak
+tersedia di sandbox sesi ini. 362 tes murni/tanpa-DB lulus lokal (naik dari
+360), `ruff` bersih, `mypy --strict` bersih. Frontend `tsc`+`next build`
+hijau.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
