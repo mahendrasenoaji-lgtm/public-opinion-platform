@@ -21,8 +21,10 @@ Requires-Dist: scipy>=1.14
 Requires-Dist: statsmodels>=0.14
 Requires-Dist: scikit-learn>=1.5
 Requires-Dist: email-validator>=2.2
+Requires-Dist: reportlab>=4.2
 Provides-Extra: dev
 Requires-Dist: pytest>=8.3; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.24; extra == "dev"
 Requires-Dist: ruff>=0.7; extra == "dev"
 Requires-Dist: mypy>=1.13; extra == "dev"
+Requires-Dist: types-reportlab>=4.2; extra == "dev"
