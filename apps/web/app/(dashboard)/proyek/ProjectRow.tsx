@@ -88,6 +88,15 @@ export function ProjectRow({ id, name, isDemo, createdAt, isActive }: Props) {
   function handleActivate() {
     startTransition(async () => {
       await activateProject(id);
+      // Tanpa ini, cookie proyek aktif memang berubah di server, tapi Router
+      // Cache App Router masih menyajikan RSC halaman lain (Sinyal, Tema,
+      // dst.) yang sudah pernah dikunjungi sesi ini -- pengguna klik
+      // "Aktifkan", cookie-nya benar berubah, tapi data yang tampil masih
+      // milik proyek lama sampai ada navigasi yang memaksa render ulang.
+      // handleSave/handleDelete di file ini sudah benar sejak awal; ini
+      // satu-satunya handler yang lupa. Ketahuan 2026-09-11 lewat laporan
+      // pengguna sungguhan, bukan lewat baca kode.
+      router.refresh();
     });
   }
 
