@@ -1031,10 +1031,45 @@ setelah migrasi dijalankan.
 
 **Tes**: 2 tes murni baru (`test_pipeline.py::TestUrl`) + 5 tes end-to-end
 baru (`test_mentions_router.py`, terhadap Postgres role `pop_app`,
-termasuk isolasi tenant) — **belum dikonfirmasi lewat CI**, Docker tidak
-tersedia di sandbox sesi ini. 362 tes murni/tanpa-DB lulus lokal (naik dari
-360), `ruff` bersih, `mypy --strict` bersih. Frontend `tsc`+`next build`
-hijau.
+termasuk isolasi tenant) — **dikonfirmasi lewat CI PR #7: 499 tes lulus**
+(492→499), `ruff` bersih, `mypy --strict` bersih. Frontend `tsc`+`next
+build` hijau. Merge ke `main` (`8942a95`), Render+Vercel auto-deploy.
+
+### 🔴 Regresi produksi ditemukan+diperbaiki dalam hitungan menit setelah merge
+
+Begitu deploy live, **`signals/summary` dan `topics/discover` ikut balas
+500** — bukan cuma endpoint baru `GET /projects/{id}/mentions` yang
+memang diprediksi 500 sampai migrasi dijalankan. Akar masalah: menambah
+kolom `url` ke model ORM `Mention` membuat **setiap query yang mengambil
+baris `Mention` utuh** (`select(Mention)`, bukan kolom spesifik) ikut
+meminta kolom itu — dan Postgres production belum punya kolom itu sampai
+migrasi dijalankan. Terkena: `signals.py` (summary, mentions baru),
+`topics.py` (discover, 2 tempat), `risk.py` (score). Tidak terkena:
+`signals/trend`, `reports/summary` — keduanya query kolom spesifik lewat
+`func.avg()`/dst, bukan `select(Mention)`.
+
+**Pelajaran untuk sesi berikutnya**: menambah kolom ke model ORM SQLAlchemy
+punya efek samping GLOBAL ke semua query full-entity di tabel itu, bukan
+cuma ke endpoint yang sengaja memakai kolom barunya — beda dari menambah
+field baru di skema Pydantic (yang scope-nya lokal ke endpoint itu saja).
+Deploy kode + migrasi DB idealnya satu paket atomik untuk perubahan model
+ORM; kalau terpisah (seperti pola migrasi manual Supabase di proyek ini),
+window antara deploy-kode dan migrasi-DB adalah window downtime nyata
+untuk SEMUA fitur yang menyentuh tabel itu, bukan cuma fitur barunya.
+
+**Diperbaiki**: migrasi `ALTER TABLE mentions ADD COLUMN IF NOT EXISTS url
+text;` dijalankan pengguna sendiri di Supabase SQL editor (dipandu lewat
+Claude in Chrome — navigasi dan pengetikan SQL oleh agen, klik "Run" oleh
+pengguna, karena itu mengubah database production). Berlaku instan, tidak
+perlu redeploy. Semua endpoint yang tadi 500 (`signals/summary`,
+`topics/discover`, `risk/score`, `GET .../mentions`) dikonfirmasi 200
+setelah migrasi, dicek dengan request sungguhan bukan diasumsikan.
+
+`GET /projects/{id}/mentions` diverifikasi mengembalikan data nyata: 40/42
+artikel RSS punya `url: null` tapi `external_id` tetap URL (tambal sulam
+sesi sebelum ini), item baru ke depan akan punya keduanya. Panel "Item
+terbaru (untuk validasi manual)" di `/sinyal` dikonfirmasi live di browser
+— "tidak ada URL sumber" tampil benar untuk item lama, bukan link mati.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 

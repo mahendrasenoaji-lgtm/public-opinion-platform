@@ -33,7 +33,7 @@ yang lulus tanpa database.
 
 | | |
 |---|---|
-| Tes backend | **499 ditulis** (role `pop_app`, RLS aktif — bukan superuser). 492 **dikonfirmasi lewat CI**: 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6). **7 tes kolom `url`/`mentions` (sesi ketiga) BELUM lewat CI** — Docker tidak tersedia di sandbox, menunggu PR berikutnya |
+| Tes backend | **499**, semuanya dikonfirmasi lewat CI (role `pop_app`, RLS aktif): 486 via [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 via [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 via [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7) (+7: kolom `url` + `GET /projects/{id}/mentions`) |
 | Endpoint API | 61 (+1 — `GET /projects/{id}/mentions`, 2026-09-11 sesi ketiga; total termasuk `GET /projects/{id}/reports/summary` dari sesi kedua) |
 | Halaman dashboard | 17 (9 Phase 1 + 8 Phase 2/3, termasuk `/jaringan` baru) |
 | `ruff` | Bersih di `app` dan `tests` |
