@@ -44,6 +44,7 @@ class IncomingItem:
     author_handle: str | None = None
     engagement: int = 0
     reach_est: int | None = None
+    url: str | None = None
     province_code: str | None = None
     reply_to_handle: str | None = None
     quote_of_handle: str | None = None
@@ -64,6 +65,7 @@ class PreparedMention:
     province_code: str | None
     sentiment: float | None
     emotion: dict[str, float]
+    url: str | None = None
     reply_to_hash: str | None = None
     quote_of_hash: str | None = None
     conversation_id: str | None = None
@@ -179,6 +181,7 @@ def prepare_batch(
                 province_code=item.province_code,
                 sentiment=scored.score,
                 emotion=sentiment_svc.emotions(item.text),
+                url=item.url,
                 reply_to_hash=_maybe_hash(item.reply_to_handle, salt=author_salt),
                 quote_of_hash=_maybe_hash(item.quote_of_handle, salt=author_salt),
                 conversation_id=item.conversation_id,

@@ -54,6 +54,18 @@ interface SourceRow {
   last_sync_at: string | null;
 }
 
+interface MentionRow {
+  id: string;
+  external_id: string;
+  url: string | null;
+  text: string;
+  published_at: string;
+  source: SignalSource;
+  connector: string;
+  engagement: number;
+  sentiment: number | null;
+}
+
 interface ConnectorRow {
   key: string;
   label: string;
@@ -87,12 +99,13 @@ export default async function SinyalPage() {
   // jadi "Application error". Kelas bug yang sama pernah kena tiga halaman
   // lain di repo ini (lihat docs/deployment-status.md, bagian registrasi
   // self-service).
-  const [summary, trend, quality, sources, connectors] = await Promise.all([
+  const [summary, trend, quality, sources, connectors, mentions] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
     apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
     apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
+    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions?limit=20`),
   ]);
 
   const volume = summary?.volume.value ?? 0;
@@ -220,6 +233,58 @@ export default async function SinyalPage() {
             )}
           </Panel>
         </div>
+
+        <Panel kicker="Akuntabilitas riset" title="Item terbaru (untuk validasi manual)">
+          {!mentions || mentions.length === 0 ? (
+            <InsufficientData reason="Belum ada konten yang bisa ditelusuri untuk proyek ini." />
+          ) : (
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>Konten</th>
+                  <th>Sumber</th>
+                  <th>Tanggal</th>
+                  <th>Sumber asli</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mentions.map((m) => (
+                  <tr key={m.id}>
+                    <td style={{ maxWidth: 420 }}>
+                      {m.text.length > 140 ? `${m.text.slice(0, 140)}…` : m.text}
+                    </td>
+                    <td>
+                      <span className="pill" style={{ color: SOURCE[m.source].color }}>
+                        {SOURCE[m.source].label}
+                      </span>
+                    </td>
+                    <td className="mono">{m.published_at.slice(0, 16).replace("T", " ")}</td>
+                    <td>
+                      {m.url ? (
+                        <a
+                          href={m.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{ color: SOURCE[m.source].color }}
+                        >
+                          Buka sumber ↗
+                        </a>
+                      ) : (
+                        <span style={{ color: "var(--txt3)" }}>tidak ada URL sumber</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <p className="note">
+            <Info size={13} />
+            20 item terbaru, bukan seluruh dataset. &quot;Tidak ada URL sumber&quot; berarti item
+            ini diingest sebelum kolom URL ditambahkan (2026-09-11), atau sumbernya memang tidak
+            punya halaman publik — bukan tanda datanya tidak asli.
+          </p>
+        </Panel>
 
         <Panel
           kicker="Mutu pengukuran"

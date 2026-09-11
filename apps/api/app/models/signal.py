@@ -102,6 +102,11 @@ class Mention(Base):
     published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     author_hash: Mapped[str | None] = mapped_column(Text)
     text: Mapped[str] = mapped_column(Text, nullable=False)
+    #: URL ke halaman aslinya untuk validasi manual -- BUKAN identitas unik
+    #: (itu tetap external_id). NULL untuk mention yang diingest sebelum
+    #: kolom ini ada, dan untuk sumber tanpa URL publik. Ditambahkan
+    #: 2026-09-11, lihat GET /projects/{id}/mentions.
+    url: Mapped[str | None] = mapped_column(Text)
     lang: Mapped[str | None] = mapped_column(Text, default="id")
     engagement: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     reach_est: Mapped[int | None] = mapped_column(Integer)
