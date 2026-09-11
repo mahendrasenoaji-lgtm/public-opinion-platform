@@ -1071,6 +1071,59 @@ sesi sebelum ini), item baru ke depan akan punya keduanya. Panel "Item
 terbaru (untuk validasi manual)" di `/sinyal` dikonfirmasi live di browser
 — "tidak ada URL sumber" tampil benar untuk item lama, bukan link mati.
 
+## ✅ Project baru "MBG AGUSTUS 2026" + akumulasi harian otomatis — 2026-09-11 (masih sesi ketiga)
+
+Project riset kedua pengguna sendiri (setelah "KEBAKARAN HUTAN"), dibuat
+lewat UI (`/proyek-baru`) untuk studi kasus program nasional Makan Bergizi
+Gratis (MBG). **Ini BUKAN bagian dari kode/deploy platform** — tidak ada
+satu baris pun berubah di repo untuk pekerjaan ini, jadi dicatat di sini
+murni supaya sesi berikutnya tahu ada apa, bukan karena menyentuh
+`apps/api`/`apps/web`.
+
+**Skrip ingest RSS** (`ingest_mbg.py`, disalin dari `ingest_karhutla.py`
+sesi kedua — lihat manifest provenance yang sudah dikirim ke pengguna,
+bukan disimpan di repo): filter kata kunci `makan bergizi gratis|\bmbg\b|
+badan gizi nasional|\bbgn\b` (bukan "gizi" sendirian — terlalu umum, bisa
+nyasar berita kesehatan/pangan yang tidak menyinggung program ini). 15 feed
+RSS yang sama dengan studi karhutla. Percobaan pertama (manual, sesi ini):
+**10 artikel asli tersimpan** — mencakup liputan kritis (keracunan di
+beberapa daerah, dugaan korupsi Kejagung, 1.653 sekolah dicoret) dan
+bantahan hoaks, bukan cuma pemberitaan positif pemerintah. `url` tersimpan
+proper (bukan tambal sulam `external_id`) karena kolom sungguhan sudah ada
+sejak PR #7 di atas.
+
+**Akumulasi harian 7 hari** — dijalankan lewat `RemoteTrigger` (routine
+cloud Claude Code, **bukan cron job di repo/Render/Vercel**), sesuai
+permintaan pengguna: "Jalankan skrip ini lagi tiap hari... supaya jendela
+waktu terkumpul dari waktu terbit asli tiap hari — bukan direkonstruksi
+belakangan". Dipilih **7 rutinitas `run_once_at` terpisah** (bukan satu
+`cron_expression` berulang) supaya otomatis nonaktif sendiri setelah 7 kali
+jalan — tidak ada yang perlu diingat untuk dimatikan manual setelah
+seminggu:
+
+| # | Jalan (WIB / UTC) | Routine ID |
+|---|---|---|
+| 1 | 12 Sep 08:00 / 01:00 | `trig_01BGxoi5SR2KMSEMU1r9LQL4` |
+| 2 | 13 Sep 08:00 / 01:00 | `trig_014B6ng883QqT4wYHQ7Cd13s` |
+| 3 | 14 Sep 08:00 / 01:00 | `trig_01HQy7RJBoLHmdRJLRApjAKT` |
+| 4 | 15 Sep 08:00 / 01:00 | `trig_01VDauEVZhrTk35djwzuuMr9` |
+| 5 | 16 Sep 08:00 / 01:00 | `trig_01JxK81kgD8FJarbBwuoWK31` |
+| 6 | 17 Sep 08:00 / 01:00 | `trig_0113P9wofQbwEw1jui8jfktP` |
+| 7 | 18 Sep 08:00 / 01:00 | `trig_0111pPT7yjpoYnqA9o2fxkoR` |
+
+Tiap rutinitas menulis ulang skrip lengkap dari nol di sandbox cloud
+ephemeral-nya sendiri (di-tempel penuh di prompt routine, bukan clone repo
+— agen cloud tidak punya akses ke scratchpad sesi lokal), lalu memanggil
+`POST /signals/ingest` dengan token akses pengguna (JWT, berlaku sampai
+~11 Oktober 2026 — cukup untuk seluruh jendela 7 hari). Cek status/hasil:
+`claude.ai/code/routines`.
+
+**Yang perlu diketahui sesi berikutnya**: kolom `url` di database tetap
+bergantung migrasi yang sama dengan bagian di atas — kalau project ini
+dibuat sebelum migrasi dijalankan, ingest pertama akan gagal 500. Sudah
+tidak masalah untuk pengguna ini (migrasi sudah jalan), tapi relevan kalau
+pola ini diulang untuk project riset baru di Supabase lain.
+
 ## Yang masih kurang (di luar langkah CORS di atas)
 
 ### Residual Phase 1
