@@ -263,7 +263,17 @@ Ini bagian terpenting dari dokumen ini.
    RSS langsung) — sesi ini masih menarik feed dari mesin lokal lalu
    mengirim hasilnya lewat `ingest`, bukan memicu `collect` dari Render
    sendiri. Detail lengkap di `docs/deployment-status.md` bagian
-   "Verifikasi production 2026-09-11". Pipeline
+   "Verifikasi production 2026-09-11".
+   **Update 2026-09-12**: jaringan keluar dari **Render ke penerbit pihak
+   ketiga** sekarang teruji lewat jalur lain — `POST .../metrics/collect`
+   berhasil menarik data langsung dari Wikimedia dan Open-Meteo dari dalam
+   Render (lihat blok "MULAI DARI SINI"). Jadi yang tersisa untuk RSS bukan
+   lagi pertanyaan "apakah Render bisa menjangkau internet luar", melainkan
+   khusus jalur `DataSource`-nya. Satu pelajaran dari situ yang **berlaku
+   untuk konektor RSS juga**: UA yang diterima dari IP rumahan bisa ditolak
+   dari IP datacenter Render. Kalau `sources/{id}/collect` nanti gagal dengan
+   403, curigai User-Agent lebih dulu, bukan langsung menyimpulkan IP-nya
+   diblokir. Pipeline
    ingestion (`normalize_text`, `detect_language`, `dedupe`) dan sentiment
    (`sentiment.score`) dijalankan di atas ke-215 item nyata itu tanpa satu
    pun exception — lihat poin 5 di bawah untuk apa yang ditemukan dari situ.
@@ -459,10 +469,11 @@ Ini bagian terpenting dari dokumen ini.
 ## Langkah berikutnya yang paling masuk akal
 
 > **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
-> konkret per 2026-09-11 malam ada di blok "🟢 MULAI DARI SINI" di kepala
-> `docs/deployment-status.md` — ringkasnya: PR #9 sudah di-merge dan hidup
-> di production, dan ada satu bug production terbuka (Wikimedia membalas 403
-> ke Render) dengan PR #10 yang sudah siap tapi belum di-merge.
+> konkret per 2026-09-12 ada di blok "🟢 MULAI DARI SINI" di kepala
+> `docs/deployment-status.md` — ringkasnya: PR #9 dan #10 sudah di-merge dan
+> hidup di production, bug 403 Wikimedia **sudah selesai dan terverifikasi
+> dari Render**, dan **tidak ada bug production yang terbuka**. Yang tersisa
+> adalah daftar di bawah ini.
 
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
@@ -522,19 +533,18 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    `docs/deployment-status.md` bagian "Redesain tema terang + dua konektor
    deret publik".
 
-9. **Tutup bug 403 Wikimedia terhadap Render.** Ini yang paling atas dari
-   semua yang terbuka, karena ia menghalangi satu-satunya fitur baru yang
-   sudah tayang tapi belum bisa dipakai dari UI. PR #10 sudah siap dan CI-nya
-   hijau; yang dibutuhkan adalah merge, tunggu Render redeploy, panggil
-   `/metrics/collect` sekali, lalu BACA pesan Wikimedia yang sekarang ikut
-   diteruskan. Detail lengkap penyelidikannya (tiga varian User-Agent yang
-   sudah diuji, supaya tidak diulang) ada di `docs/deployment-status.md`
-   bagian "Wikimedia menolak Render dengan 403".
+9. ~~**Tutup bug 403 Wikimedia terhadap Render.**~~ — **selesai 2026-09-12**.
+   PR #10 di-merge, Render redeploy, `/metrics/collect` berubah dari `502`
+   ke `200` (`fetched: 30, stored: 30`) dalam ~90 detik dengan payload yang
+   sama persis. Halaman `/deret` sekarang benar-benar bisa dipakai dari UI.
 
-   Kalau ternyata memang IP datacenter: **jangan dipaksakan.** Catat sebagai
-   keterbatasan yang diketahui, dan pakai pola "tarik dari mesin lokal lalu
-   kirim lewat endpoint" yang sudah dipakai routine harian MBG — sama persis
-   dengan keterbatasan konektor RSS di poin 2 bagian atas.
+   **Hipotesis "IP datacenter Render diblokir" ternyata keliru** — IP-nya
+   tidak diblokir; UA lama yang tanpa titik kontak nyata ditolak dari IP
+   datacenter padahal diterima dari IP rumahan. Jadi pola "tarik dari mesin
+   lokal lalu kirim lewat endpoint" **tidak jadi diperlukan** di sini.
+   Bukti lengkapnya (termasuk verifikasi lanjutan: idempotensi `collect`,
+   konektor Open-Meteo, dan rantai collect → forecast dari production) ada di
+   `docs/deployment-status.md` blok "MULAI DARI SINI".
 6. **Phase 4** — lihat tabel di bagian "Phase 4 — enterprise" di atas.
    Empat item pertama (SSO, MFA wajib, billing, API publik) tetap butuh
    keputusan vendor/kebijakan yang bukan wewenang agen, dan — di luar

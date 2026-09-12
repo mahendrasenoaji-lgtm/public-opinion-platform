@@ -6,11 +6,15 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — serah-terima sesi, 11 September 2026 (sesi keempat)
+# 🟢 MULAI DARI SINI — serah-terima sesi, 12 September 2026 (sesi kelima)
 
 **Ditulis khusus untuk sesi berikutnya di komputer lain.** Riwayat chat tidak
 ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
 `docs/progress.md`.
+
+> **Perubahan sejak serah-terima 11 September:** bug 403 Wikimedia dari Render
+> **sudah selesai** — PR #10 di-merge 2026-09-12 dan terbukti memperbaikinya.
+> **Tidak ada bug production yang terbuka sekarang.** Detailnya di bawah.
 
 ## Keadaan sekarang
 
@@ -29,54 +33,76 @@ ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
 Situs sekarang **bertema terang** dengan tombol Gelap/Terang di bar atas tiap
 halaman dashboard, dan punya halaman ke-18: `/deret`.
 
-## ⚠️ Satu bug production yang BELUM selesai
+## ✅ Bug 403 Wikimedia — SELESAI 2026-09-12
 
-`POST /projects/{id}/metrics/collect` dari Render **gagal 502** dengan
-`"Wikimedia menolak permintaan (403)"`. Jalur yang sama lulus dari mesin
-lokal. Ditemukan dari verifikasi setelah merge, bukan dari tes.
+`POST /projects/{id}/metrics/collect` dari Render dulu **gagal 502** dengan
+`"Wikimedia menolak permintaan (403)"`. [PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10)
+di-merge 2026-09-12 15:41 UTC dan **memperbaikinya**. Bukti diambil dari
+production, bukan dari tes:
 
-**Yang sudah diselidiki** (supaya tidak diulang):
+| Waktu (UTC) | Build di Render | Hasil `POST /metrics/collect` |
+|---|---|---|
+| 15:42 | UA lama (sebelum redeploy) | `502` — `"Wikimedia menolak permintaan (403)"` |
+| 15:43 | UA baru (setelah redeploy) | **`200`** — `fetched: 30, stored: 30` |
 
-| User-Agent | Hasil dari mesin lokal |
-|---|---|
-| UA lama konektor | **200** |
-| tanpa UA sama sekali | 403 — "set a user-agent and respect our robot policy" |
-| UA dengan URL kontak | **200** |
+Dua panggilan itu berjarak ~90 detik, dari akun, project, dan payload yang
+sama persis. Satu-satunya yang berubah adalah build-nya.
 
-Jadi **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat: IP
-datacenter Render kena kebijakan robot Wikimedia (pesan 403-nya menyebut
-`phabricator T400119`).
+**Hipotesis "IP datacenter Render diblokir" ternyata KELIRU** — dan ini yang
+perlu diingat supaya tidak diselidiki ulang. IP Render tidak diblokir: IP yang
+sama berhasil begitu User-Agent-nya memuat titik kontak yang bisa dibuka. Yang
+terjadi: **UA lama (`contact via platform admin` — bukan kontak apa pun)
+diterima dari IP rumahan tapi ditolak dari IP datacenter.** Jadi kebijakan UA
+Wikimedia ditegakkan lebih ketat terhadap IP datacenter, bukan diblokir buta.
+Pelajaran umumnya: **menguji konektor dari mesin lokal saja tidak membuktikan
+konektor itu jalan dari production.**
 
-**[PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10) sudah dibuka, CI hijau, BELUM di-merge** — menunggu keputusan
-pengguna. Isinya dua hal: UA memuat kontak yang benar-benar bisa dibuka (URL
-repo), dan **badan respons Wikimedia diteruskan apa adanya** ke pesan error.
-Yang kedua itu yang penting: pesan lama tidak memberi petunjuk apakah 403-nya
-soal UA, kebijakan robot, atau IP.
+**Yang masih belum terbukti di lapangan:** perbaikan kedua PR #10 —
+meneruskan badan respons Wikimedia apa adanya ke pesan error — belum pernah
+terpakai sungguhan, karena setelah UA diperbaiki tidak ada 403 lagi untuk
+diteruskan. Jalur itu ada tesnya, tapi belum pernah dipicu production.
+
+**Verifikasi lanjutan yang ikut lolos di sesi yang sama** (semua dari Render
+production, akun test yang didaftarkan sendiri lewat `/v1/auth/register`):
+
+- `GET /projects/{id}/metrics` → deret tersimpan benar di Postgres:
+  30 observasi, `latest_value: 1207.0`, `is_national: true`.
+- `collect` dipanggil **dua kali** → panggilan kedua `stored: 0, replaced: 30`.
+  Deret di-*replace*, bukan diduplikasi — idempoten seperti didesain.
+- Konektor kedua, `openmeteo_air_quality` (`province_code: 31`) → `200`,
+  30 titik PM2.5 DKI Jakarta. **Pertama kalinya konektor ini terbukti jalan
+  dari Render**; sebelumnya seluruh jalur `collect` tertutup 403 di atas.
+- `GET /forecast/baseline?metric=pageviews_prabowo_subianto` → `200`,
+  `insufficient_data: false`, model state-space ter-*fit* dari 30 titik itu,
+  lengkap dengan `limitations` yang benar (horizon 90 hari ditandai
+  ekstrapolasi karena riwayatnya cuma 29 hari). **Rantai penuh
+  collect → Postgres → forecast terbukti dari production**, bukan cuma dari
+  Postgres lokal seperti verifikasi 2026-09-11.
+
+Project uji yang dibuat untuk verifikasi ini sudah dihapus dari production
+(`DELETE` → 204, `GET` sesudahnya → 404).
 
 ## Langkah pertama sesi berikutnya
 
-1. **Merge PR #10** (kalau pengguna setuju), tunggu Render redeploy, lalu
-   panggil `/metrics/collect` sekali lagi. Wikimedia sendiri yang akan
-   menyebut alasannya di badan respons.
-2. **Kalau ternyata memang IP datacenter**: jalan keluarnya adalah pola
-   "tarik dari mesin lokal lalu kirim lewat endpoint" — persis yang sudah
-   dipakai routine harian MBG. Keterbatasan sejenis sudah tercatat untuk
-   konektor RSS di `docs/progress.md` poin 2. Catat sebagai keterbatasan
-   yang diketahui, jangan dipaksakan.
-3. **Keputusan yang menunggu pengguna, bukan wewenang agen**: `SignalSource`
+1. **Tidak ada bug production terbuka.** Mulai langsung dari daftar di bawah.
+2. **Keputusan yang menunggu pengguna, bukan wewenang agen**: `SignalSource`
    untuk pengukuran instrumen. Kualitas udara sementara memakai `DIGITAL`
    dengan peringatan di kolom `method`. Yang benar adalah nilai enum baru
    (mis. `SENSOR`), tapi itu butuh `ALTER TYPE signal_source ADD VALUE` di
    Supabase — kelas migrasi yang menjatuhkan tiga halaman production pada
    2026-09-02. Jangan dilakukan diam-diam.
+3. **`ANTHROPIC_API_KEY` di Render** — Executive Brief dan Copilot masih
+   satu-satunya bagian yang kodenya live tapi belum pernah menghasilkan
+   jawaban sungguhan. Sengaja ditaruh paling akhir atas instruksi pengguna.
 4. Sisanya lihat "Langkah berikutnya yang paling masuk akal" di
    `docs/progress.md`.
 
 ## Yang TIDAK perlu dikhawatirkan
 
-- **Tidak ada migrasi tertunda.** Seluruh pekerjaan sesi ini nol perubahan di
+- **Tidak ada migrasi tertunda.** PR #9 dan #10 sama-sama nol perubahan di
   `db/`, `app/services/`, `app/models/`, dan router lama. `main.py` cuma
-  bertambah dua baris pendaftaran router.
+  bertambah dua baris pendaftaran router; PR #10 cuma menyentuh satu file
+  konektor (`app/connectors/wikipedia.py`).
 - **Data dua project riset pengguna aman.** `KEBAKARAN HUTAN` (157 item) dan
   `MBG AGUSTUS 2026` ada di tabel `mentions`; fitur baru menulis ke
   `metric_snapshots`. Tidak ada jalur baru yang menyentuh `mentions`.
@@ -1491,11 +1517,15 @@ hidup**, bukan diasumsikan karena CI hijau:
   `notes` metodologisnya. Proyek uji yang dibuat untuk ini **sudah dihapus**
   (`DELETE` → 204, dikonfirmasi 404).
 
-**Satu bug production ditemukan dari verifikasi ini** — lihat bagian
-"Wikimedia menolak Render dengan 403" di bawah, dan blok "MULAI DARI SINI"
-di kepala dokumen ini.
+**Satu bug production ditemukan dari verifikasi ini** — sudah **selesai
+2026-09-12**; lihat bagian "Wikimedia menolak Render dengan 403" di bawah,
+dan blok "MULAI DARI SINI" di kepala dokumen ini.
 
-## ⚠️ Wikimedia menolak Render dengan 403 — PR #10 dibuka, BELUM di-merge
+## ✅ Wikimedia menolak Render dengan 403 — SELESAI, PR #10 di-merge 2026-09-12
+
+> **Bagian ini adalah riwayat penyelidikannya.** Kesimpulan akhirnya ada di
+> ujung bagian ini — dan salah satu hipotesis di tengah terbukti KELIRU, jadi
+> jangan berhenti membaca di tengah.
 
 Ditemukan saat memverifikasi PR #9 di production, bukan dari tes:
 `POST /projects/{id}/metrics/collect` membalas **502** dengan
@@ -1511,9 +1541,15 @@ Wikimedia yang sama dari mesin lokal:
 | tanpa UA sama sekali | 403 — "Please set a user-agent and respect our robot policy https://w.wiki/4wJS" |
 | UA dengan URL kontak | **200** |
 
-Artinya **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat:
-alamat IP datacenter Render kena kebijakan robot Wikimedia — pesan 403
+Artinya **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat saat
+itu: alamat IP datacenter Render kena kebijakan robot Wikimedia — pesan 403
 Wikimedia sendiri menyebut `phabricator T400119`.
+
+> **Hipotesis itu ternyata salah** — lihat "Hasil sesudah merge" di bawah.
+> Kekeliruannya bisa dilacak: seluruh tabel di atas diukur dari **satu** IP
+> (mesin lokal), lalu kesimpulannya ditarik untuk IP yang lain (Render).
+> Variabel yang berubah antara "berhasil" dan "gagal" sebenarnya ada dua —
+> UA *dan* IP — tapi cuma satu yang divariasikan.
 
 [PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10)
 berisi dua perbaikan yang berguna terlepas dari akar masalahnya:
@@ -1529,19 +1565,57 @@ berisi dua perbaikan yang berguna terlepas dari akar masalahnya:
    robot, atau IP — padahal Wikimedia menjelaskannya sendiri di badan
    respons lengkap dengan tautan kebijakan.
 
-**CI PR #10 hijau penuh** (backend, frontend, Vercel). **Belum di-merge** —
-menunggu keputusan pengguna, dan sengaja tidak ditutup sebagai "selesai"
-karena belum terbukti menyelesaikan 403-nya.
+### Hasil sesudah merge (2026-09-12)
 
-**Kalau ternyata memang soal IP datacenter**, jalan keluarnya bukan memaksa:
-pola "tarik dari mesin lokal lalu kirim lewat endpoint" sudah dipakai
-routine harian MBG dan sudah tercatat sebagai keterbatasan sejenis untuk
-konektor RSS (`docs/progress.md` poin 2). Catat sebagai keterbatasan yang
-diketahui.
+PR #10 di-merge **15:41 UTC**. Render redeploy sendiri. Dua panggilan
+`POST /projects/{id}/metrics/collect` dilakukan dari akun test, project, dan
+payload yang identik (`wikipedia_pageviews`, `id.wikipedia`,
+`Prabowo Subianto`, 30 hari), berjarak ~90 detik:
 
-Yang tidak terpengaruh sama sekali: konektor Open-Meteo (Open-Meteo tidak
-punya kebijakan robot semacam ini), seluruh tampilan tema terang, dan kedua
-project riset pengguna.
+| Waktu (UTC) | Build | Hasil |
+|---|---|---|
+| 15:42 | UA lama, redeploy belum masuk | `502` — `"Wikimedia menolak permintaan (403)"` |
+| 15:43 | UA baru | **`200`** — `fetched: 30, stored: 30` |
+
+**Perbaikan #1 (User-Agent) yang menyelesaikannya.** Hipotesis IP datacenter
+keliru: IP Render tidak diblokir — IP yang sama berhasil begitu UA-nya memuat
+titik kontak yang bisa dibuka. Yang sebenarnya terjadi: **UA lama diterima
+dari IP rumahan tapi ditolak dari IP datacenter.** Kebijakan UA Wikimedia
+ditegakkan lebih ketat terhadap IP datacenter, bukan diblokir buta. Pola
+"tarik dari mesin lokal lalu kirim lewat endpoint" tidak jadi diperlukan.
+
+**Perbaikan #2 (meneruskan badan respons) belum terpakai di lapangan** — dan
+itu sengaja dicatat, bukan dianggap terbukti. Setelah UA diperbaiki tidak ada
+403 lagi untuk diteruskan, jadi jalur itu belum pernah dipicu production.
+Nilainya sekarang bersifat pencegahan untuk kegagalan berikutnya.
+
+**Verifikasi lanjutan yang ikut lolos**, semuanya dari Render production:
+
+- `GET /projects/{id}/metrics` → 30 observasi, `latest_value: 1207.0`,
+  `is_national: true`. Data benar-benar mendarat di Postgres, bukan cuma
+  respons 200.
+- `collect` dipanggil ulang → `stored: 0, replaced: 30`. Idempoten: deret
+  di-*replace*, tidak diduplikasi.
+- `openmeteo_air_quality` (`province_code: 31`) → `200`, 30 titik PM2.5 DKI
+  Jakarta. **Pertama kalinya konektor ini terbukti jalan dari Render** —
+  sebelumnya seluruh jalur `collect` tertutup oleh 403 di atas, jadi ia
+  "tidak terpengaruh" secara teori tapi tetap belum pernah dibuktikan.
+- `GET /forecast/baseline?metric=pageviews_prabowo_subianto` → `200`,
+  `insufficient_data: false`, model state-space ter-*fit* dari 30 titik itu,
+  dan `limitations` menandai horizon 90 hari sebagai ekstrapolasi karena
+  riwayatnya cuma 29 hari. **Rantai penuh collect → Postgres → forecast
+  terbukti dari production**, bukan cuma dari Postgres lokal.
+
+Project uji untuk verifikasi ini sudah dihapus (`DELETE` → 204, `GET`
+sesudahnya → 404).
+
+**Pelajaran yang layak dibawa ke konektor berikutnya:** menguji konektor dari
+mesin lokal saja tidak membuktikan konektor itu jalan dari production. Kalau
+sebuah konektor baru gagal 403 dari Render, curigai User-Agent lebih dulu
+sebelum menyimpulkan IP-nya diblokir.
+
+Yang tidak terpengaruh sama sekali sepanjang insiden ini: seluruh tampilan
+tema terang, dan kedua project riset pengguna.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 
