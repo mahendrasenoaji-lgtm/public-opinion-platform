@@ -14,7 +14,9 @@ ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
 
 > **Perubahan sejak serah-terima 11 September:** bug 403 Wikimedia dari Render
 > **sudah selesai** — PR #10 di-merge 2026-09-12 dan terbukti memperbaikinya.
-> **Tidak ada bug production yang terbuka sekarang.** Detailnya di bawah.
+> **Tidak ada bug production yang terbuka sekarang.** Lalu PR #12 (hari yang
+> sama): sidebar dikelompokkan Pengukuran/Sinyal/Prediksi/AI & Tata Kelola,
+> dan URL sumber item RSS lama dipulihkan dari guid feed. Detailnya di bawah.
 
 ## Keadaan sekarang
 
@@ -81,6 +83,79 @@ production, akun test yang didaftarkan sendiri lewat `/v1/auth/register`):
 
 Project uji yang dibuat untuk verifikasi ini sudah dihapus dari production
 (`DELETE` → 204, `GET` sesudahnya → 404).
+
+## Navigasi dikelompokkan + URL sumber dipulihkan (PR #12, 2026-09-12)
+
+Dua permintaan pengguna setelah melihat mockup Command Center.
+
+**Sidebar** — 17 rute datar jadi empat kelompok: Pengukuran · Sinyal ·
+Prediksi · AI & Tata Kelola. Dikelompokkan menurut **apa yang diukur**, bukan
+menurut fase pembangunan seperti urutan lama. Jaringan Interaksi karena itu
+masuk "Sinyal" walau dibangun di Phase 3 — ia mendeskripsikan siapa membalas
+siapa pada data yang ada, tidak memproyeksikan apa pun.
+
+Ikutan yang tidak bisa dipisah: label disamakan dengan mockup, **kicker tiap
+halaman ikut diubah** (kalau tidak, satu modul bernama dua), rujukan antar
+halaman yang menyebut menu lama diperbarui, dan link footer "Current Trending
+Categories" — placeholder yang salah — jadi "Ganti proyek →". Status aktif
+akhirnya menyala: `.nav-on` sudah lama ada di `globals.css` tapi tak pernah
+terpakai karena layout server component tidak tahu pathname; nav dipindah ke
+komponen klien `SideNav`. Padding butir `8px → 6px` karena empat judul
+kelompok menambah ~116px. Terukur di peramban: **sidebar penuh butuh 909px**
+dan muat tanpa scroll di viewport ≥ itu.
+
+**URL sumber item RSS lama** — baris yang tampil "tidak ada URL sumber"
+ternyata URL-nya ada di baris yang sama, di kolom sebelah. Keempat feed yang
+dipakai proyek riset pengguna menulis `<guid>` PERSIS sama dengan `<link>`,
+diperiksa langsung terhadap feed aslinya 2026-09-12:
+
+| Outlet | `guid` == `link` == URL artikel |
+|---|---|
+| Antara | ya |
+| CNBC Indonesia | ya |
+| Republika | ya |
+| Sindonews | ya |
+
+`connectors/rss.py` menyimpan guid itu ke `external_id` sejak awal; kolom
+`url` baru ada 2026-09-11. `_recover_source_url()` memulihkannya.
+
+**Batas yang menjaga ini tetap pemulihan, bukan tebakan** (dan ada tesnya):
+hanya URL absolut `http(s)` yang dipakai — tidak ada yang dirangkai, ditempel
+ke domain, atau dicarikan padanan; guid yang bukan URL (id numerik, `tag:`
+URI, handle akun) tetap menghasilkan "tidak ada URL sumber"; dan kolom `url`
+selalu menang kalau terisi. Ini mengikuti aturan yang sudah tertulis di
+docstring endpoint-nya: *"jangan ditebak dari field lain."*
+
+Asalnya dibawa keluar sebagai `source_url_origin` dan **ditandai di UI**
+("dari guid feed"), tidak disamarkan jadi seolah tersimpan. **Sengaja tidak
+di-backfill** ke tabel: menulis ulang kolom `url` pada data riset yang sudah
+ada tidak bisa dibatalkan tanpa jejak, dan hasilnya sama saja dengan
+menghitungnya saat baca. Kalau backfill nanti diinginkan, fungsi itu
+acuannya.
+
+Satu bug ketahuan dari melihat langsung di peramban, bukan dari tes: `.note`
+itu `display:flex`, jadi span penanda yang disisipkan di tengah teks jadi
+flex item tersendiri dan terperas jadi kolom sempit. Sudah diperbaiki.
+
+**Diverifikasi terhadap production setelah merge, bukan diasumsikan:**
+
+- **Vercel** — diperiksa dari bundel CSS yang sungguh dilayani: `.nav-grp`,
+  `.nav-grp-t`, `padding:6px 9px`, dan `.nav-on` semuanya ada.
+- **Render** — tiga item uji diingest lewat `POST /signals/ingest` sungguhan
+  ke production, dan ketiga cabang `_recover_source_url` berperilaku persis
+  seperti dirancang:
+
+  | Item uji | `url` | `source_url_origin` | Tampil di UI |
+  |---|---|---|---|
+  | guid = permalink artikel | `null` | `guid_feed` | "Buka sumber ↗" + penanda `dari guid feed` |
+  | guid bukan URL | `null` | `null` | "tidak ada URL sumber" |
+  | `url` tersimpan sejak ingest | terisi | `kolom_url` | "Buka sumber ↗" tanpa penanda |
+
+- **Tampilan** diperiksa dengan merender halaman `/sinyal` sungguhan terhadap
+  API production itu — bukan cuma respons JSON-nya. Ketiga baris tampil benar
+  dan catatan kakinya mengalir sebagai satu paragraf.
+
+Project uji sudah dihapus (`DELETE` → 204, `GET` sesudahnya → 404).
 
 ## Langkah pertama sesi berikutnya
 
