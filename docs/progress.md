@@ -470,10 +470,11 @@ Ini bagian terpenting dari dokumen ini.
 
 > **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
 > konkret per 2026-09-12 ada di blok "🟢 MULAI DARI SINI" di kepala
-> `docs/deployment-status.md` — ringkasnya: PR #9 dan #10 sudah di-merge dan
-> hidup di production, bug 403 Wikimedia **sudah selesai dan terverifikasi
-> dari Render**, dan **tidak ada bug production yang terbuka**. Yang tersisa
-> adalah daftar di bawah ini.
+> `docs/deployment-status.md` — ringkasnya: **PR #9 sampai #13 semuanya sudah
+> di-merge dan hidup di production**, bug 403 Wikimedia **sudah selesai dan
+> terverifikasi dari Render**, sidebar sudah dikelompokkan, URL sumber item
+> RSS lama sudah bisa ditaut, dan **tidak ada PR maupun bug production yang
+> terbuka**. Yang tersisa adalah daftar di bawah ini.
 
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
