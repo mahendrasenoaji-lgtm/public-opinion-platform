@@ -52,10 +52,19 @@ from app.models.measurement import SignalSource
 
 REQUEST_TIMEOUT = 20.0
 
-#: Wikimedia meminta User-Agent yang menyebut siapa pemanggilnya. Sengaja
-#: BUKAN string peramban — menyamar sebagai Chrome dilarang di paket ini
-#: (lihat connectors/base.py).
-USER_AGENT = "AIPublicOpinionPlatform/0.1 (+public opinion research; contact via platform admin)"
+#: Kebijakan User-Agent Wikimedia (https://w.wiki/4wJS) meminta pemanggil
+#: otomatis menyebut dirinya DAN menyertakan titik kontak yang bisa dihubungi
+#: — bukan sekadar nama aplikasi. Versi sebelumnya menulis "contact via
+#: platform admin", yang bukan kontak apa pun; sekarang URL repo, yang bisa
+#: benar-benar dibuka orang Wikimedia kalau perlu menghubungi.
+#:
+#: Sengaja BUKAN string peramban — menyamar sebagai Chrome dilarang di paket
+#: ini (lihat connectors/base.py), dan justru itu yang membuat permintaan ini
+#: sah: Wikimedia boleh tahu persis siapa yang memanggil.
+USER_AGENT = (
+    "AIPublicOpinionPlatform/0.1 "
+    "(https://github.com/mahendrasenoaji-lgtm/public-opinion-platform)"
+)
 
 _BASE = "https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article"
 
@@ -205,8 +214,18 @@ class WikipediaPageviewsConnector(MetricConnector):
                     )
                 response.raise_for_status()
         except httpx.HTTPStatusError as e:
+            # Teruskan pesan Wikimedia APA ADANYA, bukan cuma kode statusnya.
+            # Ditambahkan setelah insiden nyata: percobaan pertama dari Render
+            # membalas 403, dan pesan lama ("Wikimedia menolak permintaan
+            # (403)") tidak memberi satu pun petunjuk apakah itu soal
+            # User-Agent, kebijakan robot, atau alamat IP — padahal Wikimedia
+            # SENDIRI menjelaskannya di badan respons, lengkap dengan tautan
+            # kebijakannya. Membuang badan itu berarti membuang satu-satunya
+            # keterangan yang berguna.
+            detail = e.response.text.strip()[:300]
             raise ConnectorError(
                 f"Wikimedia menolak permintaan ({e.response.status_code})"
+                + (f": {detail}" if detail else "")
             ) from e
         except httpx.HTTPError as e:
             raise ConnectorError(f"deret tampilan halaman tidak bisa diambil: {e}") from e
