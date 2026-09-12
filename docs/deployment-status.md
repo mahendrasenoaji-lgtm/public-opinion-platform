@@ -12,11 +12,38 @@
 ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
 `docs/progress.md`.
 
-> **Perubahan sejak serah-terima 11 September:** bug 403 Wikimedia dari Render
-> **sudah selesai** — PR #10 di-merge 2026-09-12 dan terbukti memperbaikinya.
-> **Tidak ada bug production yang terbuka sekarang.** Lalu PR #12 (hari yang
-> sama): sidebar dikelompokkan Pengukuran/Sinyal/Prediksi/AI & Tata Kelola,
-> dan URL sumber item RSS lama dipulihkan dari guid feed. Detailnya di bawah.
+## Ringkas: apa yang terjadi di sesi ini (12 September 2026)
+
+**Tidak ada PR terbuka. Tidak ada bug production terbuka.** Empat PR
+di-merge hari ini, semuanya sudah diverifikasi terhadap production:
+
+| PR | Isi | Bukti |
+|---|---|---|
+| [#10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10) | User-Agent Wikimedia + teruskan badan respons 403 | `/metrics/collect` dari Render: `502` → `200` dalam ~90 detik, payload identik |
+| [#11](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/11) | Dokumentasi penutupan bug 403 | — |
+| [#12](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/12) | Sidebar berkelompok + pulihkan URL sumber dari guid feed | Bundel CSS Vercel yang sungguh dilayani; 3 item uji lewat `/signals/ingest` ke Render; halaman `/sinyal` dirender sungguhan |
+| [#13](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/13) | Dokumentasi PR #12 | — |
+
+**Dua hal yang paling penting dibawa ke sesi berikutnya**, karena keduanya
+mengoreksi kesimpulan yang sebelumnya dianggap benar:
+
+1. **"IP datacenter Render diblokir Wikimedia" itu KELIRU.** Yang salah cuma
+   User-Agent-nya. Cara kekeliruannya terjadi juga penting: tabel
+   penyelidikannya memvariasikan UA tapi mengukur semuanya dari **satu** IP,
+   lalu menarik kesimpulan untuk IP yang lain. Pelajaran umumnya: **menguji
+   konektor dari mesin lokal tidak membuktikan konektor itu jalan dari
+   production.**
+2. **URL item RSS lama tidak pernah hilang — ia ada di kolom sebelah.**
+   Keempat feed yang dipakai proyek riset pengguna menulis `<guid>` yang
+   persis sama dengan `<link>`, dan `rss.py` menyimpannya ke `external_id`
+   sejak awal. Yang tampil "tidak ada URL sumber" sebenarnya bisa dipulihkan
+   tanpa menebak apa pun.
+
+Urutan kejadiannya: merge #10 → tunggu Render redeploy → `collect` berhasil →
+verifikasi lanjutan (idempotensi, konektor Open-Meteo, rantai collect →
+forecast) → dokumentasi (#11) → permintaan pengguna soal sidebar + link
+"Sumber asli" → periksa keempat feed RSS aslinya → #12 → verifikasi terhadap
+production setelah Render/Vercel redeploy → dokumentasi (#13).
 
 ## Keadaan sekarang
 
@@ -172,12 +199,29 @@ Project uji sudah dihapus (`DELETE` → 204, `GET` sesudahnya → 404).
 4. Sisanya lihat "Langkah berikutnya yang paling masuk akal" di
    `docs/progress.md`.
 
+**Yang bisa dikerjakan tanpa menunggu keputusan siapa pun**, kalau pengguna
+tidak menyebut prioritas lain:
+
+- **Backfill kolom `url`** dari `external_id` untuk item RSS lama, kalau
+  pengguna memang menginginkannya. Sengaja TIDAK dilakukan di PR #12 —
+  alasannya di bagian PR #12 di atas. `_recover_source_url()` sudah jadi
+  acuannya, tinggal dijalankan sebagai migrasi sekali jalan.
+- **Jalur `POST /signals/sources/{id}/collect` untuk RSS** — satu-satunya
+  jalur konektor yang belum pernah dipicu dari Render sendiri (`ingest`
+  manual sudah teruji). Sekarang risikonya lebih kecil dari yang dikira:
+  jaringan keluar Render → penerbit pihak ketiga sudah terbukti lewat
+  Wikimedia dan Open-Meteo. Kalau gagal 403, **curigai User-Agent lebih
+  dulu**, jangan langsung menyimpulkan IP-nya diblokir (lihat pelajaran
+  nomor 1 di kepala dokumen).
+
 ## Yang TIDAK perlu dikhawatirkan
 
-- **Tidak ada migrasi tertunda.** PR #9 dan #10 sama-sama nol perubahan di
-  `db/`, `app/services/`, `app/models/`, dan router lama. `main.py` cuma
-  bertambah dua baris pendaftaran router; PR #10 cuma menyentuh satu file
-  konektor (`app/connectors/wikipedia.py`).
+- **Tidak ada migrasi tertunda.** PR #9, #10, dan #12 sama-sama nol perubahan
+  di `db/`. `main.py` cuma bertambah dua baris pendaftaran router (#9); #10
+  cuma menyentuh satu file konektor (`app/connectors/wikipedia.py`); #12
+  menambah satu fungsi murni + dua field respons di `routers/signals.py` dan
+  tidak menyentuh `models/` maupun `services/`. **Pemulihan URL dihitung saat
+  baca, nol tulisan ke tabel.**
 - **Data dua project riset pengguna aman.** `KEBAKARAN HUTAN` (157 item) dan
   `MBG AGUSTUS 2026` ada di tabel `mentions`; fitur baru menulis ke
   `metric_snapshots`. Tidak ada jalur baru yang menyentuh `mentions`.
