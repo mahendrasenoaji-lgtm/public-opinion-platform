@@ -36,7 +36,7 @@ export default async function TemaPage() {
 
   return (
     <>
-      <PageHeader kicker="Topic Discovery" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Tema" title={name} isDemo={isDemo} />
       <div className="body">
         <Panel
           kicker="Tema percakapan"
@@ -46,7 +46,7 @@ export default async function TemaPage() {
           {topics.length === 0 ? (
             <InsufficientData
               reason={
-                "Belum ada tema. Masukkan percakapan lewat Signal Monitor, lalu " +
+                "Belum ada tema. Masukkan percakapan lewat Sinyal & Sentimen, lalu " +
                 "jalankan penemuan tema. Dibutuhkan minimal 20 percakapan — di " +
                 "bawah itu yang ditemukan lebih mungkin derau daripada tema."
               }

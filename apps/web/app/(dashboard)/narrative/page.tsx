@@ -13,7 +13,7 @@ export default async function NarrativePage() {
 
   return (
     <>
-      <PageHeader kicker="Narrative Map" title={projectName} isDemo={isDemo} />
+      <PageHeader kicker="Peta Narasi" title={projectName} isDemo={isDemo} />
       <div className="body">
         {narratives.length === 0 ? (
           <InsufficientData reason="Belum ada narasi terdeteksi untuk proyek ini." />

@@ -16,7 +16,7 @@ export default async function GeoPage() {
 
   return (
     <>
-      <PageHeader kicker="Geographic Map" title={projectName} isDemo={isDemo} />
+      <PageHeader kicker="Peta Geografis" title={projectName} isDemo={isDemo} />
       <div className="body">
         {provinces.length === 0 ? (
           <InsufficientData reason="Belum ada data provinsi untuk proyek ini." />

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -167,12 +168,56 @@ class IngestResult(BaseModel):
     caveats: list[str]
 
 
+#: Dari mana URL di `source_url` berasal. Dibawa keluar bersama URL-nya,
+#: bukan disembunyikan, karena keduanya TIDAK sama kuat: satu disimpan
+#: sebagai URL, satunya dipulihkan dari identitas feed. Pembaca yang
+#: memverifikasi angka berhak tahu yang mana.
+UrlOrigin = Literal["kolom_url", "guid_feed"]
+
+
+def _recover_source_url(url: str | None, external_id: str) -> tuple[str | None, UrlOrigin | None]:
+    """URL terbaik yang tersedia untuk satu mention, beserta asal-usulnya.
+
+    Sebagian besar feed RSS Indonesia (Antara, CNBC Indonesia, Republika,
+    Sindonews — keempatnya diperiksa 2026-09-12) menulis `<guid>` yang PERSIS
+    sama dengan `<link>`, yaitu URL artikelnya. `connectors/rss.py` menyimpan
+    guid itu ke `external_id` sejak awal, sementara kolom `url` baru ada
+    2026-09-11. Akibatnya ratusan item lama tampil "tidak ada URL sumber"
+    padahal URL-nya ada di baris yang sama, di kolom sebelah.
+
+    Ini PEMULIHAN, bukan tebakan — bedanya penting dan itu sebabnya fungsi
+    ini tidak menyentuh apa pun selain URL absolut yang memang tersimpan:
+
+    - guid yang bukan URL absolut (id numerik, `tag:` URI, handle akun dari
+      konektor non-RSS) dikembalikan sebagai None. Tidak ada yang dirangkai,
+      ditempel ke domain, atau dicarikan padanannya.
+    - kolom `url` selalu menang kalau terisi. Yang dipulihkan hanya mengisi
+      yang kosong, tidak pernah menimpa.
+
+    Sengaja dihitung saat baca, bukan di-backfill ke tabel: menulis ulang
+    kolom `url` pada data riset yang sudah ada adalah perubahan yang tidak
+    bisa dibatalkan tanpa jejak, dan nilainya sama saja dengan menghitungnya
+    di sini. Kalau nanti backfill memang diinginkan, fungsi ini yang jadi
+    acuannya.
+    """
+    if url:
+        return url, "kolom_url"
+    if external_id.startswith(("http://", "https://")):
+        return external_id, "guid_feed"
+    return None, None
+
+
 class MentionOut(BaseModel):
     """Satu item mentah, untuk validasi manual lewat GET .../mentions."""
 
     id: UUID
     external_id: str
     url: str | None
+    #: URL terbaik yang tersedia + asalnya. `url` di atas sengaja dibiarkan
+    #: apa adanya (NULL tetap NULL) supaya keadaan tabel tetap terbaca dari
+    #: respons ini; yang dipakai UI untuk menaut adalah dua field ini.
+    source_url: str | None
+    source_url_origin: UrlOrigin | None
     text: str
     published_at: datetime
     source: SignalSource
@@ -728,28 +773,37 @@ async def list_mentions(
     Discovery, yang tetap sumber kebenaran untuk agregat.
 
     `url` bisa `None` untuk mention yang diingest sebelum kolom ini ada
-    (2026-09-11) atau dari sumber yang memang tidak punya URL publik --
-    tampilkan sebagai "tidak ada URL sumber", jangan ditebak dari field lain.
+    (2026-09-11) atau dari sumber yang memang tidak punya URL publik. Yang
+    dipakai untuk menaut adalah `source_url` + `source_url_origin`, bukan
+    `url` mentah -- lihat `_recover_source_url`: untuk item RSS lama, URL
+    aslinya masih tersimpan di `external_id` (guid feed = permalink artikel)
+    dan itu dipulihkan di sini. Kalau keduanya kosong, tetap tampilkan
+    "tidak ada URL sumber"; jangan ditebak dari field lain.
     """
     since, until = _window(days)
     query = _scoped(select(Mention), project_id, since, until)
     if source is not None:
         query = query.where(Mention.source == ModelSignalSource(source.value))
     query = query.order_by(Mention.published_at.desc()).limit(limit).offset(offset)
-    return [
-        MentionOut(
-            id=m.id,
-            external_id=m.external_id,
-            url=m.url,
-            text=m.text,
-            published_at=m.published_at,
-            source=SignalSource(m.source.value),
-            connector=m.connector,
-            engagement=m.engagement,
-            sentiment=float(m.sentiment) if m.sentiment is not None else None,
+    out: list[MentionOut] = []
+    for m in (await session.execute(query)).scalars():
+        source_url, origin = _recover_source_url(m.url, m.external_id)
+        out.append(
+            MentionOut(
+                id=m.id,
+                external_id=m.external_id,
+                url=m.url,
+                source_url=source_url,
+                source_url_origin=origin,
+                text=m.text,
+                published_at=m.published_at,
+                source=SignalSource(m.source.value),
+                connector=m.connector,
+                engagement=m.engagement,
+                sentiment=float(m.sentiment) if m.sentiment is not None else None,
+            )
         )
-        for m in (await session.execute(query)).scalars()
-    ]
+    return out
 
 
 @router.get(

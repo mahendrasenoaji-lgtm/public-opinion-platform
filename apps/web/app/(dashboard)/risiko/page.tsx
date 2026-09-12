@@ -41,7 +41,7 @@ export default async function RisikoPage() {
 
   return (
     <>
-      <PageHeader kicker="Opinion Risk Score" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Skor Risiko" title={name} isDemo={isDemo} />
       <div className="body">
         <section className="stat-row">
           <div className="stat stat-big">

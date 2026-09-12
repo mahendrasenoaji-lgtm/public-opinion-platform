@@ -34,7 +34,7 @@ export default async function ConsistencyPage() {
 
   return (
     <>
-      <PageHeader kicker="Signal Consistency" title={projectName} isDemo={isDemo} />
+      <PageHeader kicker="Konsistensi Sinyal" title={projectName} isDemo={isDemo} />
       <div className="body">
         <Panel kicker="Fitur pembeda utama" title="Tiga sumber, tiga jawaban berbeda">
           {divergence.readings.length === 0 ? (

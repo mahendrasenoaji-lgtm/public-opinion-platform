@@ -161,12 +161,12 @@ export default async function CommandCenter() {
         </div>
 
         <div className="grid-2">
-          <Panel kicker="Topic Discovery" title="Isu publik">
+          <Panel kicker="Tema" title="Isu publik">
             {topTopics.length === 0 ? (
               <InsufficientData
                 reason={
                   "Belum ada tema yang ditemukan. Masukkan percakapan lewat " +
-                  "Signal Monitor lalu jalankan penemuan tema di halaman Topic Discovery."
+                  "Sinyal & Sentimen lalu jalankan penemuan tema di halaman Tema."
                 }
               />
             ) : (
