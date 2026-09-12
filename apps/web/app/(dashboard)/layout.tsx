@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import { Activity } from "lucide-react";
+import { SideNav } from "@/components/SideNav";
 import { api, ApiError } from "@/lib/api";
 import { getCurrentProjectId } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
@@ -10,28 +11,6 @@ interface ActiveProject {
   name: string;
   is_demo: boolean;
 }
-
-const NAV = [
-  ["/command", "Command Center"],
-  ["/opinion-index", "Opinion Index"],
-  ["/consistency", "Signal Consistency"],
-  ["/narrative", "Narrative Map"],
-  ["/segments", "Public Segments"],
-  ["/geo", "Geographic Map"],
-  ["/forecast", "Forecast & Simulator"],
-  // Phase 2 — sinyal
-  ["/sinyal", "Signal Monitor"],
-  ["/deret", "Deret Data Publik"],
-  ["/tema", "Topic Discovery"],
-  ["/copilot", "AI Copilot"],
-  // Phase 3 — prediksi
-  ["/risiko", "Opinion Risk Score"],
-  ["/pengaruh", "Influence Estimate"],
-  ["/jaringan", "Interaction Network"],
-  ["/dampak", "Communication Impact"],
-  ["/brief", "Executive Brief"],
-  ["/governance", "AI Governance"],
-] as const;
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -64,15 +43,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <div className="brand-s">Intelligence Platform</div>
           </div>
         </div>
-        <nav>
-          {NAV.map(([href, label]) => (
-            // Sebagian besar rute di sini belum punya halaman — Phase 1 hanya
-            // mewajibkan Command Center + Opinion Index (roadmap.md). Cast ke
-            // Route supaya typedRoutes tidak menolak build sebelum semua
-            // halaman di-port; link yang belum ada akan 404 sampai dibangun.
-            <Link key={href} href={href as Route} className="nav-i">{label}</Link>
-          ))}
-        </nav>
+        <SideNav />
         <div className="nav-foot">
           <div className="kicker">Proyek aktif</div>
           <div className="proj">{project?.name ?? "Proyek"}</div>
@@ -88,7 +59,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 : "Proyek Anda sendiri"}
           </div>
           <Link href={"/proyek" as Route} className="nav-i" style={{ marginTop: 6, display: "inline-block" }}>
-            Current Trending Categories
+            Ganti proyek →
           </Link>
           {email && (
             <form action="/api/session/logout" method="post" style={{ marginTop: 12 }}>

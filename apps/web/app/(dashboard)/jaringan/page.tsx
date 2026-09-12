@@ -38,7 +38,7 @@ export default async function JaringanPage() {
 
   return (
     <>
-      <PageHeader kicker="Interaction Network" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Jaringan Interaksi" title={name} isDemo={isDemo} />
       <div className="body">
         {/* Judul kartu di sini sengaja "posisi struktural", bukan "pengaruh"
             atau "kendali" — CLAUDE.md §3. Yang terukur adalah seberapa sering

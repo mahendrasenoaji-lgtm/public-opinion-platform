@@ -181,8 +181,21 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 .brand-n { font-family:'Archivo',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--txt); }
 .brand-s { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--txt3); letter-spacing:.08em; text-transform:uppercase; }
 .nav nav { padding:8px 6px; display:flex; flex-direction:column; gap:1px; overflow-y:auto; }
+.nav-grp { display:flex; flex-direction:column; gap:1px; }
+/* Judul kelompok, bukan garis pemisah: label yang menyebutkan isinya lebih
+   berguna daripada garis yang cuma memotong. Tidak perlu border — jarak
+   di atasnya sudah cukup memisahkan. */
+.nav-grp-t {
+  font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.13em;
+  text-transform:uppercase; color:var(--txt3); font-weight:500; padding:12px 9px 4px;
+}
+.nav-grp:first-child .nav-grp-t { padding-top:4px; }
+/* padding vertikal 6px, bukan 8px: empat judul kelompok menambah ~116px ke
+   daftar yang sudah 17 butir, dan pada layar laptop pendek dua kelompok
+   terakhir jadi harus di-scroll untuk terlihat sama sekali. 2px per butir
+   mengembalikan ~68px dari itu tanpa membuat target klik terlalu kecil. */
 .nav-i {
-  display:flex; align-items:center; gap:9px; width:100%; padding:8px 9px; border:0; border-radius:var(--radius-sm);
+  display:flex; align-items:center; gap:9px; width:100%; padding:6px 9px; border:0; border-radius:var(--radius-sm);
   background:transparent; color:var(--txt2); font:inherit; font-size:12.5px; cursor:pointer; text-align:left;
   text-decoration:none;
 }

@@ -61,7 +61,7 @@ export default async function SegmentsPage() {
 
   return (
     <>
-      <PageHeader kicker="Public Segments" title={projectName} isDemo={isDemo} />
+      <PageHeader kicker="Segmen Publik" title={projectName} isDemo={isDemo} />
       <div className="body">
         <section className="stat-row">
           <div className="stat">

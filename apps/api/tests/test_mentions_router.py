@@ -84,16 +84,42 @@ async def test_url_tersimpan_dan_terbaca_lewat_endpoint(client) -> None:
     body = r.json()
     assert len(body) == 1
     assert body[0]["url"] == "https://contoh.id/artikel/asli"
+    assert body[0]["source_url"] == "https://contoh.id/artikel/asli"
+    assert body[0]["source_url_origin"] == "kolom_url"
 
 
-async def test_tanpa_url_balas_none_bukan_string_kosong(client) -> None:
+async def test_item_lama_tanpa_url_tetap_dapat_tautan_dari_guid(client) -> None:
+    """Item bergaya RSS lama: `url` kosong, guid berisi permalink artikel.
+
+    `url` sengaja tetap None di respons -- keadaan tabel harus tetap terbaca
+    apa adanya; yang terisi adalah `source_url` beserta asal-usulnya.
+    """
     headers, project_id = await _register_and_create_project(client)
-    await _ingest(client, project_id, headers)
+    permalink = "https://www.antaranews.com/berita/999/karhutla-habitat-gajah-sumsel"
+    await _ingest(client, project_id, headers, external_id=permalink)
 
     r = await client.get(f"/v1/projects/{project_id}/mentions", headers=headers)
 
     assert r.status_code == 200, r.text
-    assert r.json()[0]["url"] is None
+    row = r.json()[0]
+    assert row["url"] is None
+    assert row["source_url"] == permalink
+    assert row["source_url_origin"] == "guid_feed"
+
+
+async def test_tanpa_url_balas_none_bukan_string_kosong(client) -> None:
+    headers, project_id = await _register_and_create_project(client)
+    await _ingest(client, project_id, headers)  # external_id "ext-..." bukan URL
+
+    r = await client.get(f"/v1/projects/{project_id}/mentions", headers=headers)
+
+    assert r.status_code == 200, r.text
+    row = r.json()[0]
+    assert row["url"] is None
+    # Guid-nya bukan URL, jadi tidak ada yang bisa dipulihkan -- dan tidak ada
+    # yang ditebak. Baris ini tetap "tidak ada URL sumber" di UI.
+    assert row["source_url"] is None
+    assert row["source_url_origin"] is None
 
 
 async def test_filter_source_hanya_mengembalikan_sumber_diminta(client) -> None:

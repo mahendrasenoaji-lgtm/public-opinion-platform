@@ -18,7 +18,7 @@ export default async function DampakPage() {
 
   return (
     <>
-      <PageHeader kicker="Communication Impact" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Dampak Komunikasi" title={name} isDemo={isDemo} />
       <div className="body">
         <Panel kicker="Desain pembanding" title="Ukur dampak komunikasi">
           {/* Ini satu-satunya modul di platform ini yang boleh mengeluarkan

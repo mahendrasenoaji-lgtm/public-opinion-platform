@@ -58,6 +58,11 @@ interface MentionRow {
   id: string;
   external_id: string;
   url: string | null;
+  /** URL terbaik yang tersedia; lihat `_recover_source_url` di API. */
+  source_url: string | null;
+  /** "kolom_url" = tersimpan sebagai URL. "guid_feed" = dipulihkan dari
+   *  identitas feed pada item lama. Dibedakan di UI, bukan disamarkan. */
+  source_url_origin: "kolom_url" | "guid_feed" | null;
   text: string;
   published_at: string;
   source: SignalSource;
@@ -116,7 +121,7 @@ export default async function SinyalPage() {
 
   return (
     <>
-      <PageHeader kicker="Signal Monitor" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Sinyal & Sentimen" title={name} isDemo={isDemo} />
       <div className="body">
         <section className="stat-row">
           <div className="stat stat-big">
@@ -260,15 +265,31 @@ export default async function SinyalPage() {
                     </td>
                     <td className="mono">{m.published_at.slice(0, 16).replace("T", " ")}</td>
                     <td>
-                      {m.url ? (
-                        <a
-                          href={m.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{ color: SOURCE[m.source].color }}
-                        >
-                          Buka sumber ↗
-                        </a>
+                      {m.source_url ? (
+                        <>
+                          <a
+                            href={m.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{ color: SOURCE[m.source].color }}
+                          >
+                            Buka sumber ↗
+                          </a>
+                          {/* Tautan hasil pemulihan ditandai, bukan disamakan
+                              diam-diam dengan yang tersimpan sebagai URL.
+                              Bedanya kecil tapi nyata: yang ini berasal dari
+                              guid feed, dan pembaca yang memverifikasi berhak
+                              tahu itu sebelum mengutipnya. */}
+                          {m.source_url_origin === "guid_feed" && (
+                            <span
+                              className="mono"
+                              title="URL dipulihkan dari guid feed RSS, yang untuk keempat outlet ini sama dengan permalink artikelnya. Kolom url sendiri kosong karena item ini diingest sebelum kolom itu ada (2026-09-11)."
+                              style={{ color: "var(--txt3)", marginLeft: 7, fontSize: 10 }}
+                            >
+                              dari guid feed
+                            </span>
+                          )}
+                        </>
                       ) : (
                         <span style={{ color: "var(--txt3)" }}>tidak ada URL sumber</span>
                       )}
@@ -278,11 +299,21 @@ export default async function SinyalPage() {
               </tbody>
             </table>
           )}
+          {/* Isi catatan dibungkus SATU span: `.note` itu display:flex, jadi
+              elemen apa pun yang disisipkan di tengah teks akan jadi flex
+              item tersendiri dan terperas jadi kolom sempit. */}
           <p className="note">
             <Info size={13} />
-            20 item terbaru, bukan seluruh dataset. &quot;Tidak ada URL sumber&quot; berarti item
-            ini diingest sebelum kolom URL ditambahkan (2026-09-11), atau sumbernya memang tidak
-            punya halaman publik — bukan tanda datanya tidak asli.
+            <span>
+              20 item terbaru, bukan seluruh dataset. Tautan bertanda{" "}
+              <span className="mono" style={{ fontSize: 10 }}>
+                dari guid feed
+              </span>{" "}
+              dipulihkan dari identitas feed RSS — untuk Antara, CNBC Indonesia, Republika, dan
+              Sindonews, guid itu memang permalink artikelnya. &quot;Tidak ada URL sumber&quot;
+              berarti guid-nya bukan URL, atau sumbernya memang tidak punya halaman publik —
+              bukan tanda datanya tidak asli.
+            </span>
           </p>
         </Panel>
 

@@ -39,7 +39,7 @@ export default async function PengaruhPage() {
 
   return (
     <>
-      <PageHeader kicker="Influence Estimate" title={name} isDemo={isDemo} />
+      <PageHeader kicker="Estimasi Pengaruh" title={name} isDemo={isDemo} />
       <div className="body">
         {/* Judul halaman ini sengaja "estimasi", bukan "pengaruh". Yang diukur
             adalah keterpaparan; apakah ada yang berubah pikiran tidak terukur
