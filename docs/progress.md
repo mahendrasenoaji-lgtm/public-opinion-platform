@@ -263,7 +263,17 @@ Ini bagian terpenting dari dokumen ini.
    RSS langsung) — sesi ini masih menarik feed dari mesin lokal lalu
    mengirim hasilnya lewat `ingest`, bukan memicu `collect` dari Render
    sendiri. Detail lengkap di `docs/deployment-status.md` bagian
-   "Verifikasi production 2026-09-11". Pipeline
+   "Verifikasi production 2026-09-11".
+   **Update 2026-09-12**: jaringan keluar dari **Render ke penerbit pihak
+   ketiga** sekarang teruji lewat jalur lain — `POST .../metrics/collect`
+   berhasil menarik data langsung dari Wikimedia dan Open-Meteo dari dalam
+   Render (lihat blok "MULAI DARI SINI"). Jadi yang tersisa untuk RSS bukan
+   lagi pertanyaan "apakah Render bisa menjangkau internet luar", melainkan
+   khusus jalur `DataSource`-nya. Satu pelajaran dari situ yang **berlaku
+   untuk konektor RSS juga**: UA yang diterima dari IP rumahan bisa ditolak
+   dari IP datacenter Render. Kalau `sources/{id}/collect` nanti gagal dengan
+   403, curigai User-Agent lebih dulu, bukan langsung menyimpulkan IP-nya
+   diblokir. Pipeline
    ingestion (`normalize_text`, `detect_language`, `dedupe`) dan sentiment
    (`sentiment.score`) dijalankan di atas ke-215 item nyata itu tanpa satu
    pun exception — lihat poin 5 di bawah untuk apa yang ditemukan dari situ.
@@ -458,6 +468,13 @@ Ini bagian terpenting dari dokumen ini.
 
 ## Langkah berikutnya yang paling masuk akal
 
+> **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
+> konkret per 2026-09-12 ada di blok "🟢 MULAI DARI SINI" di kepala
+> `docs/deployment-status.md` — ringkasnya: PR #9 dan #10 sudah di-merge dan
+> hidup di production, bug 403 Wikimedia **sudah selesai dan terverifikasi
+> dari Render**, dan **tidak ada bug production yang terbuka**. Yang tersisa
+> adalah daftar di bawah ini.
+
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
 1. ~~**Verifikasi Phase 2/3 terhadap production.**~~ — **selesai
@@ -515,6 +532,19 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    pada 2026-09-02, jadi tidak dilakukan diam-diam. Lihat
    `docs/deployment-status.md` bagian "Redesain tema terang + dua konektor
    deret publik".
+
+9. ~~**Tutup bug 403 Wikimedia terhadap Render.**~~ — **selesai 2026-09-12**.
+   PR #10 di-merge, Render redeploy, `/metrics/collect` berubah dari `502`
+   ke `200` (`fetched: 30, stored: 30`) dalam ~90 detik dengan payload yang
+   sama persis. Halaman `/deret` sekarang benar-benar bisa dipakai dari UI.
+
+   **Hipotesis "IP datacenter Render diblokir" ternyata keliru** — IP-nya
+   tidak diblokir; UA lama yang tanpa titik kontak nyata ditolak dari IP
+   datacenter padahal diterima dari IP rumahan. Jadi pola "tarik dari mesin
+   lokal lalu kirim lewat endpoint" **tidak jadi diperlukan** di sini.
+   Bukti lengkapnya (termasuk verifikasi lanjutan: idempotensi `collect`,
+   konektor Open-Meteo, dan rantai collect → forecast dari production) ada di
+   `docs/deployment-status.md` blok "MULAI DARI SINI".
 6. **Phase 4** — lihat tabel di bagian "Phase 4 — enterprise" di atas.
    Empat item pertama (SSO, MFA wajib, billing, API publik) tetap butuh
    keputusan vendor/kebijakan yang bukan wewenang agen, dan — di luar

@@ -4,6 +4,132 @@
 > ringkas per komponen beserta apa yang belum diverifikasi, lihat
 > [progress.md](progress.md).
 
+---
+
+# 🟢 MULAI DARI SINI — serah-terima sesi, 12 September 2026 (sesi kelima)
+
+**Ditulis khusus untuk sesi berikutnya di komputer lain.** Riwayat chat tidak
+ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
+`docs/progress.md`.
+
+> **Perubahan sejak serah-terima 11 September:** bug 403 Wikimedia dari Render
+> **sudah selesai** — PR #10 di-merge 2026-09-12 dan terbukti memperbaikinya.
+> **Tidak ada bug production yang terbuka sekarang.** Detailnya di bawah.
+
+## Keadaan sekarang
+
+**`main` sudah di-merge dan sudah hidup di production.** [PR #9](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/9)
+(tema terang + dua konektor deret waktu) di-merge 2026-09-11 16:17 UTC, lalu
+**diverifikasi benar-benar tayang**, bukan diasumsikan:
+
+- **Vercel** — diperiksa dari bundel CSS yang sungguh dilayani:
+  `--ink:#EDF1F6`, `--panel:#FFFFFF`, `--survey:#0B6FD4` ada; blok
+  `[data-theme=dark]` beserta `--ink:#0A1017`/`--survey:#4DA3FF` juga ada
+  (tema gelap tetap bisa dipilih); skrip boot `localStorage.getItem("pop-theme")`
+  ada di HTML; kelas `.auth-wrap`/`.theme-btn`/`.form-err` ada.
+- **Render** — `/v1/metrics/connectors` berubah dari `404` ke `401`, lalu
+  dengan akun test membalas kedua konektor lengkap dengan `notes`-nya.
+
+Situs sekarang **bertema terang** dengan tombol Gelap/Terang di bar atas tiap
+halaman dashboard, dan punya halaman ke-18: `/deret`.
+
+## ✅ Bug 403 Wikimedia — SELESAI 2026-09-12
+
+`POST /projects/{id}/metrics/collect` dari Render dulu **gagal 502** dengan
+`"Wikimedia menolak permintaan (403)"`. [PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10)
+di-merge 2026-09-12 15:41 UTC dan **memperbaikinya**. Bukti diambil dari
+production, bukan dari tes:
+
+| Waktu (UTC) | Build di Render | Hasil `POST /metrics/collect` |
+|---|---|---|
+| 15:42 | UA lama (sebelum redeploy) | `502` — `"Wikimedia menolak permintaan (403)"` |
+| 15:43 | UA baru (setelah redeploy) | **`200`** — `fetched: 30, stored: 30` |
+
+Dua panggilan itu berjarak ~90 detik, dari akun, project, dan payload yang
+sama persis. Satu-satunya yang berubah adalah build-nya.
+
+**Hipotesis "IP datacenter Render diblokir" ternyata KELIRU** — dan ini yang
+perlu diingat supaya tidak diselidiki ulang. IP Render tidak diblokir: IP yang
+sama berhasil begitu User-Agent-nya memuat titik kontak yang bisa dibuka. Yang
+terjadi: **UA lama (`contact via platform admin` — bukan kontak apa pun)
+diterima dari IP rumahan tapi ditolak dari IP datacenter.** Jadi kebijakan UA
+Wikimedia ditegakkan lebih ketat terhadap IP datacenter, bukan diblokir buta.
+Pelajaran umumnya: **menguji konektor dari mesin lokal saja tidak membuktikan
+konektor itu jalan dari production.**
+
+**Yang masih belum terbukti di lapangan:** perbaikan kedua PR #10 —
+meneruskan badan respons Wikimedia apa adanya ke pesan error — belum pernah
+terpakai sungguhan, karena setelah UA diperbaiki tidak ada 403 lagi untuk
+diteruskan. Jalur itu ada tesnya, tapi belum pernah dipicu production.
+
+**Verifikasi lanjutan yang ikut lolos di sesi yang sama** (semua dari Render
+production, akun test yang didaftarkan sendiri lewat `/v1/auth/register`):
+
+- `GET /projects/{id}/metrics` → deret tersimpan benar di Postgres:
+  30 observasi, `latest_value: 1207.0`, `is_national: true`.
+- `collect` dipanggil **dua kali** → panggilan kedua `stored: 0, replaced: 30`.
+  Deret di-*replace*, bukan diduplikasi — idempoten seperti didesain.
+- Konektor kedua, `openmeteo_air_quality` (`province_code: 31`) → `200`,
+  30 titik PM2.5 DKI Jakarta. **Pertama kalinya konektor ini terbukti jalan
+  dari Render**; sebelumnya seluruh jalur `collect` tertutup 403 di atas.
+- `GET /forecast/baseline?metric=pageviews_prabowo_subianto` → `200`,
+  `insufficient_data: false`, model state-space ter-*fit* dari 30 titik itu,
+  lengkap dengan `limitations` yang benar (horizon 90 hari ditandai
+  ekstrapolasi karena riwayatnya cuma 29 hari). **Rantai penuh
+  collect → Postgres → forecast terbukti dari production**, bukan cuma dari
+  Postgres lokal seperti verifikasi 2026-09-11.
+
+Project uji yang dibuat untuk verifikasi ini sudah dihapus dari production
+(`DELETE` → 204, `GET` sesudahnya → 404).
+
+## Langkah pertama sesi berikutnya
+
+1. **Tidak ada bug production terbuka.** Mulai langsung dari daftar di bawah.
+2. **Keputusan yang menunggu pengguna, bukan wewenang agen**: `SignalSource`
+   untuk pengukuran instrumen. Kualitas udara sementara memakai `DIGITAL`
+   dengan peringatan di kolom `method`. Yang benar adalah nilai enum baru
+   (mis. `SENSOR`), tapi itu butuh `ALTER TYPE signal_source ADD VALUE` di
+   Supabase — kelas migrasi yang menjatuhkan tiga halaman production pada
+   2026-09-02. Jangan dilakukan diam-diam.
+3. **`ANTHROPIC_API_KEY` di Render** — Executive Brief dan Copilot masih
+   satu-satunya bagian yang kodenya live tapi belum pernah menghasilkan
+   jawaban sungguhan. Sengaja ditaruh paling akhir atas instruksi pengguna.
+4. Sisanya lihat "Langkah berikutnya yang paling masuk akal" di
+   `docs/progress.md`.
+
+## Yang TIDAK perlu dikhawatirkan
+
+- **Tidak ada migrasi tertunda.** PR #9 dan #10 sama-sama nol perubahan di
+  `db/`, `app/services/`, `app/models/`, dan router lama. `main.py` cuma
+  bertambah dua baris pendaftaran router; PR #10 cuma menyentuh satu file
+  konektor (`app/connectors/wikipedia.py`).
+- **Data dua project riset pengguna aman.** `KEBAKARAN HUTAN` (157 item) dan
+  `MBG AGUSTUS 2026` ada di tabel `mentions`; fitur baru menulis ke
+  `metric_snapshots`. Tidak ada jalur baru yang menyentuh `mentions`.
+- **Routine harian MBG tetap jalan** sampai 19 September — ia memakai
+  `POST /signals/ingest` yang tidak disentuh sesi ini.
+- Proyek uji yang dibuat di production selama verifikasi **sudah dihapus**
+  (`DELETE` → 204, dikonfirmasi 404).
+
+## Cara menjalankan tes lokal tanpa Docker
+
+Temuan sesi ini: **Docker tidak dibutuhkan** — Postgres 16 sudah terpasang
+lewat Homebrew di mesin pengguna dan berjalan di port 5432. Asumsi
+"butuh Docker" di sesi-sesi sebelumnya keliru. Dua hal yang perlu diketahui
+kalau menyiapkannya lagi:
+
+- `db/schema.sql` baris 8 butuh extension `vector` (pgvector). Tanpa itu,
+  `mentions` dan `topics` tidak terbuat dan blok RLS-nya ikut batal
+  seluruhnya (blok `DO $$` gagal utuh, bukan sebagian).
+- Role `pop` perlu atribut `BYPASSRLS` supaya fungsi `SECURITY DEFINER`
+  (`auth_register`) bisa menembus `FORCE ROW LEVEL SECURITY`. Di CI ini
+  tidak terlihat karena `pop` adalah superuser kontainer.
+
+Database `pop_test` dan role `pop`/`pop_app` yang dipakai verifikasi sesi
+ini **sudah dihapus lagi**; mesin pengguna bersih.
+
+---
+
 Ditulis 2026-08-20 setelah sesi verifikasi end-to-end + deploy pertama.
 Update 2026-08-24 (sesi panjang, 11 commit ke main): CORS_ORIGINS
 diselesaikan, slider bobot Opinion Index diverifikasi live, gerbang
@@ -1151,7 +1277,7 @@ benar. Fix ini tetap menutup satu asimetri nyata di `/proyek` sendiri.
 Tidak ada tes otomatis baru — perubahan satu baris di client action
 handler. `tsc`+`next build` hijau, CI PR #8 hijau (backend+frontend+Vercel).
 
-## ✅ Redesain tema terang + dua konektor deret publik — 2026-09-11 (sesi keempat)
+## ✅ Redesain tema terang + dua konektor deret publik — PR #9, di-merge & LIVE 2026-09-11 (sesi keempat)
 
 Dipicu permintaan pengguna: sebuah tangkapan layar dashboard Sprout Social
 ("saya suka dashboard seperti ini, lebih mudah menganalisa") plus "carikan
@@ -1367,6 +1493,129 @@ membuatnya ulang: `make test-db` (butuh `ADMIN_DATABASE_URL`).
 **CI PR #9 hijau penuh** — backend (suite lengkap, role `pop_app`, RLS
 aktif), frontend, dan Vercel preview. Jadi 49 tes baru itu **sudah
 terkonfirmasi CI**, bukan cuma lokal.
+
+### Di-merge dan diverifikasi tayang — 2026-09-11 16:17 UTC
+
+Di-merge atas persetujuan eksplisit pengguna, lalu **diperiksa benar-benar
+hidup**, bukan diasumsikan karena CI hijau:
+
+- **Vercel** — diperiksa dari bundel CSS yang sungguh dilayani (bukan dari
+  build lokal): `--ink:#EDF1F6`, `--panel:#FFFFFF`, `--survey:#0B6FD4` ada;
+  `[data-theme=dark]` beserta `--ink:#0A1017`/`--survey:#4DA3FF` juga ada,
+  jadi tema gelap tetap bisa dipilih; skrip boot
+  `localStorage.getItem("pop-theme")` ada di HTML `/login`; kelas
+  `.auth-wrap`/`.theme-btn`/`.form-err`/`.btn-ghost` ada.
+
+  Catatan kecil supaya tidak membingungkan sesi berikutnya: minifier
+  menghapus tanda kutip, jadi yang tampak di bundel adalah
+  `[data-theme=dark]`, bukan `[data-theme="dark"]`. Dan kemunculan
+  `#080D13` di bundel BUKAN literal warna yang tertinggal — itu nilai token
+  `--nav-bg` di dalam blok tema gelap, persis seperti seharusnya.
+
+- **Render** — `/v1/metrics/connectors` berubah `404` → `401`, lalu dengan
+  akun test yang didaftarkan sendiri membalas kedua konektor lengkap dengan
+  `notes` metodologisnya. Proyek uji yang dibuat untuk ini **sudah dihapus**
+  (`DELETE` → 204, dikonfirmasi 404).
+
+**Satu bug production ditemukan dari verifikasi ini** — sudah **selesai
+2026-09-12**; lihat bagian "Wikimedia menolak Render dengan 403" di bawah,
+dan blok "MULAI DARI SINI" di kepala dokumen ini.
+
+## ✅ Wikimedia menolak Render dengan 403 — SELESAI, PR #10 di-merge 2026-09-12
+
+> **Bagian ini adalah riwayat penyelidikannya.** Kesimpulan akhirnya ada di
+> ujung bagian ini — dan salah satu hipotesis di tengah terbukti KELIRU, jadi
+> jangan berhenti membaca di tengah.
+
+Ditemukan saat memverifikasi PR #9 di production, bukan dari tes:
+`POST /projects/{id}/metrics/collect` membalas **502** dengan
+`"Wikimedia menolak permintaan (403)"`. Jalur yang sama lulus dari mesin
+lokal beberapa menit sebelumnya.
+
+**Diselidiki dulu sebelum menambal.** Tiga varian diuji terhadap endpoint
+Wikimedia yang sama dari mesin lokal:
+
+| User-Agent | Hasil |
+|---|---|
+| UA lama konektor | **200** |
+| tanpa UA sama sekali | 403 — "Please set a user-agent and respect our robot policy https://w.wiki/4wJS" |
+| UA dengan URL kontak | **200** |
+
+Artinya **UA lama bukan penyebabnya** dari IP rumahan. Hipotesis terkuat saat
+itu: alamat IP datacenter Render kena kebijakan robot Wikimedia — pesan 403
+Wikimedia sendiri menyebut `phabricator T400119`.
+
+> **Hipotesis itu ternyata salah** — lihat "Hasil sesudah merge" di bawah.
+> Kekeliruannya bisa dilacak: seluruh tabel di atas diukur dari **satu** IP
+> (mesin lokal), lalu kesimpulannya ditarik untuk IP yang lain (Render).
+> Variabel yang berubah antara "berhasil" dan "gagal" sebenarnya ada dua —
+> UA *dan* IP — tapi cuma satu yang divariasikan.
+
+[PR #10](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/10)
+berisi dua perbaikan yang berguna terlepas dari akar masalahnya:
+
+1. **User-Agent memuat titik kontak yang benar-benar bisa dibuka** (URL repo
+   ini). Kebijakan Wikimedia meminta pemanggil otomatis menyebut diri DAN
+   menyertakan kontak; versi lama menulis "contact via platform admin", yang
+   bukan kontak apa pun. Tetap BUKAN string peramban — menyamar dilarang di
+   `connectors/base.py`.
+2. **Badan respons Wikimedia diteruskan apa adanya** ke `ConnectorError`,
+   bukan cuma kode statusnya. Ini yang akan menjawab pertanyaannya: pesan
+   lama tidak memberi satu pun petunjuk apakah 403-nya soal UA, kebijakan
+   robot, atau IP — padahal Wikimedia menjelaskannya sendiri di badan
+   respons lengkap dengan tautan kebijakan.
+
+### Hasil sesudah merge (2026-09-12)
+
+PR #10 di-merge **15:41 UTC**. Render redeploy sendiri. Dua panggilan
+`POST /projects/{id}/metrics/collect` dilakukan dari akun test, project, dan
+payload yang identik (`wikipedia_pageviews`, `id.wikipedia`,
+`Prabowo Subianto`, 30 hari), berjarak ~90 detik:
+
+| Waktu (UTC) | Build | Hasil |
+|---|---|---|
+| 15:42 | UA lama, redeploy belum masuk | `502` — `"Wikimedia menolak permintaan (403)"` |
+| 15:43 | UA baru | **`200`** — `fetched: 30, stored: 30` |
+
+**Perbaikan #1 (User-Agent) yang menyelesaikannya.** Hipotesis IP datacenter
+keliru: IP Render tidak diblokir — IP yang sama berhasil begitu UA-nya memuat
+titik kontak yang bisa dibuka. Yang sebenarnya terjadi: **UA lama diterima
+dari IP rumahan tapi ditolak dari IP datacenter.** Kebijakan UA Wikimedia
+ditegakkan lebih ketat terhadap IP datacenter, bukan diblokir buta. Pola
+"tarik dari mesin lokal lalu kirim lewat endpoint" tidak jadi diperlukan.
+
+**Perbaikan #2 (meneruskan badan respons) belum terpakai di lapangan** — dan
+itu sengaja dicatat, bukan dianggap terbukti. Setelah UA diperbaiki tidak ada
+403 lagi untuk diteruskan, jadi jalur itu belum pernah dipicu production.
+Nilainya sekarang bersifat pencegahan untuk kegagalan berikutnya.
+
+**Verifikasi lanjutan yang ikut lolos**, semuanya dari Render production:
+
+- `GET /projects/{id}/metrics` → 30 observasi, `latest_value: 1207.0`,
+  `is_national: true`. Data benar-benar mendarat di Postgres, bukan cuma
+  respons 200.
+- `collect` dipanggil ulang → `stored: 0, replaced: 30`. Idempoten: deret
+  di-*replace*, tidak diduplikasi.
+- `openmeteo_air_quality` (`province_code: 31`) → `200`, 30 titik PM2.5 DKI
+  Jakarta. **Pertama kalinya konektor ini terbukti jalan dari Render** —
+  sebelumnya seluruh jalur `collect` tertutup oleh 403 di atas, jadi ia
+  "tidak terpengaruh" secara teori tapi tetap belum pernah dibuktikan.
+- `GET /forecast/baseline?metric=pageviews_prabowo_subianto` → `200`,
+  `insufficient_data: false`, model state-space ter-*fit* dari 30 titik itu,
+  dan `limitations` menandai horizon 90 hari sebagai ekstrapolasi karena
+  riwayatnya cuma 29 hari. **Rantai penuh collect → Postgres → forecast
+  terbukti dari production**, bukan cuma dari Postgres lokal.
+
+Project uji untuk verifikasi ini sudah dihapus (`DELETE` → 204, `GET`
+sesudahnya → 404).
+
+**Pelajaran yang layak dibawa ke konektor berikutnya:** menguji konektor dari
+mesin lokal saja tidak membuktikan konektor itu jalan dari production. Kalau
+sebuah konektor baru gagal 403 dari Render, curigai User-Agent lebih dulu
+sebelum menyimpulkan IP-nya diblokir.
+
+Yang tidak terpengaruh sama sekali sepanjang insiden ini: seluruh tampilan
+tema terang, dan kedua project riset pengguna.
 
 ## Yang masih kurang (di luar langkah CORS di atas)
 
