@@ -1,7 +1,8 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-09-11.
+menahannya.** Diperbarui 2026-09-15 (sesi keenam — pengumpulan RSS
+terjadwal; lihat bagian "Pengumpulan sinyal terjadwal" di bawah).
 
 Dokumen ini melengkapi dua yang lain, tidak menggantikannya:
 
@@ -34,7 +35,9 @@ yang lulus tanpa database.
 | | |
 |---|---|
 | Tes backend | **548** = 499 dikonfirmasi CI + **49 baru** (konektor deret: Wikipedia 25, Open-Meteo 24). Yang 499 via CI (role `pop_app`, RLS aktif): 486 [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7). Yang 49 (konektor deret) **dikonfirmasi CI lewat [PR #9](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/9)** |
-| Endpoint API | 64 (+3 — `GET /metrics/connectors`, `GET /projects/{id}/metrics`, `POST /projects/{id}/metrics/collect`, 2026-09-11 sesi keempat) |
+| Tes backend (2026-09-15) | **593 lulus lokal** (Postgres 16, role `pop_app`, RLS aktif, schema dengan kolom vector di-shim) setelah PR #15: +21 tes `test_collect_all_router.py`, +~20 tes konektor RSS/kata kunci. **CI PR #15 dan #16 hijau** (pgvector sungguhan) |
+| Endpoint API | **68** (+4 pada 2026-09-15: `POST /projects/{id}/signals/collect-all`, `POST`/`GET`/`DELETE /projects/{id}/signals/collector-token`). Sebelumnya 64 (+3 metrics, 2026-09-11) |
+| Otomasi terjadwal | **1** — `.github/workflows/collect-signals.yml`, tiap 30 menit (2026-09-15) |
 | Halaman dashboard | 18 (9 Phase 1 + 9 Phase 2/3, termasuk `/deret` baru) |
 | Konektor | 6 konten (rss, youtube, x, manual) + **2 deret waktu** (wikipedia_pageviews, openmeteo_air_quality), keduanya tanpa kunci API |
 | `ruff` | Bersih di `app` dan `tests` |
@@ -79,7 +82,10 @@ yang lulus tanpa database.
 | `services/sentiment.py` + set evaluasi | Teruji (31 tes) | macro-F1 0.902 di set evaluasi; lihat catatan leksikon "asal" di bawah |
 | `services/topics.py` — TF-IDF + LSA + HDBSCAN | Teruji (28 tes) | **Bukan embedding** — lihat di bawah |
 | `services/pipeline.py` — perekat ingestion+sentiment | Teruji | |
-| `connectors/rss.py` — media monitoring | Teruji parsing + jaringan nyata (2026-09-02) | 215 artikel sungguhan dari 5 outlet, lihat poin 2 di bawah |
+| `connectors/rss.py` — media monitoring | Teruji parsing + **Live production dari Render (2026-09-15)** | 14/14 feed ditarik dari dalam Render tanpa 403. Sejak PR #15: `keywords` opsional (kata utuh, di-escape), `external_id` = permalink, halaman HTML dilaporkan "bukan feed" |
+| `POST .../signals/collect-all` — tarik semua sumber aktif | Teruji (21 tes) + **Live production** | Laporan per sumber: `offered`/`matched`/`coverage_gap`; gagal/crash diisolasi per sumber |
+| Token pengumpul `.../signals/collector-token` | Teruji + **Live production** | `type=collector`, satu proyek, dicabut lewat `audit_logs` (tanpa migrasi). Token ini ditolak di `/projects` (401, dicek di production) |
+| `.github/workflows/collect-signals.yml` + `.github/scripts/collect_signals.py` | **Live production** (run manual `workflow_dispatch` sukses 2026-09-15 14:43 UTC) | Skripnya sendiri tidak punya tes otomatis — lihat "yang kurang" |
 | `connectors/youtube.py` — YouTube Data API v3 | Teruji parsing | Butuh `YOUTUBE_API_KEY` |
 | `connectors/x.py` — X API v2 recent search | Teruji parsing | Butuh `X_BEARER_TOKEN` |
 | `connectors/manual.py` — unggahan/ekspor vendor | Teruji | Jalur yang benar-benar dipakai sekarang |
@@ -193,6 +199,77 @@ secara maksimal").
 Empat item pertama tetap butuh keputusan yang bukan wewenang agen. Sesuai
 CLAUDE.md §8, lebih baik berhenti dan bertanya daripada memilih sendiri lalu
 mengunci proyek ke pilihan itu.
+
+---
+
+## Pengumpulan sinyal terjadwal (2026-09-15, sesi keenam)
+
+Bagian ini ringkasan untuk melanjutkan kerja di komputer lain. Bukti rinci
+(log run, angka, tabel feed) ada di blok "🟢 MULAI DARI SINI" di kepala
+`docs/deployment-status.md`.
+
+### Apa yang dikerjakan, berurutan
+
+1. **Diagnosis.** Laporan pengguna: "scheduled task pengambilan data jam 8
+   gagal 3 hari". Itu routine cloud Claude Code `MBG - Ingest RSS harian`
+   (bukan scheduled task Claude Desktop — file lokalnya kosong). Log keempat
+   run (12–15 Sep) sama: **ke-15 feed 403 dari jaringan sandbox routine**,
+   0 artikel, status routine tetap "SUCCEEDED". Dari Mac pengguna: 200.
+2. **Temuan metodologis.** Feed hanya memuat item terbaru: Antara nasional
+   ≈1,2 jam, Republika ≈1,3 jam. Run sekali sehari melewatkan sebagian besar
+   berita meski tidak diblokir. Feed Kontan ternyata membalas halaman HTML.
+3. **PR #15 (API)** — `collect-all`, token pengumpul, pengerasan
+   `decode_token` (hanya `type=access`), penyaring `keywords` RSS, identitas
+   item = permalink (guid Liputan6 berupa angka), deteksi `coverage_gap`,
+   isolasi kegagalan per sumber, skrip pemicu `collect_signals.py`.
+4. **Konfigurasi production** — 14 sumber RSS didaftarkan di proyek
+   `MBG AGUSTUS 2026` (`c6241a06-2a63-4b61-84d2-f7eb9c558710`) dengan
+   `keywords` = `makan bergizi gratis, mbg, badan gizi nasional, bgn`; token
+   pengumpul diterbitkan (berlaku s.d. **2027-03-14**); secret
+   `POP_COLLECTOR_TOKENS` dan variable `POP_API_BASE` dipasang di repo.
+5. **Verifikasi production** — tarik pertama: 14/14 feed OK dari Render,
+   6 artikel MBG baru; tarik ulang: `stored_total: 0`; proyek 16 item,
+   0 `external_id` ganda.
+6. **PR #16** — workflow `collect-signals.yml` (cron `7,37 * * * *`) +
+   dokumentasi. File workflow dibuat lewat **editor web GitHub** (token `gh`
+   di Mac pengguna tidak punya scope `workflow`). Run manual dari GitHub
+   Actions sukses: Render bangun 72 dtk, 14/14 feed OK.
+7. **Routine cloud lama 5/7–8/8 dinonaktifkan** (`enabled: false`); 1–4 sudah
+   habis sendiri. Database uji lokal (`pop_test`, role `pop`/`pop_app`)
+   dihapus lagi dari Postgres Homebrew.
+
+### Yang KURANG / belum dikerjakan — urut dari yang paling berisiko
+
+| # | Hal | Kenapa penting | Cara menyelesaikan |
+|---|---|---|---|
+| K1 | **Jadwal otomatis belum dibuktikan berulang.** Yang terbukti baru satu run manual (`workflow_dispatch` 14:43 UTC, sukses) + tarik dari mesin lokal. **Per 15:13 UTC belum ada satu pun run `schedule`** — slot 15:07 belum dijalankan GitHub (jadwal pertama workflow baru sering tertunda). | GitHub bisa menunda/melewatkan jadwal di jam sibuk; `coverage_gap` baru bermakna setelah beberapa run. | Buka Actions → "Pengumpulan sinyal terjadwal", pastikan ada run `schedule` tiap ~30 menit dan hijau. Periksa kolom "Celah" di job summary selama 1–2 hari pertama, terutama Antara dan Republika. |
+| K2 | **Data MBG 12–15 Sep hilang permanen.** | Deret harian proyek MBG bolong 4 hari; analisis tren harus menyebutnya. | Tidak bisa dipulihkan dari RSS. Kalau perlu, cari arsip di situs penerbit secara manual dan masukkan lewat `POST /signals/ingest` dengan catatan provenance — jangan diam-diam. |
+| K3 | **Token akses pengguna lama pernah tertulis polos** di prompt 8 routine cloud (JWT RESEARCH_DIRECTOR, berlaku s.d. ~11 Okt 2026). Routine-nya nonaktif tapi **belum dihapus**. | JWT stateless tidak bisa dicabut satu per satu. | (a) Hapus kedelapan routine di claude.ai/code/routines; (b) opsional: rotasi `JWT_SECRET` di Render — **semua sesi logout dan token pengumpul ikut mati**, jadi terbitkan ulang token pengumpul + perbarui secret sesudahnya. |
+| K4 | **GitHub menonaktifkan jadwal di repo publik setelah 60 hari tanpa aktivitas repo.** | Pengumpulan bisa berhenti diam-diam sekitar pertengahan November bila repo tidak di-commit. | Commit apa pun ke repo sebelum 60 hari, atau aktifkan ulang workflow di tab Actions saat GitHub mengirim email peringatan. |
+| K5 | **`audit_logs` tumbuh cepat.** `collect-all` menulis satu entri per sumber per run: 14 × 48 run/hari ≈ **670 baris/hari** (~245 ribu/tahun). | Supabase free tier terbatas 500 MB; tabel ini tidak pernah dipangkas. | Ubah `collect-all` agar menulis SATU entri audit per run (ringkasan per sumber di `metadata`), atau tetapkan retensi. Perubahan kode kecil + tes. |
+| K6 | **Belum ada UI** untuk menambah sumber, mengisi `keywords`, menerbitkan/mencabut token pengumpul, atau memicu `collect-all`. Halaman `/sinyal` hanya menampilkan daftar sumber + `last_sync_at`. | Semua konfigurasi sekarang lewat API (curl). Peneliti non-teknis tidak bisa mengelolanya. | Tambah form sumber (dengan `optional_fields` dari `GET /signals/connectors`) + tombol "Tarik semua sekarang" + panel status token di `/sinyal`. |
+| K7 | **Kontan tidak punya feed pengganti.** | Satu outlet ekonomi hilang dari cakupan MBG. | Cari URL RSS Kontan yang baru, lalu `POST .../signals/sources` dengan `keywords` yang sama. |
+| K8 | **Proyek `KEBAKARAN HUTAN` masih memakai skrip manual** (`ingest_karhutla.py`, di luar repo). | Tidak terkumpul otomatis sama sekali. | Daftarkan sumbernya + `keywords` karhutla, terbitkan token untuk proyek itu, tambahkan token sebagai **baris baru** di secret `POP_COLLECTOR_TOKENS`. |
+| K9 | **Skrip `collect_signals.py` tidak punya tes otomatis.** | Salah parsing respons baru ketahuan saat run merah. | Tambah tes kecil dengan server HTTP palsu (stdlib) di CI. |
+| K10 | **Jam gratis Render.** Ping tiap 30 menit membuat instance sering bangun (cold start ~72–93 dtk). | 750 jam gratis/bulan dibagi semua layanan free di workspace Render yang sama. | Cek pemakaian di dashboard Render akhir bulan; kalau mepet, kurangi frekuensi untuk feed yang rentangnya panjang, atau pindah plan. |
+| K11 | **Mesin pengguna:** pgvector tidak terpasang di Postgres Homebrew; `gh` tanpa scope `workflow`. | Tes lokal butuh schema yang di-shim; mengubah file workflow butuh editor web. | `brew install pgvector` (pastikan untuk postgresql@16) dan `gh auth refresh -h github.com -s workflow`. |
+
+### Cara melanjutkan di komputer lain
+
+1. `git clone https://github.com/mahendrasenoaji-lgtm/public-opinion-platform`
+   → baca blok "🟢 MULAI DARI SINI" di `docs/deployment-status.md`, lalu tabel
+   K1–K11 di atas.
+2. Status jadwal: tab **Actions** di GitHub → "Pengumpulan sinyal terjadwal"
+   → buka run terbaru → **Summary** (tabel per sumber).
+3. Memicu manual: Actions → workflow itu → **Run workflow**
+   (`since_days` bisa diubah, maks 90).
+4. Token pengumpul **tidak disimpan di mana pun selain secret GitHub** — tidak
+   bisa dibaca ulang. Kalau hilang/perlu diganti: login ke API, `POST
+   /v1/projects/{id}/signals/collector-token` (RESEARCH_DIRECTOR), lalu
+   perbarui secret `POP_COLLECTOR_TOKENS` (Settings → Secrets and variables
+   → Actions). Token lama otomatis mati.
+5. Mematikan pengumpulan: Actions → workflow → **Disable workflow**, atau
+   `DELETE /v1/projects/{id}/signals/collector-token`.
 
 ---
 
@@ -480,8 +557,9 @@ Ini bagian terpenting dari dokumen ini.
 > `docs/deployment-status.md` — ringkasnya: **pengumpulan RSS proyek MBG kini
 > berjalan dari API sendiri** (PR #15, `collect-all` + token pengumpul),
 > dipicu GitHub Actions tiap 30 menit, menggantikan routine cloud yang gagal
-> 403 empat hari. PR #9 sampai #15 hidup di production. Yang tersisa adalah
-> daftar di bawah ini.
+> 403 empat hari. PR #9 sampai #16 hidup di production. **Yang kurang dari
+> pekerjaan itu ada di tabel K1–K11** (bagian "Pengumpulan sinyal
+> terjadwal"); daftar di bawah ini untuk platform secara umum.
 
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
