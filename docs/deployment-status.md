@@ -6,7 +6,119 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — serah-terima sesi, 12 September 2026 (sesi kelima)
+# 🟢 MULAI DARI SINI — serah-terima sesi, 15 September 2026 (sesi keenam)
+
+**Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi kelima (12 Sep)
+masih ada tepat di bawah blok ini dan masih berlaku.
+
+## Ringkas: pengumpulan RSS proyek MBG dipindah ke API
+
+**Masalah yang dilaporkan pengguna:** "scheduled task pengambilan data jam 8,
+3 hari ke belakang gagal terus". Itu routine cloud Claude Code
+`MBG - Ingest RSS harian` (8 routine `run_once_at`, lihat bagian "Project baru
+MBG AGUSTUS 2026" jauh di bawah) — **bukan** scheduled task Claude Desktop
+lokal (file `scheduled-tasks.json` lokal kosong).
+
+**Akar masalah, dibuktikan dari log run (`RemoteTrigger get_run_log`):** run
+12, 13, 14, dan 15 Sep sama persis — **ke-15 feed membalas `403 Forbidden`
+dari jaringan sandbox routine**, 0 artikel, dan skrip keluar sebelum memanggil
+API. Feed yang sama dari mesin lokal pada hari yang sama: `200`. Routine tetap
+berstatus `ROUTINE_RUN_STATUS_SUCCEEDED` karena yang dinilai hanya apakah
+agennya selesai. **Empat hari data MBG (12–15 Sep) hilang dan tidak bisa
+dipulihkan** — feed hanya menyimpan item terbaru (lihat di bawah).
+
+**Temuan kedua, lebih mendasar dari 403-nya:** feed RSS hanya memuat N item
+terakhir. Diukur 2026-09-15 13:15 UTC:
+
+| Feed | Item | Rentang waktu |
+|---|---:|---|
+| Antara nasional | 50 | **1,2 jam** |
+| Republika | 15 | **1,3 jam** |
+| Antara Jambi / Kalteng | 20 | ~4 jam |
+| CNBC Indonesia | 100 | 8,7 jam |
+| Liputan6 / Sindonews / CNN | 50 / 30 / 100 | 19–26 jam |
+| Tempo nasional | 50 | 23 hari |
+
+Artinya routine sekali sehari jam 08:00, **seandainya tidak diblokir pun**,
+hanya melihat sekitar satu jam terakhir berita Antara dan Republika. Jadwal
+baru tiap 30 menit.
+
+**Temuan ketiga:** feed Kontan (`https://www.kontan.co.id/rss`) membalas 200
+dengan **halaman HTML**, bukan RSS. Skrip lama diam-diam menghitungnya "0 item".
+Tidak didaftarkan ulang.
+
+## Apa yang dibangun — [PR #15](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/15), di-merge 2026-09-15 14:11 UTC
+
+- `POST /projects/{id}/signals/collect-all`: tarik semua sumber aktif; feed
+  diambil bersamaan, disimpan berurutan; gagal/crash per sumber diisolasi dan
+  dilaporkan (`sources_failed`, pesan penerbit), plus `offered`/`matched` per
+  sumber dan **`coverage_gap`** (item tertua di feed lebih baru dari
+  pengambilan sukses sebelumnya ⇒ ada berita yang pasti terlewat).
+- **Token pengumpul** `POST/GET/DELETE /projects/{id}/signals/collector-token`
+  (RESEARCH_DIRECTOR+): JWT `type=collector`, satu proyek, tanpa role/email,
+  maks 365 hari, hanya diterima `collect-all`. Yang berlaku = entri `issue`
+  terakhir di `audit_logs` yang tidak disusul `revoke` → **tanpa migrasi**.
+  Menerbitkan token baru mematikan yang lama.
+- **Pengerasan auth:** `decode_token` kini hanya menerima `type=access`.
+  Sebelumnya token lain bertanda tangan sama lolos selama klaimnya lengkap.
+- **RSS:** `keywords` opsional (frasa dipisah koma, kata utuh, di-escape —
+  bukan regex bebas; ada tes kesetaraan dengan regex skrip lama);
+  `external_id` = permalink bila ada (guid Liputan6 berupa angka — tidak bisa
+  ditelusuri dan akan menggandakan item skrip lama, yang memakai permalink;
+  10/10 item MBG lama di production dicek `external_id == url`); halaman HTML
+  dilaporkan sebagai "bukan feed".
+- `.github/scripts/collect_signals.py` + `.github/workflows/collect-signals.yml`
+  (cron `7,37 * * * *`): bangunkan Render (cold start terukur **93 detik**),
+  panggil `collect-all`, tulis tabel per sumber ke job summary, **exit 1 bila
+  ada sumber gagal** (run merah → GitHub kirim email), peringatan 21 hari
+  sebelum token kedaluwarsa.
+
+CI PR #15 hijau (backend + frontend + Vercel). Lokal: ruff, mypy strict,
+593 tes.
+
+## Verifikasi terhadap production (2026-09-15, setelah Render redeploy)
+
+- Build baru hidup: `/v1/signals/connectors` memuat `optional_fields`.
+- 14 sumber RSS didaftarkan di `MBG AGUSTUS 2026`
+  (`c6241a06-2a63-4b61-84d2-f7eb9c558710`), `keywords` =
+  `makan bergizi gratis, mbg, badan gizi nasional, bgn`, masing-masing `label`.
+- Token pengumpul diterbitkan (`token_id 4dd2d5c6-…`, berlaku s.d.
+  **2027-03-14**). Token itu di `GET /projects` → **401**.
+- `collect-all?since_days=7` lewat token: **14/14 feed berhasil dari dalam
+  Render, 0 gagal, tanpa 403**. 6 artikel MBG baru tersimpan (Republika,
+  Sindonews, CNN, Tempo, Liputan6×2). Tarik ulang: `stored_total: 0`,
+  `coverage_gaps: 0`. Total proyek 16 item, **0 external_id ganda**, semua
+  `source_url_origin: kolom_url`.
+- Secret `POP_COLLECTOR_TOKENS` dan variable `POP_API_BASE` dipasang di repo.
+- Routine cloud 5/7–8/8 (16–19 Sep) **dinonaktifkan** (`enabled: false`).
+  Routine 1–4 sudah habis sendiri.
+
+## Yang perlu diketahui sesi berikutnya
+
+- **Data 12–15 Sep tidak bisa dipulihkan dari feed.** `since_days=7` hanya
+  mengembalikan yang masih ada di feed (paling tua 12 Sep, dari Tempo).
+- **Menambah proyek terjadwal:** daftarkan sumber, terbitkan token untuk
+  proyek itu, tambahkan token sebagai BARIS BARU di secret
+  `POP_COLLECTOR_TOKENS`.
+- **Kalau run merah:** baca job summary — tabel per sumber memuat pesan
+  penerbit. `coverage_gap` = peringatan, bukan merah; artinya rapatkan jadwal
+  atau cari feed kategori yang lebih sempit untuk sumber itu.
+- **Token pengumpul berakhir 2027-03-14**; workflow memperingatkan 21 hari
+  sebelumnya.
+- **Token akses pengguna yang dulu ditulis polos di prompt routine** (berlaku
+  s.d. ~11 Okt 2026) masih sah — JWT stateless tidak bisa dicabut satu per
+  satu. Routine-nya sudah nonaktif; risikonya terbatas pada siapa pun yang
+  bisa membaca routine/log akun ini.
+- **Render free tier:** ping tiap 30 menit membuat instance lebih sering
+  bangun. Satu layanan tetap di bawah 750 jam gratis per bulan, tapi jam itu
+  dibagi dengan layanan free lain di workspace Render yang sama.
+- Lokal: pgvector **tidak** terpasang di Postgres Homebrew mesin ini (berbeda
+  dari catatan sesi kelima). Tes lokal sesi ini memakai salinan schema dengan
+  `vector(1024)` → `real[]`; CI memakai pgvector sungguhan dan tetap hijau.
+
+---
+
+# Serah-terima sesi kelima, 12 September 2026
 
 **Ditulis khusus untuk sesi berikutnya di komputer lain.** Riwayat chat tidak
 ikut ter-clone; yang ada cuma repo ini. Baca blok ini lebih dulu, baru
