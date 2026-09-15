@@ -22,10 +22,13 @@ Tidak ada endpoint di sini yang menyimpulkan koordinasi atau kecurangan
 
 from __future__ import annotations
 
+import asyncio
+import logging
+from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -33,18 +36,37 @@ from sqlalchemy import Select, delete, func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.config import get_settings
-from app.connectors import ConnectorError, CredentialMissing, available, get_connector
-from app.deps import CurrentUser, Role, TenantSession, require_role
+from app.connectors import (
+    Connector,
+    ConnectorError,
+    CredentialMissing,
+    RawItem,
+    available,
+    get_connector,
+)
+from app.deps import (
+    RANK,
+    ActorSession,
+    CollectorPrincipal,
+    CurrentActor,
+    CurrentUser,
+    Role,
+    TenantSession,
+    require_role,
+)
 from app.models.governance import AuditLog
 from app.models.measurement import SignalSource as ModelSignalSource
+from app.models.project import Project
 from app.models.signal import DataSource, Mention
 from app.schemas.common import Metric, SignalSource
 from app.services import sentiment as sentiment_svc
+from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
 from app.services.sentiment_eval import LABELED
 
 router = APIRouter(tags=["signals"])
+logger = logging.getLogger(__name__)
 
 #: Berapa hari ke belakang yang dianggap "periode berjalan" bila tidak disebut.
 DEFAULT_WINDOW_DAYS = 30
@@ -81,6 +103,7 @@ class ConnectorOut(BaseModel):
     requires_credential: str | None
     credential_configured: bool
     config_fields: list[str]
+    optional_fields: list[str]
     notes: str
 
 
@@ -286,6 +309,7 @@ async def list_connectors(user: CurrentUser) -> list[ConnectorOut]:
                 else configured.get(info.requires_credential, False)
             ),
             config_fields=list(info.config_fields),
+            optional_fields=list(info.optional_fields),
             notes=info.notes,
         )
         for info in available()
@@ -340,6 +364,10 @@ async def create_source(
             422,
             f"Konektor '{body.connector}' membutuhkan: {', '.join(missing)}.",
         )
+    try:
+        connector.validate_config(body.config)
+    except ConnectorError as e:
+        raise HTTPException(422, str(e)) from e
 
     row = DataSource(
         org_id=user.org_id,
@@ -551,24 +579,72 @@ async def collect(
     if not source.is_active:
         raise HTTPException(status.HTTP_409_CONFLICT, "Sumber sedang dinonaktifkan.")
 
+    fetched = await _fetch_source(source, since_days=since_days, limit=limit)
+    if isinstance(fetched.error, CredentialMissing):
+        # 503, bukan 500: ini keadaan deployment yang bisa diperbaiki operator,
+        # dan pesannya menyebut env var mana yang kurang.
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(fetched.error))
+    if fetched.error is not None:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(fetched.error))
+
+    return await _store_fetched(
+        session, source=source, fetched=fetched, actor_id=user.user_id, via="user"
+    )
+
+
+@dataclass(slots=True)
+class _Fetched:
+    """Hasil pengambilan satu sumber, sebelum menyentuh database."""
+
+    connector: Connector | None
+    items: list[RawItem]
+    error: ConnectorError | None
+
+
+async def _fetch_source(source: DataSource, *, since_days: int, limit: int) -> _Fetched:
+    """Ambil dari jaringan saja — tidak ada query database di sini.
+
+    Dipisah dari penyimpanan supaya `collect-all` bisa mengambil semua feed
+    bersamaan (menunggu jaringan) lalu menyimpannya berurutan di satu sesi
+    (satu sesi SQLAlchemy tidak boleh dipakai bersamaan).
+    """
     try:
         connector = get_connector(source.connector)
-        raw = await connector.fetch(
+    except ConnectorError as e:
+        return _Fetched(None, [], e)
+    try:
+        items = await connector.fetch(
             dict(source.config),
             since=datetime.now(UTC) - timedelta(days=since_days),
             limit=limit,
         )
-    except CredentialMissing as e:
-        # 503, bukan 500: ini keadaan deployment yang bisa diperbaiki operator,
-        # dan pesannya menyebut env var mana yang kurang.
-        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e)) from e
     except ConnectorError as e:
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+        return _Fetched(connector, [], e)
+    except Exception as e:  # noqa: BLE001
+        # Satu konektor yang melempar sesuatu di luar kontraknya (mis.
+        # httpx.InvalidURL, yang bukan turunan HTTPError) tidak boleh
+        # menjatuhkan pengambilan sumber-sumber lain di collect-all. Tetap
+        # dicatat lengkap di log, dan dilaporkan ke pemanggil sebagai gagal.
+        logger.exception("konektor %s melempar di luar kontrak", source.connector)
+        return _Fetched(
+            connector, [], ConnectorError(f"kesalahan tak terduga ({type(e).__name__}): {e}")
+        )
+    return _Fetched(connector, items, None)
 
+
+async def _store_fetched(
+    session: TenantSession,
+    *,
+    source: DataSource,
+    fetched: _Fetched,
+    actor_id: UUID,
+    via: Literal["user", "collector_token"],
+    token_id: UUID | None = None,
+) -> IngestResult:
     result = await _store(
         session,
-        org_id=user.org_id,
-        project_id=project_id,
+        org_id=source.org_id,
+        project_id=source.project_id,
         connector=source.connector,
         source=source.source,
         items=[
@@ -585,22 +661,335 @@ async def collect(
                 quote_of_handle=r.quote_of_handle,
                 conversation_id=r.conversation_id,
             )
-            for r in raw
+            for r in fetched.items
         ],
         accept_langs=None,
     )
     source.last_sync_at = datetime.now(UTC)
+    metadata = {"stored": str(result.stored), "connector": source.connector, "via": via}
+    if token_id is not None:
+        metadata["token_id"] = str(token_id)
+    session.add(
+        AuditLog(
+            org_id=source.org_id,
+            actor_id=actor_id,
+            action="collect",
+            entity="data_source",
+            entity_id=source.id,
+            metadata_=metadata,
+        )
+    )
+    return result
+
+
+# ------------------------------------------------ pengumpulan terjadwal ----
+#
+# Kenapa ini ada (2026-09-15): akumulasi harian proyek riset MBG dijalankan
+# dari routine cloud yang mengambil feed dari sandbox-nya sendiri. Empat hari
+# berturut-turut SEMUA feed membalas 403 dari jaringan sandbox itu — dan
+# routine-nya tetap berstatus "berhasil", karena yang dinilai hanya apakah
+# agennya selesai. Pengambilan dipindah ke sini, ke API yang memang memiliki
+# konektornya, dan dipicu penjadwal di luar (GitHub Actions — Render free
+# tidur saat sepi, jadi penjadwal di dalam proses tidak akan pernah bangun).
+#
+# Penjadwal itu butuh kredensial. Menaruh token sesi pengguna di secret CI
+# berarti mesin memegang SEMUA kewenangan pengguna selama 30 hari; menaruh
+# password-nya lebih buruk. Token pengumpul hanya bisa satu hal: menarik
+# sumber yang SUDAH didaftarkan peneliti, untuk satu proyek.
+
+
+class CollectorTokenCreate(BaseModel):
+    days: int = Field(default=180, ge=1, le=MAX_COLLECTOR_TOKEN_DAYS)
+
+
+class CollectorTokenOut(BaseModel):
+    token: str
+    token_id: UUID
+    project_id: UUID
+    expires_at: datetime
+    scope: str
+
+
+class CollectorTokenStatus(BaseModel):
+    active: bool
+    token_id: UUID | None
+    issued_at: datetime | None
+    expires_at: datetime | None
+    issued_by: UUID | None
+
+
+class SourceCollectOut(BaseModel):
+    source_id: UUID
+    connector: str
+    label: str | None
+    ok: bool
+    error: str | None
+    #: Berapa item yang ditawarkan sumber dan berapa yang lolos penyaring
+    #: tanggal + kata kunci. None kalau konektornya tidak melaporkan.
+    offered: int | None
+    matched: int | None
+    oldest_offered: datetime | None
+    previous_sync_at: datetime | None
+    #: True bila item tertua yang masih ditawarkan sumber lebih baru dari
+    #: pengambilan sukses sebelumnya: ada berita di antaranya yang sudah jatuh
+    #: dari feed dan TIDAK tersimpan. Jadwal perlu dirapatkan untuk sumber ini.
+    coverage_gap: bool
+    result: IngestResult | None
+
+
+class CollectAllOut(BaseModel):
+    project_id: UUID
+    via: Literal["user", "collector_token"]
+    sources_total: int
+    sources_ok: int
+    sources_failed: int
+    sources_inactive: int
+    coverage_gaps: int
+    stored_total: int
+    results: list[SourceCollectOut]
+
+
+async def _current_collector_token(
+    session: TenantSession, project_id: UUID
+) -> AuditLog | None:
+    """Penerbitan token pengumpul yang masih berlaku untuk proyek ini, kalau ada.
+
+    Tidak ada tabel token: yang berlaku adalah entri `issue` TERAKHIR di audit
+    log, selama tidak disusul `revoke`. Menerbitkan token baru otomatis
+    mematikan yang lama. Dipilih supaya fitur ini tidak butuh migrasi
+    Supabase — dan audit log memang tempat keputusan "siapa memberi mesin
+    akses apa, kapan" seharusnya tercatat.
+    """
+    row = (
+        await session.execute(
+            select(AuditLog)
+            .where(
+                AuditLog.entity == "collector_token",
+                AuditLog.entity_id == project_id,
+                AuditLog.action.in_(("issue", "revoke")),
+            )
+            .order_by(AuditLog.at.desc(), AuditLog.id.desc())
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if row is None or row.action != "issue":
+        return None
+    expires = datetime.fromisoformat(str(row.metadata_.get("expires_at")))
+    if expires <= datetime.now(UTC):
+        return None
+    return row
+
+
+@router.post(
+    "/projects/{project_id}/signals/collector-token",
+    response_model=CollectorTokenOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(Role.RESEARCH_DIRECTOR))],
+)
+async def issue_collector_token(
+    project_id: UUID, body: CollectorTokenCreate, session: TenantSession, user: CurrentUser
+) -> CollectorTokenOut:
+    """Terbitkan token untuk penjadwal pengumpulan. Token lama langsung tidak berlaku.
+
+    Token hanya ditampilkan SEKALI, di respons ini. Yang tersimpan hanya
+    identitasnya dan masa berlakunya.
+    """
+    project = (
+        await session.execute(select(Project.id).where(Project.id == project_id))
+    ).scalar_one_or_none()
+    if project is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Proyek tidak ditemukan.")
+
+    token_id = uuid4()
+    expires_at = datetime.now(UTC) + timedelta(days=body.days)
+    token = create_collector_token(
+        user_id=user.user_id,
+        org_id=user.org_id,
+        project_id=project_id,
+        token_id=token_id,
+        expires_at=expires_at,
+    )
     session.add(
         AuditLog(
             org_id=user.org_id,
             actor_id=user.user_id,
-            action="collect",
-            entity="data_source",
-            entity_id=source_id,
-            metadata_={"stored": str(result.stored), "connector": source.connector},
+            action="issue",
+            entity="collector_token",
+            entity_id=project_id,
+            metadata_={"token_id": str(token_id), "expires_at": expires_at.isoformat()},
         )
     )
-    return result
+    return CollectorTokenOut(
+        token=token,
+        token_id=token_id,
+        project_id=project_id,
+        expires_at=expires_at,
+        scope=(
+            "Hanya POST /projects/{id}/signals/collect-all untuk proyek ini. "
+            "Tidak bisa membaca data, mengubah sumber, atau dipakai sebagai sesi."
+        ),
+    )
+
+
+@router.get(
+    "/projects/{project_id}/signals/collector-token",
+    response_model=CollectorTokenStatus,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def collector_token_status(
+    project_id: UUID, session: TenantSession, user: CurrentUser
+) -> CollectorTokenStatus:
+    row = await _current_collector_token(session, project_id)
+    if row is None:
+        return CollectorTokenStatus(
+            active=False, token_id=None, issued_at=None, expires_at=None, issued_by=None
+        )
+    return CollectorTokenStatus(
+        active=True,
+        token_id=UUID(str(row.metadata_["token_id"])),
+        issued_at=row.at,
+        expires_at=datetime.fromisoformat(str(row.metadata_["expires_at"])),
+        issued_by=row.actor_id,
+    )
+
+
+@router.delete(
+    "/projects/{project_id}/signals/collector-token",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(Role.RESEARCH_DIRECTOR))],
+)
+async def revoke_collector_token(
+    project_id: UUID, session: TenantSession, user: CurrentUser
+) -> None:
+    """Cabut token pengumpul proyek ini. Penjadwal akan mulai menerima 401."""
+    session.add(
+        AuditLog(
+            org_id=user.org_id,
+            actor_id=user.user_id,
+            action="revoke",
+            entity="collector_token",
+            entity_id=project_id,
+            metadata_={},
+        )
+    )
+
+
+@router.post("/projects/{project_id}/signals/collect-all", response_model=CollectAllOut)
+async def collect_all(
+    project_id: UUID,
+    session: ActorSession,
+    actor: CurrentActor,
+    since_days: int = Query(default=2, ge=1, le=90),
+    limit: int = Query(default=100, ge=1, le=MAX_INGEST_ITEMS),
+) -> CollectAllOut:
+    """Tarik SEMUA sumber aktif proyek ini dalam satu panggilan.
+
+    Diterima dari pengguna (RESEARCHER ke atas) atau token pengumpul milik
+    proyek ini. Kegagalan satu sumber tidak menggagalkan yang lain — ia
+    dilaporkan per sumber, lengkap dengan pesannya, dan `sources_failed` di
+    ringkasan. Penjadwal yang memanggil ini WAJIB membaca angka itu: status
+    200 berarti permintaan diproses, bukan bahwa semua feed berhasil.
+    """
+    if isinstance(actor, CollectorPrincipal):
+        if actor.project_id != project_id:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN, "Token pengumpul ini untuk proyek lain."
+            )
+        current = await _current_collector_token(session, project_id)
+        if current is None or current.metadata_.get("token_id") != str(actor.token_id):
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                "Token pengumpul sudah dicabut, diganti, atau kedaluwarsa.",
+            )
+        actor_id, via, token_id = actor.issuer_id, "collector_token", actor.token_id
+    else:
+        if RANK[actor.role] < RANK[Role.RESEARCHER]:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                f"Tindakan ini memerlukan peran {Role.RESEARCHER.value} atau lebih tinggi.",
+            )
+        actor_id, via, token_id = actor.user_id, "user", None
+
+    sources = (
+        (await session.execute(select(DataSource).where(DataSource.project_id == project_id)))
+        .scalars()
+        .all()
+    )
+    active = [s for s in sources if s.is_active]
+    fetched_all = await asyncio.gather(
+        *(_fetch_source(s, since_days=since_days, limit=limit) for s in active)
+    )
+
+    results: list[SourceCollectOut] = []
+    for source, fetched in zip(active, fetched_all, strict=True):
+        previous = source.last_sync_at
+        stats = fetched.connector.last_fetch if fetched.connector is not None else None
+        label = source.config.get("label") or source.config.get("feed_url")
+        if fetched.error is not None:
+            results.append(
+                SourceCollectOut(
+                    source_id=source.id,
+                    connector=source.connector,
+                    label=label,
+                    ok=False,
+                    error=str(fetched.error),
+                    offered=None,
+                    matched=None,
+                    oldest_offered=None,
+                    previous_sync_at=previous,
+                    coverage_gap=False,
+                    result=None,
+                )
+            )
+            continue
+        stored = await _store_fetched(
+            session,
+            source=source,
+            fetched=fetched,
+            actor_id=actor_id,
+            via=via,
+            token_id=token_id,
+        )
+        oldest = stats.oldest_offered if stats is not None else None
+        results.append(
+            SourceCollectOut(
+                source_id=source.id,
+                connector=source.connector,
+                label=label,
+                ok=True,
+                error=None,
+                offered=stats.offered if stats is not None else None,
+                matched=stats.matched if stats is not None else None,
+                oldest_offered=oldest,
+                previous_sync_at=previous,
+                coverage_gap=coverage_gap(oldest_offered=oldest, previous_sync_at=previous),
+                result=stored,
+            )
+        )
+
+    return CollectAllOut(
+        project_id=project_id,
+        via=via,
+        sources_total=len(sources),
+        sources_ok=sum(1 for r in results if r.ok),
+        sources_failed=sum(1 for r in results if not r.ok),
+        sources_inactive=len(sources) - len(active),
+        coverage_gaps=sum(1 for r in results if r.coverage_gap),
+        stored_total=sum(r.result.stored for r in results if r.result is not None),
+        results=results,
+    )
+
+
+def coverage_gap(*, oldest_offered: datetime | None, previous_sync_at: datetime | None) -> bool:
+    """Apakah ada rentang waktu yang pasti tidak terlihat sejak pengambilan terakhir.
+
+    Tidak bisa dinilai (False) kalau sumber belum pernah ditarik atau tidak
+    melaporkan apa yang ditawarkannya. False di sini berarti "tidak ada bukti
+    celah", bukan jaminan lengkap: feed bisa saja menghapus item di tengah.
+    """
+    if oldest_offered is None or previous_sync_at is None:
+        return False
+    return oldest_offered > previous_sync_at
 
 
 # ------------------------------------------------------------- agregasi ----

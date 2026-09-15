@@ -130,8 +130,9 @@ class TestKonektor:
         assert "credential_value" not in yt
         assert set(yt) == {
             "key", "label", "source", "requires_credential",
-            "credential_configured", "config_fields", "notes",
+            "credential_configured", "config_fields", "optional_fields", "notes",
         }
+        assert "keywords" in by_key["rss"]["optional_fields"]
 
     async def test_butuh_autentikasi(self, client) -> None:
         assert (await client.get("/v1/signals/connectors")).status_code == 401

@@ -78,6 +78,24 @@ class RawItem:
 
 
 @dataclass(frozen=True, slots=True)
+class FetchStats:
+    """Apa yang DITAWARKAN sumber pada satu pengambilan, sebelum disaring.
+
+    Ada untuk satu pertanyaan yang tidak bisa dijawab dari item yang
+    tersimpan: "apakah ada yang terlewat?". Feed RSS hanya memuat N item
+    terakhir — Antara nasional 50 item, yang pada 2026-09-15 berarti kurang
+    dari 1,5 jam berita. Kalau item TERTUA yang masih ditawarkan feed lebih
+    baru dari pengambilan sebelumnya, berita di antara keduanya sudah jatuh
+    dari feed dan tidak akan pernah terlihat. Itu harus dilaporkan, bukan
+    didiamkan jadi "hari yang sepi".
+    """
+
+    offered: int
+    oldest_offered: datetime | None
+    matched: int
+
+
+@dataclass(frozen=True, slots=True)
 class ConnectorInfo:
     """Deskripsi konektor untuk ditampilkan di UI pengaturan."""
 
@@ -86,6 +104,7 @@ class ConnectorInfo:
     source: SignalSource
     requires_credential: str | None
     config_fields: tuple[str, ...]
+    optional_fields: tuple[str, ...]
     notes: str
 
 
@@ -99,7 +118,21 @@ class Connector(ABC):
     requires_credential: ClassVar[str | None] = None
     #: Kunci yang diharapkan ada di `config` DataSource.
     config_fields: ClassVar[tuple[str, ...]] = ()
+    #: Kunci yang boleh ada tapi tidak wajib (mis. penyaring kata kunci).
+    optional_fields: ClassVar[tuple[str, ...]] = ()
     notes: ClassVar[str] = ""
+
+    def __init__(self) -> None:
+        #: Diisi konektor yang tahu apa yang ditawarkan sumbernya; None kalau
+        #: tidak. Instans dibuat baru per pengambilan (`get_connector`).
+        self.last_fetch: FetchStats | None = None
+
+    def validate_config(self, config: dict[str, str]) -> None:  # noqa: B027
+        """Tolak konfigurasi yang pasti gagal SAAT sumber didaftarkan.
+
+        Default tidak memeriksa apa pun selain field wajib (dicek pemanggil).
+        Melempar ConnectorError dengan pesan untuk pengguna.
+        """
 
     @abstractmethod
     async def fetch(
@@ -119,6 +152,7 @@ class Connector(ABC):
             source=cls.source,
             requires_credential=cls.requires_credential,
             config_fields=cls.config_fields,
+            optional_fields=cls.optional_fields,
             notes=cls.notes,
         )
 
