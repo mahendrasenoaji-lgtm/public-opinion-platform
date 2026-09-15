@@ -273,7 +273,14 @@ Ini bagian terpenting dari dokumen ini.
    untuk konektor RSS juga**: UA yang diterima dari IP rumahan bisa ditolak
    dari IP datacenter Render. Kalau `sources/{id}/collect` nanti gagal dengan
    403, curigai User-Agent lebih dulu, bukan langsung menyimpulkan IP-nya
-   diblokir. Pipeline
+   diblokir.
+   **Update 2026-09-15 — jalur `DataSource` RSS dari Render TERUJI.** Lewat
+   endpoint baru `POST .../signals/collect-all` (PR #15, memakai
+   `_fetch_source` yang sama dengan `sources/{id}/collect`): 14 feed
+   terdaftar di proyek MBG ditarik **dari dalam Render**, 14/14 berhasil,
+   tanpa 403, dengan UA yang sama. 6 artikel MBG tersimpan, tarik ulang
+   `stored: 0`. Yang 403 justru sandbox routine cloud Claude, bukan Render —
+   lihat blok "MULAI DARI SINI". Pipeline
    ingestion (`normalize_text`, `detect_language`, `dedupe`) dan sentiment
    (`sentiment.score`) dijalankan di atas ke-215 item nyata itu tanpa satu
    pun exception — lihat poin 5 di bawah untuk apa yang ditemukan dari situ.
@@ -469,12 +476,12 @@ Ini bagian terpenting dari dokumen ini.
 ## Langkah berikutnya yang paling masuk akal
 
 > **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
-> konkret per 2026-09-12 ada di blok "🟢 MULAI DARI SINI" di kepala
-> `docs/deployment-status.md` — ringkasnya: **PR #9 sampai #13 semuanya sudah
-> di-merge dan hidup di production**, bug 403 Wikimedia **sudah selesai dan
-> terverifikasi dari Render**, sidebar sudah dikelompokkan, URL sumber item
-> RSS lama sudah bisa ditaut, dan **tidak ada PR maupun bug production yang
-> terbuka**. Yang tersisa adalah daftar di bawah ini.
+> konkret per 2026-09-15 ada di blok "🟢 MULAI DARI SINI" di kepala
+> `docs/deployment-status.md` — ringkasnya: **pengumpulan RSS proyek MBG kini
+> berjalan dari API sendiri** (PR #15, `collect-all` + token pengumpul),
+> dipicu GitHub Actions tiap 30 menit, menggantikan routine cloud yang gagal
+> 403 empat hari. PR #9 sampai #15 hidup di production. Yang tersisa adalah
+> daftar di bawah ini.
 
 Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
 
@@ -491,10 +498,9 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    kunci — dan lihat apakah pipeline bertahan pada data lapangan yang
    berantakan.~~ — **selesai 2026-09-11**: 195 item nyata dikirim lewat
    `POST /signals/ingest` sungguhan ke production (bukan panggilan fungsi
-   lokal), tersimpan, teragregasi, ter-cluster jadi topics. Sisa yang belum:
-   memicu `collect` dari Render sendiri lewat `DataSource` konektor RSS
-   terdaftar (bukan cuma `ingest` manual) — beda kelas, bukan penghalang
-   berarti.
+   lokal), tersimpan, teragregasi, ter-cluster jadi topics. Sisa yang dulu
+   belum — memicu `collect` dari Render sendiri lewat `DataSource` RSS —
+   **selesai 2026-09-15** (PR #15, `collect-all`, terjadwal).
 4. **Ukur ulang akurasi sentimen** terhadap sampel berlabel dari data nyata
    itu. Ini yang menentukan apakah seluruh lapisan sinyal layak dipakai untuk
    keputusan, atau baru layak untuk eksplorasi. **Tiga ronde langkah kecil

@@ -1,0 +1,58 @@
+name: Pengumpulan sinyal terjadwal
+
+# Menggantikan routine cloud Claude "MBG - Ingest RSS harian" (2026-09-15).
+# Routine itu mengambil feed dari sandbox-nya sendiri; empat hari berturut-turut
+# semua feed membalas 403 dari jaringan sandbox dan routine tetap "berhasil".
+# Di sini yang mengambil feed adalah API (Render) — workflow ini cuma memicu
+# `POST /projects/{id}/signals/collect-all` dan MERAH bila ada sumber gagal.
+#
+# Kenapa tiap 30 menit, bukan sekali sehari: feed RSS hanya memuat N item
+# terakhir. Diukur 2026-09-15: Antara nasional 50 item = ~1,2 jam berita,
+# Republika 15 item = ~1,3 jam. Sekali sehari berarti ~95% berita hari itu
+# sudah jatuh dari feed sebelum sempat dibaca. Kalau interval ini masih terlalu
+# jarang untuk suatu feed, API melaporkannya sebagai `coverage_gap` dan run ini
+# memberi peringatan.
+#
+# Menit :07 dan :37, bukan :00/:30 — jadwal GitHub paling padat (dan paling
+# sering tertunda) di awal jam.
+#
+# Setup (sekali):
+#   - secret  POP_COLLECTOR_TOKENS : token dari POST /projects/{id}/signals/collector-token,
+#                                    satu per baris kalau lebih dari satu proyek
+#   - variable POP_API_BASE        : https://pop-api-ptug.onrender.com/v1
+# Mematikan: Actions > workflow ini > "Disable workflow", atau cabut tokennya
+# (DELETE .../collector-token) — run berikutnya merah dengan 401.
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+    inputs:
+      since_days:
+        description: "Tarik item yang terbit berapa hari terakhir (1-90)"
+        required: false
+        default: "2"
+
+# Run yang tertunda tidak boleh menumpuk dengan run berikutnya.
+concurrency:
+  group: collect-signals
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
+
+      - name: Tarik semua sumber aktif
+        env:
+          POP_API_BASE: ${{ vars.POP_API_BASE }}
+          POP_COLLECTOR_TOKENS: ${{ secrets.POP_COLLECTOR_TOKENS }}
+          POP_SINCE_DAYS: ${{ inputs.since_days }}
+        run: python3 .github/scripts/collect_signals.py
