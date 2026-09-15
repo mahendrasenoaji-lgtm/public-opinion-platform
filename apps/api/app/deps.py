@@ -70,13 +70,38 @@ class Principal(BaseModel):
     email: str
 
 
-def decode_token(token: str) -> Principal:
+class CollectorPrincipal(BaseModel):
+    """Pemegang token pengumpulan terjadwal — BUKAN pengguna.
+
+    Hanya diterima endpoint yang menyebutnya secara eksplisit (lewat
+    `ActorSession`/`CurrentActor`), dan hanya untuk satu proyek. `issuer_id`
+    adalah pengguna yang menerbitkannya; di audit log, pengumpulan tercatat
+    atas nama orang itu.
+    """
+
+    issuer_id: UUID
+    org_id: UUID
+    project_id: UUID
+    token_id: UUID
+
+
+def _decode_claims(token: str) -> dict:
     try:
-        claims = jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+        return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
     except jwt.ExpiredSignatureError as e:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Sesi berakhir. Masuk kembali.") from e
     except jwt.InvalidTokenError as e:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak valid.") from e
+
+
+def decode_token(token: str) -> Principal:
+    claims = _decode_claims(token)
+
+    # Hanya token akses yang merupakan sesi pengguna. Tanpa pemeriksaan ini,
+    # token jenis lain yang ditandatangani kunci yang sama (refresh, token
+    # pengumpul) diterima di mana saja selama klaimnya kebetulan lengkap.
+    if claims.get("type") != "access":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak valid.")
 
     try:
         return Principal(
@@ -84,6 +109,22 @@ def decode_token(token: str) -> Principal:
             org_id=UUID(claims["org"]),
             role=Role(claims["role"]),
             email=claims["email"],
+        )
+    except (KeyError, ValueError) as e:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak lengkap.") from e
+
+
+def decode_actor(token: str) -> Principal | CollectorPrincipal:
+    """Pengguna, atau token pengumpul. Dipakai HANYA endpoint yang menerima keduanya."""
+    claims = _decode_claims(token)
+    if claims.get("type") != "collector":
+        return decode_token(token)
+    try:
+        return CollectorPrincipal(
+            issuer_id=UUID(claims["sub"]),
+            org_id=UUID(claims["org"]),
+            project_id=UUID(claims["prj"]),
+            token_id=UUID(claims["jti"]),
         )
     except (KeyError, ValueError) as e:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Token tidak lengkap.") from e
@@ -113,6 +154,28 @@ async def tenant_session(
         await session.execute(
             text("SELECT set_config('app.current_org', :org, true)"),
             {"org": str(principal.org_id)},
+        )
+        yield session
+
+
+async def current_actor(
+    creds: Annotated[HTTPAuthorizationCredentials, Depends(bearer)],
+) -> Principal | CollectorPrincipal:
+    return decode_actor(creds.credentials)
+
+
+async def actor_session(
+    actor: Annotated[Principal | CollectorPrincipal, Depends(current_actor)],
+) -> AsyncIterator[AsyncSession]:
+    """Seperti `tenant_session`, untuk endpoint yang juga menerima token pengumpul.
+
+    Organisasi diambil dari token yang tanda tangannya sudah diverifikasi —
+    RLS tetap yang menegakkan batasnya, persis seperti sesi pengguna.
+    """
+    async with SessionLocal() as session, session.begin():
+        await session.execute(
+            text("SELECT set_config('app.current_org', :org, true)"),
+            {"org": str(actor.org_id)},
         )
         yield session
 
@@ -151,3 +214,5 @@ def require_capability(capability: str):
 
 TenantSession = Annotated[AsyncSession, Depends(tenant_session)]
 CurrentUser = Annotated[Principal, Depends(current_principal)]
+ActorSession = Annotated[AsyncSession, Depends(actor_session)]
+CurrentActor = Annotated[Principal | CollectorPrincipal, Depends(current_actor)]
