@@ -95,6 +95,12 @@ CI PR #15 hijau (backend + frontend + Vercel). Lokal: ruff, mypy strict,
 
 ## Yang perlu diketahui sesi berikutnya
 
+- **Daftar lengkap yang masih kurang (K1–K11)** — termasuk token lama yang
+  masih sah, batas 60 hari jadwal GitHub, pertumbuhan `audit_logs`, dan UI
+  yang belum ada — ada di `docs/progress.md` bagian "Pengumpulan sinyal
+  terjadwal". Baca itu sebelum mengubah apa pun di jalur ini.
+- PR #16 (workflow + dokumen ini) di-merge 2026-09-15 ~14:43 UTC; run
+  `workflow_dispatch` pertama sukses (Render bangun 72 dtk, 14/14 feed OK).
 - **Data 12–15 Sep tidak bisa dipulihkan dari feed.** `since_days=7` hanya
   mengembalikan yang masih ada di feed (paling tua 12 Sep, dari Tempo).
 - **Menambah proyek terjadwal:** daftarkan sumber, terbitkan token untuk
