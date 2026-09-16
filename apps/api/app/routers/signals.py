@@ -640,7 +640,14 @@ async def _store_fetched(
     actor_id: UUID,
     via: Literal["user", "collector_token"],
     token_id: UUID | None = None,
+    write_audit: bool = True,
 ) -> IngestResult:
+    """`write_audit=False` dipakai oleh `collect_all` — lihat komentar di sana.
+
+    Bukan berarti panggilan itu tidak diaudit: `collect_all` menulis SATU
+    baris ringkasan untuk semua sumber setelah loop-nya selesai, bukan satu
+    baris per sumber di sini.
+    """
     result = await _store(
         session,
         org_id=source.org_id,
@@ -666,19 +673,20 @@ async def _store_fetched(
         accept_langs=None,
     )
     source.last_sync_at = datetime.now(UTC)
-    metadata = {"stored": str(result.stored), "connector": source.connector, "via": via}
-    if token_id is not None:
-        metadata["token_id"] = str(token_id)
-    session.add(
-        AuditLog(
-            org_id=source.org_id,
-            actor_id=actor_id,
-            action="collect",
-            entity="data_source",
-            entity_id=source.id,
-            metadata_=metadata,
+    if write_audit:
+        metadata = {"stored": str(result.stored), "connector": source.connector, "via": via}
+        if token_id is not None:
+            metadata["token_id"] = str(token_id)
+        session.add(
+            AuditLog(
+                org_id=source.org_id,
+                actor_id=actor_id,
+                action="collect",
+                entity="data_source",
+                entity_id=source.id,
+                metadata_=metadata,
+            )
         )
-    )
     return result
 
 
@@ -949,6 +957,7 @@ async def collect_all(
             actor_id=actor_id,
             via=via,
             token_id=token_id,
+            write_audit=False,
         )
         oldest = stats.oldest_offered if stats is not None else None
         results.append(
@@ -966,6 +975,40 @@ async def collect_all(
                 result=stored,
             )
         )
+
+    # Satu baris audit untuk seluruh panggilan, bukan satu per sumber (K5,
+    # 2026-09-16): pada jadwal 30 menit x 14 sumber ini dulu ~670 baris/hari
+    # (~245rb/tahun) — cukup untuk mendekati batas 500 MB Supabase free tier
+    # dalam hitungan tahun tanpa pernah dipangkas. Ringkasan per sumber tetap
+    # lengkap di `metadata_`, jadi tidak ada informasi yang hilang, cuma
+    # digabung jadi satu baris per run.
+    session.add(
+        AuditLog(
+            org_id=actor.org_id,
+            actor_id=actor_id,
+            action="collect_all",
+            entity="project",
+            entity_id=project_id,
+            metadata_={
+                "via": via,
+                "token_id": str(token_id) if token_id is not None else None,
+                "sources_total": len(sources),
+                "sources_ok": sum(1 for r in results if r.ok),
+                "sources_failed": sum(1 for r in results if not r.ok),
+                "sources": [
+                    {
+                        "source_id": str(r.source_id),
+                        "connector": r.connector,
+                        "ok": r.ok,
+                        "error": r.error,
+                        "stored": r.result.stored if r.result is not None else None,
+                        "coverage_gap": r.coverage_gap,
+                    }
+                    for r in results
+                ],
+            },
+        )
+    )
 
     return CollectAllOut(
         project_id=project_id,

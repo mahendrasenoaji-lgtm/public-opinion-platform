@@ -68,6 +68,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, detailToMessage(body.detail));
   }
+  // 204 (DELETE .../sources/{id}, .../collector-token, .../projects/{id}, dst.)
+  // has no body -- res.json() throws "Unexpected end of JSON input" on it.
+  // Callers that only care about success (await api(...) without a type)
+  // get undefined, which is fine since they never read a return value.
+  if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
