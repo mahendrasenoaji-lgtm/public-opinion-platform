@@ -131,11 +131,18 @@ aktif" tanpa reload), hapus sumber — kelimanya dikonfirmasi lewat state UI
 - Database uji lokal (`pop_test`), file `.env` sementara, dan proses
   `uvicorn`/`next dev` sesi ini **sudah dibersihkan** — mesin pengguna
   bersih kembali, sama seperti konvensi sesi-sesi sebelumnya.
-- Perubahan kode sesi ini **belum di-commit** — menunggu instruksi
-  pengguna, sesuai aturan "jangan commit tanpa diminta".
 - K1, K3 tetap tercatat "terbuka" di tabel K1–K11 `docs/progress.md`
   (butuh keputusan pengguna yang bukan wewenang agen), K5 dan K6 pindah ke
   "selesai".
+- **Sudah di-commit, push, dan deploy** atas permintaan eksplisit
+  pengguna ("commit push dan deploy juga supaya saya dapat mengerjakan di
+  komputer lain"): branch `claude/sesi7-k1-k3-k5-k6-20260916` → [PR #18](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/18)
+  (CI hijau: backend, frontend, Vercel preview) → merge ke `main`
+  (`a7e7f9b`) 2026-09-16 16:31 UTC. **Render dan Vercel terkonfirmasi
+  redeploy sukses** dari commit itu (dicek lewat GitHub Deployments API,
+  bukan diasumsikan): Render `state=success`, Vercel `state=success`
+  dengan `environment_url` baru. `GET /health` production membalas
+  `{"status":"ok","env":"production"}` setelahnya.
 
 ---
 
