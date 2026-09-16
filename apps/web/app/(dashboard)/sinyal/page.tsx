@@ -1,10 +1,22 @@
+import { cookies } from "next/headers";
 import { Info } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
+import { SourceManager } from "@/components/SourceManager";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
+import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
+import type { CollectorTokenStatus } from "./actions";
+
+//: Cermin RANK[RESEARCHER]/RANK[RESEARCH_DIRECTOR] di app/deps.py + tiap
+//: dependencies=[Depends(require_role(...))] di app/routers/signals.py.
+//: Sama pola dengan CAN_APPROVE_ROLES di app/(dashboard)/brief/page.tsx --
+//: ini cuma UX (sembunyikan kontrol yang toh akan ditolak server), batas
+//: keamanan sungguhan tetap di backend.
+const CAN_MANAGE_ROLES = new Set(["SUPER_ADMIN", "RESEARCH_DIRECTOR", "RESEARCHER"]);
+const CAN_MANAGE_TOKENS_ROLES = new Set(["SUPER_ADMIN", "RESEARCH_DIRECTOR"]);
 
 export const dynamic = "force-dynamic";
 
@@ -78,6 +90,7 @@ interface ConnectorRow {
   requires_credential: string | null;
   credential_configured: boolean;
   config_fields: string[];
+  optional_fields: string[];
   notes: string;
 }
 
@@ -104,14 +117,20 @@ export default async function SinyalPage() {
   // jadi "Application error". Kelas bug yang sama pernah kena tiga halaman
   // lain di repo ini (lihat docs/deployment-status.md, bagian registrasi
   // self-service).
-  const [summary, trend, quality, sources, connectors, mentions] = await Promise.all([
+  const [summary, trend, quality, sources, connectors, mentions, tokenStatus] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
     apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
     apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
     apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions?limit=20`),
+    apiOrNullLenient<CollectorTokenStatus>(`/projects/${projectId}/signals/collector-token`),
   ]);
+
+  const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
+  const role = sessionToken ? decodeJwtPayload(sessionToken)?.role : undefined;
+  const canManage = typeof role === "string" && CAN_MANAGE_ROLES.has(role);
+  const canManageTokens = typeof role === "string" && CAN_MANAGE_TOKENS_ROLES.has(role);
 
   const volume = summary?.volume.value ?? 0;
   // Warna mengikuti sumber yang dominan, bukan estetika (R1).
@@ -381,37 +400,17 @@ export default async function SinyalPage() {
         </Panel>
 
         <Panel kicker="Pengaturan" title="Sumber data terdaftar">
-          {!sources || sources.length === 0 ? (
-            <InsufficientData reason="Belum ada sumber data yang didaftarkan untuk proyek ini." />
+          {!sources ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
           ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Konektor</th>
-                  <th>Sumber</th>
-                  <th>Konfigurasi</th>
-                  <th>Sinkron terakhir</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sources.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.connector}</td>
-                    <td>
-                      <span className="pill" style={{ color: SOURCE[s.source].color }}>
-                        {SOURCE[s.source].label}
-                      </span>
-                    </td>
-                    <td className="mono">
-                      {Object.entries(s.config)
-                        .map(([k, v]) => `${k}=${v}`)
-                        .join(" ") || "—"}
-                    </td>
-                    <td className="mono">{s.last_sync_at?.slice(0, 16).replace("T", " ") ?? "belum pernah"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <SourceManager
+              projectId={projectId}
+              sources={sources}
+              connectors={connectors ?? []}
+              canManage={canManage}
+              canManageTokens={canManageTokens}
+              tokenStatus={tokenStatus}
+            />
           )}
 
           <h3 className="kicker" style={{ marginTop: 22 }}>Konektor yang tersedia</h3>

@@ -6,6 +6,139 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — serah-terima sesi, 16 September 2026 (sesi ketujuh)
+
+**Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi keenam (15 Sep)
+masih ada tepat di bawah blok ini dan masih berlaku. Sesi ini mengerjakan
+K1, K3, K5, K6 dari tabel "Pengumpulan sinyal terjadwal" di
+`docs/progress.md`.
+
+## K1 — jadwal GitHub Actions: TERBUKTI JALAN, tapi jauh lebih jarang dari niatnya
+
+Diperiksa lewat `gh run list --workflow=collect-signals.yml`: sejak run
+manual pertama (15 Sep 14:43 UTC) sampai 16 Sep 11:23 UTC (~20,7 jam), baru
+**5 run `schedule`** yang tercatat — cron-nya `7,37 * * * *` (tiap 30 menit)
+harusnya menghasilkan ~41 run. Jarak antar run aktual **2,5–5,5 jam**, bukan
+30 menit. Ini throttling GitHub Actions untuk jadwal berfrekuensi tinggi di
+repo publik/free-tier, bukan bug di workflow-nya sendiri — tidak ada yang
+bisa diperbaiki dari sisi kode `collect-signals.yml`.
+
+**Akibat nyata, terlihat di job summary tiap run yang diperiksa**: Antara
+dan Republika (feed ber-rentang ~1 jam) hampir selalu tercatat `CELAH`
+karena jarak antar run jauh melebihi rentang feed-nya. `coverage_gap` sudah
+bekerja seperti dirancang — ini bukti bahwa masalah yang tabel K1
+sebutkan (jadwal 30 menit "belum terbukti berulang") sekarang **terbukti**,
+dan hasilnya: jadwalnya jalan tapi kurang rapat untuk dua sumber tercepat.
+
+**Belum dikerjakan** (di luar wewenang sesi ini untuk diputuskan sendiri):
+memindahkan pemicu ke luar GitHub Actions (mis. cron eksternal yang
+memanggil `workflow_dispatch` via API) butuh menyimpan PAT bertoken
+`workflow` di layanan pihak ketiga — itu keputusan vendor baru, bukan
+perbaikan teknis murni. **K1 tetap terbuka**, sekarang dengan data nyata
+alih-alih "belum terbukti".
+
+## K3 — 8 routine cloud MBG dihapus, token lama TETAP belum bisa dicabut
+
+Kedelapan routine `MBG - Ingest RSS harian (1/7)` sampai `(8/8)` (sudah
+nonaktif sejak sesi keenam) **dihapus semua** lewat claude.ai/code/routines
+(UI — `RemoteTrigger` API tidak punya aksi `delete`), diverifikasi lewat
+`RemoteTrigger action=list`: tidak ada lagi entri MBG, yang tersisa cuma
+routine "Check-in PR #1" milik proyek `kos-management-system` (tidak
+terkait).
+
+**JWT akses pengguna yang sempat tertulis polos di prompt routine-routine
+itu MASIH sah** (berlaku s.d. ~11 Okt 2026) — menghapus routine-nya
+menghapus jejak plaintext-nya dari UI, tapi tidak mencabut tokennya sendiri
+(JWT stateless). Rotasi `JWT_SECRET` di Render akan mencabutnya, tapi itu
+juga langsung me-logout SEMUA sesi pengguna aktif dan mematikan token
+pengumpul GitHub Actions yang sedang jalan (butuh diterbitkan ulang +
+secret `POP_COLLECTOR_TOKENS` diperbarui sesudahnya) — **sengaja tidak
+dilakukan tanpa persetujuan eksplisit pengguna**, risikonya sudah kecil
+(routine nonaktif, token cuma bisa dibaca dari log akun ini).
+
+## K5 — audit_logs `collect-all`: dari 1 baris/sumber jadi 1 baris/run
+
+`app/routers/signals.py`: `_store_fetched()` dapat parameter
+`write_audit: bool = True`; `collect_all()` memanggilnya dengan
+`write_audit=False` per sumber, lalu menulis **SATU** `AuditLog`
+(`action="collect_all"`, `entity="project"`) berisi ringkasan semua sumber
+(`sources_total`/`ok`/`failed`, dan per-sumber `connector`/`ok`/`error`/
+`stored`/`coverage_gap`) di `metadata_` setelah loop-nya selesai. Endpoint
+`POST .../sources/{id}/collect` (dipakai manusia, jarang) TIDAK diubah —
+masih 1 baris per panggilan, disengaja karena volumenya rendah dan
+akuntabilitas per-aksi manusia tetap berguna granular.
+
+Dari ~670 baris/hari (14 sumber × 48 run/hari) jadi **~48 baris/hari**
+(1 per run) — proyeksi tahunan turun dari ~245rb jadi ~17,5rb baris.
+
+**Diverifikasi**: 593/593 tes backend lulus lokal (Postgres 16 Homebrew,
+`role pop_app`, RLS aktif, schema di-shim tanpa pgvector — lihat catatan
+pgvector di bawah), `ruff check` bersih, `mypy --strict` tidak menambah
+error baru (8 error pra-ada yang sama persis sebelum & sesudah perubahan,
+di luar scope `app/services`/`app/ai`/`app/connectors` yang CLAUDE.md §6
+wajibkan bersih).
+
+**pgvector masih belum terpasang untuk Postgres 16 di mesin ini** (K11):
+`brew install pgvector` sukses tapi ternyata membangun untuk
+`postgresql@17`/`postgresql@18` (versi default Homebrew di mesin ini),
+bukan `postgresql@16` yang sungguhan dipakai. Tes lokal sesi ini tetap
+memakai schema shim (`vector(1024)` → `real[]`, index `hnsw` dibuang) —
+pola yang sama seperti sesi-sesi sebelumnya. Kalau mau pgvector sungguhan
+untuk pg16, perlu build dari source dengan `PG_CONFIG` diarahkan ke
+`postgresql@16`, belum dicoba.
+
+## K6 — UI kelola sumber & token di `/sinyal`
+
+File baru: `apps/web/app/(dashboard)/sinyal/actions.ts` (Server Actions:
+`addSource`, `removeSource`, `runCollectAll`, `issueToken`, `revokeToken` —
+pola sama dengan `collectSeries` di `deret/actions.ts`, mengembalikan
+`{ok, ...}` bukan melempar) dan `apps/web/components/SourceManager.tsx`
+(client component: tabel sumber + tombol hapus, form tambah sumber dengan
+field dinamis per konektor dari `GET /signals/connectors`, tombol "Tarik
+semua sekarang" dengan tabel hasil per sumber, panel token dengan
+terbitkan/cabut + tampilan token SEKALI + tombol salin). Dipasang di
+`sinyal/page.tsx` di balik `canManage`/`canManageTokens` yang dibaca dari
+role JWT (pola sama persis dengan `CAN_APPROVE_ROLES` di
+`brief/page.tsx`) — UX saja, batas sungguhan tetap di backend.
+
+**Bug nyata ditemukan + diperbaiki lewat uji langsung di browser** (bukan
+cuma tsc/build): `lib/api.ts`'s `api()` SELALU memanggil `res.json()`,
+yang melempar `SyntaxError: Unexpected end of JSON input` pada respons
+`204 No Content` apa pun (semua endpoint `DELETE` di API ini membalas 204
+tanpa body). Ini mematahkan "Hapus sumber" dan "Cabut token" secara
+SENYAP: `DELETE` di backend sukses (baris `audit_logs` `revoke`/`delete`
+tetap tertulis, dikonfirmasi dari log Postgres), tapi Server Action
+melempar sebelum `router.refresh()` sempat dipanggil, jadi UI tetap
+menampilkan status lama sampai pengguna me-reload manual — tanpa pesan
+error apa pun yang terlihat. Diperbaiki dengan satu cabang: `res.status
+=== 204` mengembalikan `undefined` tanpa parsing. **Ini juga memperbaiki
+bug pra-ada yang identik** di `deleteProject`
+(`app/(dashboard)/proyek/actions.ts:86`, DELETE `/projects/{id}` juga
+204) — tidak disentuh kodenya, tapi ikut sembuh lewat titik perbaikan yang
+sama.
+
+**Diverifikasi hidup, bukan cuma build hijau**: `tsc --noEmit` + `next
+build` bersih; lalu diuji sungguhan di browser terhadap Postgres +
+FastAPI lokal — daftar org baru lewat `/daftar`, tambah sumber RSS Antara,
+klik "Tarik semua sekarang" → **50 artikel nyata** tertarik dari feed
+Antara sungguhan dan tersimpan, terbitkan token (tombol salin
+dikonfirmasi bekerja), cabut token (status berubah ke "Tidak ada token
+aktif" tanpa reload), hapus sumber — kelimanya dikonfirmasi lewat state UI
++ log request backend, nol error console setelah perbaikan `lib/api.ts`.
+
+## Yang perlu diketahui sesi berikutnya
+
+- Database uji lokal (`pop_test`), file `.env` sementara, dan proses
+  `uvicorn`/`next dev` sesi ini **sudah dibersihkan** — mesin pengguna
+  bersih kembali, sama seperti konvensi sesi-sesi sebelumnya.
+- Perubahan kode sesi ini **belum di-commit** — menunggu instruksi
+  pengguna, sesuai aturan "jangan commit tanpa diminta".
+- K1, K3 tetap tercatat "terbuka" di tabel K1–K11 `docs/progress.md`
+  (butuh keputusan pengguna yang bukan wewenang agen), K5 dan K6 pindah ke
+  "selesai".
+
+---
+
 # 🟢 MULAI DARI SINI — serah-terima sesi, 15 September 2026 (sesi keenam)
 
 **Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi kelima (12 Sep)
