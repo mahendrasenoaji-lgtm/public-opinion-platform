@@ -1,0 +1,43 @@
+name: Keepalive jadwal Actions
+
+# K4 (docs/progress.md): GitHub otomatis MENONAKTIFKAN workflow terjadwal di
+# repo publik setelah 60 hari tanpa "aktivitas repo" -- dan aktivitas di sini
+# berarti push/release/merge PR, BUKAN sekadar run terjadwal yang tidak
+# mengubah apa pun. `collect-signals.yml` sendiri berjalan tiap 30 menit
+# tapi TIDAK menghitung, karena ia tidak pernah nge-push. Tanpa workflow ini,
+# pengumpulan sinyal bisa berhenti diam-diam sekitar pertengahan November
+# kalau repo tidak di-commit manual.
+#
+# Solusinya: commit kosong dua kali sebulan (tanggal 1 dan 15) lewat
+# GITHUB_TOKEN bawaan -- bukan cron eksternal atau PAT tersimpan di layanan
+# pihak ketiga (itu keputusan vendor baru, lihat K1 di docs/progress.md).
+# Dua kali sebulan memberi margin: kalau satu run gagal/terlewat, run
+# berikutnya 14 hari kemudian tetap jauh di bawah ambang 60 hari.
+#
+# `permissions: contents: write` WAJIB ada eksplisit di sini -- setting
+# default repo ini adalah "read" (dicek 2026-09-17 lewat
+# GET /repos/.../actions/permissions/workflow), dan blok permissions di
+# level workflow individual mengalahkan default itu tanpa perlu mengubah
+# Settings > Actions > General untuk seluruh repo.
+
+on:
+  schedule:
+    - cron: "0 3 1,15 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Commit kosong supaya repo tetap "aktif" di mata GitHub
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: keepalive (cegah GitHub menonaktifkan jadwal Actions, lihat K4)"
+          git push
