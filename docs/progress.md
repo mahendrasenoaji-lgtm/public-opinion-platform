@@ -133,8 +133,10 @@ bukan.
 
 **Berubah sebagian 2026-09-11 (sesi keempat), dan batasnya penting.**
 `connectors/openmeteo.py` memberi data yang georeferensinya memang ASLI —
-koordinat ibu kota provinsi yang diukur instrumen, bukan ditebak dari teks —
-untuk 20 provinsi. Syarat CLAUDE.md §6 terpenuhi **untuk lapisan kualitas
+koordinat ibu kota provinsi yang diketahui, bukan ditebak dari teks —
+untuk 20 provinsi. **Koreksi 2026-10-06:** nilai PM2.5-nya estimasi model
+CAMS (grid ±45 km), bukan hasil pengukuran sensor; yang asli adalah lokasinya,
+bukan nilainya. Syarat CLAUDE.md §6 terpenuhi **untuk lapisan kualitas
 udaranya sendiri**. Itu TIDAK berarti peta skor opini per provinsi boleh
 dibangun: opini per provinsi masih datang dari survei yang `achieved_n`-nya
 di bawah ambang di separuh provinsi (gating §3 tetap berlaku), dan sebaran
@@ -615,7 +617,7 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    `pop_app` dan RLS aktif, termasuk idempotensi tarik-ulang dan isolasi
    tenant. Lihat poin 4 di bagian "Yang BELUM diverifikasi" untuk hasilnya.
 
-8. **Putuskan `SignalSource` untuk pengukuran instrumen.** Kualitas udara
+8. **Putuskan `SignalSource` untuk data lingkungan (model/sensor).** Kualitas udara
    sementara memakai `DIGITAL` dengan peringatan di `method`, karena nilai
    enum baru (`SENSOR`) butuh `ALTER TYPE signal_source ADD VALUE` di
    Supabase — kelas migrasi yang pernah menjatuhkan tiga halaman production
