@@ -2,8 +2,13 @@
 
 ## Apa ini, dan apa yang ia BUKAN
 
-Ini pengukuran instrumen: konsentrasi PM2.5 harian pada koordinat ibu kota
-provinsi. Ia BUKAN opini, bukan sentimen, dan bukan perilaku siapa pun.
+Ini estimasi model atmosfer: konsentrasi PM2.5 harian pada koordinat ibu kota
+provinsi, dari model CAMS (Copernicus) yang disajikan Open-Meteo. Untuk
+Indonesia sumbernya model global beresolusi ±45 km (0,4°), BUKAN sensor di
+lapangan dan BUKAN rata-rata wilayah provinsi: satu sel grid per provinsi.
+Nilai ekstrem (ratusan µg/m³ saat kebakaran gambut) belum divalidasi terhadap
+stasiun pemantau. Ia juga BUKAN opini, bukan sentimen, dan bukan perilaku
+siapa pun.
 
 Ia ada di platform ini sebagai **kovariat eksogen** — variabel di luar opini
 yang bisa menjelaskan pergerakan opini. Untuk studi karhutla, kabut asap
@@ -23,18 +28,20 @@ dan persis melanggar R1. `geographic_spread` tetap kosong sampai ada mention
 yang benar-benar bergeotag.
 
 Yang ia buka betulan: lapisan data per-provinsi yang georeferensinya ASLI
-(koordinat yang diukur, bukan provinsi yang ditebak dari teks), yang memenuhi
-syarat CLAUDE.md §6 untuk peta MapLibre — untuk lapisan kualitas udaranya
-sendiri, bukan untuk skor opini per provinsi.
+(koordinat yang diketahui, bukan provinsi yang ditebak dari teks), yang
+memenuhi syarat CLAUDE.md §6 untuk peta MapLibre — untuk lapisan kualitas
+udaranya sendiri, bukan untuk skor opini per provinsi. Yang asli adalah
+LOKASINYA; nilainya tetap estimasi model pada resolusi ±45 km.
 
 ## Soal `source = DIGITAL` — keputusan yang perlu ditinjau pengguna
 
 Tidak ada nilai `SignalSource` yang benar-benar pas. Enum-nya SURVEY / SOCIAL
-/ MEDIA / DIGITAL, dan pengukuran instrumen bukan salah satunya; DIGITAL
-paling dekat ("perilaku terukur, bukan pernyataan") tapi tetap meleset —
-kualitas udara bukan perilaku.
+/ MEDIA / DIGITAL, dan data lingkungan (model maupun sensor) bukan salah
+satunya; DIGITAL paling dekat ("perilaku terukur, bukan pernyataan") tapi
+tetap meleset — kualitas udara bukan perilaku.
 
-Yang benar secara desain adalah menambah nilai enum baru (mis. `SENSOR`).
+Yang benar secara desain adalah menambah nilai enum baru (mis. `SENSOR`, atau
+nama yang juga mencakup keluaran model seperti `ENVIRONMENT`).
 Itu TIDAK dilakukan di sini karena butuh `ALTER TYPE signal_source ADD VALUE`
 di Supabase — migrasi manual yang, persis kelas ini, pernah menjatuhkan tiga
 halaman production pada 2026-09-02 (docs/deployment-status.md). Menambahkannya
@@ -80,7 +87,7 @@ METRIC = "airquality_pm25"
 
 #: Peringatan yang ikut ke setiap baris `metric_snapshots.method`, dan dari
 #: sana ke layar. Bukan komentar kode — ini yang dibaca pembaca laporan.
-METHOD_NOTE = "pengukuran instrumen, BUKAN opini"
+METHOD_NOTE = "estimasi model CAMS (±45 km), BUKAN sensor lapangan dan BUKAN opini"
 
 #: Ibu kota provinsi, kode mengikuti BPS (sama dengan db/seed.py:PROVINCES).
 #:
@@ -209,7 +216,9 @@ class OpenMeteoAirQualityConnector(MetricConnector):
     requires_credential: ClassVar[str | None] = None
     config_fields: ClassVar[tuple[str, ...]] = ("province_code",)
     notes: ClassVar[str] = (
-        "Pengukuran instrumen (PM2.5, µg/m³), BUKAN opini dan bukan perilaku. "
+        "Estimasi model atmosfer CAMS (PM2.5, µg/m³, grid ±45 km), bukan sensor "
+        "lapangan dan belum divalidasi terhadap stasiun pemantau; BUKAN opini "
+        "dan bukan perilaku. "
         "Dipakai sebagai kovariat eksogen — variabel di luar opini yang bisa "
         "menjelaskan pergerakannya — bukan sebagai sinyal opini. Jangan "
         "dibandingkan langsung dengan Public Opinion Index. Tidak mengisi "
