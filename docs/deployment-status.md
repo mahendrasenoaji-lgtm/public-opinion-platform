@@ -6,6 +6,108 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — serah-terima sesi, 8 Oktober 2026 (komentar YouTube)
+
+**Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi ketujuh (16 Sep)
+dan sebelumnya masih ada di bawah blok ini dan masih berlaku. Sesi ini tidak
+mengubah kode — hanya pengecekan dan keputusan arah. **Pekerjaan berikutnya
+sengaja ditunda pengguna ("nanti saja")**; mulai dari "Langkah berikutnya" di
+bawah.
+
+## Pertanyaan pemicu
+
+"Kenapa tidak memakai komentar YouTube untuk sentimen/analisis komentar
+video?" Jawabannya: **konektornya sudah ada** (`apps/api/app/connectors/
+youtube.py`, `commentThreads` resmi, per `video_id`/`channel_id`, sumber
+`SOCIAL`) dan sudah pernah dipakai (115 komentar karhutla, 2026-09-11).
+Yang belum ada: **sumber YouTube di proyek MBG AGUSTUS 2026** (14 sumbernya
+RSS semua, jadi `collect-all` terjadwal tidak pernah menyentuh YouTube) dan
+**pencarian video per kata kunci** (konektor butuh ID video satu per satu;
+`search.list` = 100 unit kuota/panggilan dari jatah harian 10.000).
+
+Catatan basi yang perlu dikoreksi: `docs/progress.md` §"Yang BELUM
+diverifikasi" no. 2 masih menulis "Konektor YouTube dan X belum pernah
+menarik data sungguhan" — untuk YouTube itu sudah tidak benar (lihat di
+bawah). X tetap benar: `X_BEARER_TOKEN` belum diset di Render.
+
+## Video YouTube bertema MBG dengan komentar terbanyak (dicek 2026-10-08)
+
+Dicek sekali lewat browser (bukan konektor, bukan API; tidak ada yang masuk
+database): 6 kata kunci ("MBG makan bergizi gratis", "makan bergizi gratis",
+"program MBG", "MBG keracunan", "badan gizi nasional MBG", "MBG prabowo"),
+urut relevansi + urut tontonan → 154 video unik. Angka komentar = pembulatan
+tampilan YouTube; 12 video tanpa angka (kemungkinan komentar dimatikan).
+Umur video relatif terhadap 2026-10-08.
+
+| # | Komentar | Channel | video_id | Judul (dipotong) | Umur |
+|---|---|---|---|---|---|
+| 1 | 20 rb | Suaradotcom | `WjNRWr4lJqk` | Lagi, Keracunan MBG Hebohkan Indonesia! … Bandung Barat | ~1 thn |
+| 2 | 15 rb | Najwa Shihab | `9ibLmF4EQ6E` | Presiden Prabowo Menjawab (Part 1) … MBG … | ~6 bln |
+| 3 | 9,8 rb | Nusantara TV | `YdQ6KGYMcTY` | Ditunjuk Jadi Kepala BGN, Gaya Nanik S Deyang Sidak SPPG | ~4 bln |
+| 4 | 7,2 rb | Kompas.com | `lrqC8RB9QS4` | DPR Terdiam, Perwakilan Ibu Bongkar "Dosa" MBG | ~2 bln |
+| 5 | 7,1 rb | REKAM DOC | `v71PrTc_lzk` | Pemerintah sudah Buta dan Tuli – Annete Mau – MBG Watch | ~2 bln |
+| 6 | 6,4 rb | Apin Alexander | `zhFuIAXAHWw` | Keracunan MBG Malah Dijadikan Bahan Lucuan (shorts) | ~2 mgg |
+| 7 | 5,7 rb | Watchdoc Documentary | `Ny7vrjL2ugg` | MBG Pakai Uang Rakyat, Mengapa Tega Meracuni Anak-Anak Kami? | ~3 mgg |
+| 8 | 5,1 rb | Nusantara Joss | `i6JDtVVim2U` | 3 Negara yang Punya Program MBG (shorts) | ~3 bln |
+| 9 | 4,6 rb | Tempodotco | — | Kroni Prabowo dalam Proyek MBG | ~1 thn |
+| 10 | 4,2 rb | RuangBaca | — | Keracunan MBG, Guru yang Disalahkan (shorts) | ~3 mgg |
+
+Total per channel (hanya video yang terjaring): Suaradotcom ~20.000 (2
+video), Najwa Shihab ~15.000 (1), Kompas.com ~9.900 (3), Nusantara TV ~9.800
+(1), Watchdoc ~8.900 (3), REKAM DOC ~7.100 (1), Tempodotco ~4.800 (4),
+KOMPASTV ~3.900 (9). Untuk proyek MBG AGUSTUS 2026 yang paling relevan
+adalah video ≤ 2 bulan (Kompas.com, REKAM DOC, Watchdoc, Apin Alexander,
+RuangBaca); banyak video teratas shorts/bernada kritik keras → komentarnya
+condong satu arah, Najwa Shihab/Nusantara TV bisa jadi penyeimbang.
+
+## `YOUTUBE_API_KEY` di Render: ADA dan BERFUNGSI (dibuktikan dari production)
+
+Pengguna memilih **tetap memakai kunci lama** (tidak diganti).
+- Variabel `YOUTUBE_API_KEY` terlihat di Render → `pop-api`
+  (`srv-da3bicabkg8c7386qncg`) → Environment.
+- Dengan persetujuan pengguna, dibuat **org uji sementara**
+  `uji-yt-1791474316` lewat `POST /v1/auth/register` (bukan akun pengguna).
+  `GET /signals/connectors` → `youtube_api credential_configured: true`.
+- Proyek uji + sumber `youtube_api` `{"video_id":"lrqC8RB9QS4"}` →
+  `POST .../sources/{id}/collect?since_days=90&limit=20` → **200,
+  received 20, stored 20**. Proyek uji lalu dihapus (204, dicek ulang 404).
+- **Org uji itu masih ada** (kosong) — API belum punya endpoint hapus org.
+
+## Temuan penting: leksikon sentimen gagal di komentar YouTube
+
+Dari 20 komentar uji itu: **18 (90%) abstain** — singkatan ("Mksh", "sdh",
+"GK"), huruf dipanjangkan ("betuuuuul"), sangat pendek, emoji. 2 yang dinilai
+**keduanya salah arah**: "Stop MBG… anak2 aman, APBN aman" → **+0.6**, dan
+"Mantap Bu… tiap hari keracunan…" → **+0.9**, padahal keduanya menolak/
+mengkritik MBG. Konsisten dengan dugaan bias sarkasme klaster "sawit" (+0.75)
+di data karhutla 2026-09-11. **Jangan pakai angka sentimen komentar YouTube
+sampai ini diperbaiki.**
+
+## Hambatan lain yang ketahuan
+
+- **`SITE_PASSWORD` frontend BUKAN `mahesa`** (password bersama situs lain
+  ditolak: "Password salah."). Nilainya *Sensitive* di Vercel, tidak bisa
+  dibaca ulang. Untuk membuka `/sinyal` lagi: reset di Vercel → project
+  `public-opinion-platform` → Settings → Environment Variables →
+  `SITE_PASSWORD` → Redeploy (pengguna yang mengetik nilainya).
+- `vercel` CLI tidak terpasang di Mac pengguna.
+
+## Langkah berikutnya (urut, semuanya menunggu pengguna memulai)
+
+1. **Perbaiki sentimen untuk komentar SOCIAL**: normalisasi slang/singkatan/
+   huruf berulang sebelum leksikon, dan/atau penilai berbasis LLM (butuh
+   `ANTHROPIC_API_KEY` di Render). Ukur dengan set berlabel komentar nyata,
+   termasuk kasus sarkasme di atas.
+2. Daftarkan video MBG terbaru dari tabel di atas sebagai sumber
+   `youtube_api` di proyek MBG AGUSTUS 2026 (menulis ke production — minta
+   persetujuan pengguna dulu, termasuk daftar videonya). Perhatikan kuota:
+   `collect-all` tiap ~30 menit × jumlah video × halaman komentar.
+3. Opsional: penemuan video per kata kunci (`search.list`) dengan pembatas
+   kuota.
+4. Koreksi `docs/progress.md` no. 2 (YouTube sudah pernah menarik data).
+
+---
+
 # 🟢 MULAI DARI SINI — serah-terima sesi, 16 September 2026 (sesi ketujuh)
 
 **Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi keenam (15 Sep)
