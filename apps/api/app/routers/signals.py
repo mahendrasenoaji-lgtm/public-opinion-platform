@@ -103,6 +103,22 @@ _TONE_NOT_STANCE_LIMITATION = (
 )
 
 
+def _source_label(source: DataSource) -> str:
+    """Nama sumber untuk ringkasan `collect-all` — yang dibaca manusia di log run.
+
+    Sumber RSS punya `label`/`feed_url`; sumber YouTube dan X tidak, dan dulu
+    tampil sebagai "None" — run merah berbunyi "None: GAGAL" tidak bisa
+    ditelusuri ke videonya. Urutannya dari yang paling manusiawi ke yang
+    paling teknis, dan tidak pernah kosong.
+    """
+    config = source.config or {}
+    for key in ("label", "feed_url", "video_id", "channel_id", "query"):
+        value = str(config.get(key) or "").strip()
+        if value:
+            return value if key in ("label", "feed_url") else f"{source.connector} {key}={value}"
+    return source.connector
+
+
 def _register_for(source: ModelSignalSource) -> sentiment_svc.Register:
     """Ragam penilai sentimen untuk satu sumber.
 
@@ -990,7 +1006,7 @@ async def collect_all(
     for source, fetched in zip(active, fetched_all, strict=True):
         previous = source.last_sync_at
         stats = fetched.connector.last_fetch if fetched.connector is not None else None
-        label = source.config.get("label") or source.config.get("feed_url")
+        label = _source_label(source)
         if fetched.error is not None:
             results.append(
                 SourceCollectOut(
