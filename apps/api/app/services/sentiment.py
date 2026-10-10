@@ -390,9 +390,14 @@ def score(text: str, *, register: Register = "baku") -> SentimentResult:
     agreement = abs(sum(values)) / magnitude if magnitude else 0.0
     evidence = min(1.0, len(matched) / 3)
 
+    # Label dari skor yang SUDAH dibulatkan — yaitu angka yang disimpan dan
+    # yang nanti dilabeli ulang oleh aggregate(). Tanpa ini (0.9 - 0.6) / 2
+    # = 0.15000000000000002 berlabel "positif" di sini tapi "netral" di agregat.
+    rounded = round(clipped, 3)
+
     return SentimentResult(
-        score=round(clipped, 3),
-        label=label_for(clipped),
+        score=rounded,
+        label=label_for(rounded),
         confidence=round(agreement * evidence, 3),
         matched=matched,
         method=method_for(register),

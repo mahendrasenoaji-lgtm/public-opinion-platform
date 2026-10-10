@@ -54,7 +54,7 @@ LLM**.
 | Tidak dinilai (abstain) | 72,2% | **27,3%** |
 | Akurasi ketat (abstain = salah) | 0,182 | **0,560** |
 | Akurasi di antara yang dinilai | 0,655 | **0,770** |
-| Macro F1 | 0,311 | **0,609** |
+| Macro F1 | 0,311 | **0,612** |
 | Recall negatif | 0,209 | **0,642** |
 | Presisi negatif | 0,969 | 0,913 |
 
@@ -63,9 +63,9 @@ selisihnya dengan `uji` kecil, jadi kamusnya tidak sekadar menghafal.
 
 ## Yang TIDAK terselesaikan, dan kenapa itu penting
 
-- **Nada bukan sikap.** Dari 35 komentar `uji` yang terbaca positif, 17 adalah
+- **Nada bukan sikap.** Dari 34 komentar `uji` yang terbaca positif, 16 adalah
   pujian kepada orang yang sedang MENGKRITIK program ("Betul sekali Bu,
-  lanjutkan") dan 10 sebenarnya bernada negatif. Di seluruh set, 35 dari 53
+  lanjutkan") dan 9 sebenarnya bernada negatif. Di seluruh set, 35 dari 53
   komentar bernada positif adalah dukungan kepada pengkritik. **Persentase
   "positif" pada komentar MBG tidak boleh dibaca sebagai dukungan pada MBG.**
   Peringatan ini sekarang ikut di `limitations` ringkasan sinyal setiap kali
@@ -74,7 +74,8 @@ selisihnya dengan `uji` kecil, jadi kamusnya tidak sekadar menghafal.
   itu karena kata lain di kalimatnya. "Sukses pak dengan program beracunnya,
   bangga saya" tetap positif. Dua contoh 8 Oktober: "Stop MBG… anak2 aman,
   APBN aman" sekarang **netral** (0,0; dulu +0,6) dan "Mantap Bu… tiap hari
-  keracunan" **netral** — tidak lagi salah arah, tapi juga belum benar.
+  keracunan" **netral** (+0,15; dulu +0,9) — tidak lagi salah arah, tapi juga
+  belum benar.
 - **Bahasa daerah** (Jawa, Sunda) tetap abstain.
 - **Satu penilai, satu isu, satu platform.** Tidak ada kesepakatan
   antarpenilai. Pelabelan independen yang diminta `docs/progress.md` tetap

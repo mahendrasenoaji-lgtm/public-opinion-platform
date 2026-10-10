@@ -225,6 +225,12 @@ class TestRagamInformal:
         assert ("bubarkan", -0.7) in r.matched
         assert r.label == "negatif"
 
+    def test_label_konsisten_dengan_skor_yang_disimpan(self) -> None:
+        """(0.9 - 0.6) / 2 adalah 0.15000000000000002 — tepat di ambang, bukan di atasnya."""
+        r = score("Mantap Bu, tiap hari keracunan dimana mana", register="informal")
+        assert r.score == 0.15
+        assert r.label == label_for(r.score) == "netral"
+
     def test_penyangkalan_tetap_membalik(self) -> None:
         assert score("gak bodoh kok", register="informal").label == "positif"
 

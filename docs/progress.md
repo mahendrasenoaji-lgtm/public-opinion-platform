@@ -542,11 +542,11 @@ Ini bagian terpenting dari dokumen ini.
    nyata sekarang ada (`services/sentiment_eval_field.py`, 440 komentar MBG)
    dan penilai untuk sumber `SOCIAL` punya ragam informal. Pada 209 komentar
    belahan uji: abstain 72,2% → 27,3%, akurasi ketat 0,182 → 0,560, akurasi
-   di antara yang dinilai 0,655 → 0,770, macro F1 0,311 → 0,609. **Batas atas
+   di antara yang dinilai 0,655 → 0,770, macro F1 0,311 → 0,612. **Batas atas
    0,897 dari set internal jangan dikutip lagi untuk komentar**; angka
    lapangannya 0,770. Yang tetap terbuka: satu penilai (bukan independen),
-   sarkasme, bahasa daerah, dan — paling penting — nada bukan sikap (17 dari
-   35 komentar yang terbaca positif memuji pengkritik program). Untuk berita,
+   sarkasme, bahasa daerah, dan — paling penting — nada bukan sikap (16 dari
+   34 komentar yang terbaca positif memuji pengkritik program). Untuk berita,
    ukuran sekali jalan atas 160 judul nyata: abstain 78,1%, 74 dari 125
    abstain itu memang judul netral, tapi di antara yang dinilai hanya 0,457
    benar. Rincian di blok "MULAI DARI SINI" 10 Oktober di
