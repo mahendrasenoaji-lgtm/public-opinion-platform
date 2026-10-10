@@ -6,6 +6,117 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — keadaan akhir 10 Oktober 2026 + yang KURANG
+
+**Baca ini dulu kalau melanjutkan di komputer lain.** Rincian tiap butir ada
+di blok "10 Oktober 2026 (sentimen ragam informal)" tepat di bawah.
+
+## Keadaan sekarang (semua sudah di `main`, tidak ada PR terbuka)
+
+| Hal | Keadaan | Bukti |
+|---|---|---|
+| PR #28, #29, #30 | Merged 10 Okt | #29 15:41 UTC, #30 16:21 UTC |
+| Sentimen sumber `SOCIAL` | Ragam informal `lexicon-id-1+informal-1`, hidup di production | `sentiment-quality` memuat `field`; uji kirim SOCIAL dinilai, MEDIA abstain |
+| Sentimen sumber `MEDIA` | TIDAK berubah (`lexicon-id-1`) | tes `TestRagamBakuTidakBergeser` |
+| Proyek MBG AGUSTUS 2026 | 34 sumber: 14 RSS + 20 `youtube_api` | run 38067390604: 34 ok, 0 gagal |
+| Isi proyek (jendela 30 hari) | 1.599 `SOSIAL` + 203 `MEDIA` | `/sinyal`, dibaca 16:30 UTC |
+| Komentar baru bertambah sendiri | Ya — 1.598 → 1.599 antara dua run | komentar 16:15 UTC tersimpan |
+| Label sumber di ringkasan run | `youtube_api video_id=…` (dulu `None`) | run 38067390604 |
+| Jadwal pengumpulan | Jalan, tetap di-throttle GitHub (~5 jam sekali) | K1, belum berubah |
+
+## Yang KURANG — urut dari yang paling memengaruhi data
+
+**Bisa dikerjakan agen tanpa keputusan atau kredensial siapa pun:**
+
+1. **`collect-all` sinkron tidak tahan batch besar.** 20 video × 100 komentar
+   baru dalam satu permintaan membalas 500 (datanya tetap tersimpan, ringkasan
+   run tidak terbit) dan melewati 150 detik saat direproduksi. Perbaikan:
+   proses per sumber dengan commit sendiri-sendiri dan batasi item per
+   permintaan, atau pindah ke worker (sudah dicatat roadmap). Sampai itu ada,
+   **jangan picu `since_days` besar setelah menambah banyak sumber sekaligus.**
+2. **Konektor RSS tanpa retry.** 11 run merah sejak 20 Sep, yang diperiksa
+   semuanya gangguan sesaat feed Antara (XML terpotong, "Server
+   disconnected"). Satu percobaan ulang per feed cukup.
+3. **Kartu "Sentimen rata-rata" mencampur `MEDIA` dan `SOSIAL`** jadi satu
+   angka berlabel sumber dominan. Sejak komentar masuk, angka proyek MBG
+   melompat dari −0,47 (64 judul) ke −0,28 (1.190 konten, hampir semuanya
+   komentar). Itu bertentangan dengan semangat R1; tampilkan per sumber
+   secara bawaan.
+4. **Ringkasan run tidak melaporkan `ditawarkan`/`cocok` untuk YouTube**
+   (konektornya tidak mengisi `last_fetch`), jadi dari log tidak terlihat
+   berapa komentar yang ditawarkan API.
+5. **Frontend tanpa tes sama sekali**; CI hanya typecheck + build.
+6. **Peringatan workflow:** `actions/checkout@v4` (Node 20 deprecated) dan
+   `ubuntu-latest` pindah ke Ubuntu 26 mulai 19 Okt 2026.
+7. **Tes ber-tanggal tetap.** `test_mentions_router.py` memerah sendiri 10 Okt
+   (sudah diperbaiki di #29). Pola yang sama belum dicari menyeluruh di tes
+   yang bergantung jendela waktu.
+
+**Butuh keputusan pengguna:**
+
+8. **Nada bukan sikap, dan sarkasme.** Tidak bisa didekati kamus kata. Butuh
+   penilai berbasis model (`ANTHROPIC_API_KEY` di Render); pengguna memilih
+   "leksikon saja" pada 10 Okt. Sampai itu berubah, persentase positif pada
+   komentar MBG tidak boleh dibaca sebagai dukungan.
+9. **Penilai kedua untuk set lapangan.** 440 label dibuat satu penilai (agen).
+   Tanpa penilai independen tidak ada angka kesepakatan antarpenilai.
+10. **Leksikon baku salah pada berita yang ia nilai** (0,457 pada 160 judul;
+    "dukung/mendukung/apresiasi" bermakna korporat terbaca positif).
+    Memperbaikinya menggeser deret `MEDIA` yang sedang berjalan.
+11. **Komentar lama tidak dinilai ulang.** 115 komentar karhutla (11 Sep)
+    masih berskor `lexicon-id-1`; `mentions` tidak punya kolom versi penilai.
+    Menambah kolom = migrasi Supabase; menilai ulang = menulis ulang data riset.
+12. **Daftar video statis dan purposif.** Video baru tidak terjaring sendiri.
+    Penemuan per kata kunci (`search.list`, 100 unit kuota per panggilan)
+    belum dibangun; kalau satu video dihapus/komentarnya dimatikan, run
+    terjadwal merah sampai sumbernya dihapus di `/sinyal`.
+13. **K1** — jadwal 30 menit nyatanya ~5 jam; butuh pemicu di luar GitHub
+    Actions (vendor baru). Antara, Republika, Antara Riau masih `CELAH`.
+14. **`SignalSource` `SENSOR`** untuk data kualitas udara (migrasi `ALTER TYPE`).
+15. **Tiga org uji kosong di production** (`uji-yt-1791474316`,
+    `uji-sentimen-1791645465`, `uji-verif-1791647047`); belum ada endpoint
+    hapus org.
+
+**Butuh akun/kredensial pengguna:**
+
+16. **K7** — tambah feed Katadata pengganti Kontan (satu isian di `/sinyal`).
+17. **K8** — proyek KEBAKARAN HUTAN belum punya pengumpulan otomatis (13 feed
+    sudah diverifikasi; lalu token pengumpul baru + baris baru di secret
+    `POP_COLLECTOR_TOKENS`).
+18. **`SITE_PASSWORD` frontend tidak diketahui** (bukan `mahesa`). Di Mac
+    pengguna dashboard terbuka karena sesi browser lama masih hidup; **di
+    komputer lain harus login dari awal**, jadi password ini perlu di-reset
+    dulu di Vercel → Settings → Environment Variables → Redeploy.
+19. `X_BEARER_TOKEN` belum diset; `ANTHROPIC_API_KEY` belum diset (Executive
+    Brief dan Copilot belum pernah menjawab dengan LLM sungguhan).
+20. Survei gelombang kedua (forecast opini tetap `insufficient_data`), dan
+    Phase 4 (SSO, MFA wajib, billing, API publik).
+
+## Melanjutkan di komputer lain
+
+1. `git clone https://github.com/mahendrasenoaji-lgtm/public-opinion-platform`
+   (atau `git pull` di `main`). Semua pekerjaan 10 Okt ada di `main`; tidak
+   ada yang tertinggal hanya di Mac.
+2. Lingkungan tes backend tidak ikut di repo (`.venv-*` di-gitignore):
+   `cd apps/api && python3.12 -m venv .venv-test && .venv-test/bin/pip install -e ".[dev]"`.
+3. Tes murni (tanpa database) — cukup untuk pekerjaan sentimen:
+   `.venv-test/bin/python -m pytest -q tests/test_informal.py tests/test_sentiment.py tests/test_pipeline.py`.
+   Tes router butuh Postgres + pgvector (`docker compose up -d db`); kalau
+   tidak ada, andalkan CI di PR.
+4. Mengukur ulang mutu lapangan setelah mengubah kamus:
+   `PYTHONPATH=. .venv-test/bin/python -c "from app.services.sentiment_eval_field import evaluate_field as e; r=e(); print(r.informal.macro_f1, r.informal.abstain_rate)"`.
+   **Susun kamus hanya dari belahan `kembang`; jangan membuka galat belahan
+   `uji`.** Naikkan `INFORMAL_MODEL_VERSION` kalau skor bergeser.
+5. Status pengumpulan: tab Actions → "Pengumpulan sinyal terjadwal" → run
+   terbaru → Summary. `gh workflow run collect-signals.yml` memicu manual.
+6. Verifikasi production tanpa akun pengguna: daftar org uji lewat
+   `POST /v1/auth/register` (menambah satu org kosong yang tidak bisa
+   dihapus — minta izin dulu), hapus proyek ujinya sesudahnya.
+7. Menambah/menghapus sumber di proyek MBG hanya bisa lewat `/sinyal` dengan
+   login pengguna (lihat butir 18).
+
+---
+
 # 🟢 MULAI DARI SINI — serah-terima sesi, 10 Oktober 2026 (sentimen ragam informal)
 
 **Ditulis untuk sesi berikutnya di komputer lain.** Blok 8 Oktober tepat di

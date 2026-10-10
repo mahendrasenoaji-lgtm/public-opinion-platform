@@ -576,6 +576,10 @@ Ini bagian terpenting dari dokumen ini.
 
 ## Langkah berikutnya yang paling masuk akal
 
+> **Per 2026-10-10:** daftar "yang kurang" yang paling mutakhir (20 butir,
+> berurut) ada di blok paling atas `docs/deployment-status.md`. Catatan di
+> bawah ini lebih tua dan dipertahankan sebagai riwayat.
+>
 > **Mulai dari sini kalau ini sesi baru.** Yang paling atas dan paling
 > konkret per 2026-09-15 ada di blok "🟢 MULAI DARI SINI" di kepala
 > `docs/deployment-status.md` — ringkasnya: **pengumpulan RSS proyek MBG kini
