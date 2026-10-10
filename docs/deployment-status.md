@@ -103,8 +103,65 @@ penerbit). Hasil leksikon baku:
   "apresiasi" di nama program. Ini belum diperbaiki: mengubah leksikon baku
   menggeser deret MEDIA yang sedang berjalan, dan labelnya satu penilai.
 
+## Lanjutan hari yang sama: PR #29 hidup, 20 video MBG didaftarkan
+
+**PR #29 di-merge 15:41 UTC dan diverifikasi dari production** (org uji
+ketiga `uji-verif-1791647047`, proyek ujinya dihapus 204 → 404):
+`sentiment-quality` memuat `field` dengan angka yang sama dengan lokal; teks
+yang sama dikirim sebagai `SOCIAL` dinilai (−0,575 / +0,617) dan sebagai
+`MEDIA` tetap abstain; `limitations` ringkasan memuat peringatan nada-bukan-
+sikap. Panel "Akurasi pada komentar nyata" tampil di `/sinyal` (dibaca lewat
+sesi browser pengguna yang masih login).
+
+**20 sumber `youtube_api` didaftarkan di proyek MBG AGUSTUS 2026** atas
+instruksi pengguna ("carikan dan kerjakan"), lewat form "Tambah sumber" di
+`/sinyal` memakai sesi browser pengguna — agen tidak memegang kredensial.
+Proyek itu sekarang 34 sumber (14 RSS + 20 YouTube).
+
+Cara memilih: pencarian YouTube biasa lewat browser, saringan "bulan ini" urut
+jumlah tonton, 4 kata kunci ("MBG makan bergizi gratis", "MBG keracunan",
+"badan gizi nasional MBG", "program MBG manfaat dukung") → 52 video unik.
+Dibuang: kanal hiburan/vlog/anak, dan video yang MBG-nya hanya sebagian topik.
+Ditambah 5 video dari tabel 8 Oktober yang terbukti masih ramai. **Ini sampel
+purposif, bukan acak** — dan condong ke liputan keracunan karena itulah yang
+paling banyak ditonton bulan ini.
+
+| Kelompok | video_id (kanal) |
+|---|---|
+| Kritik / opini | `lrqC8RB9QS4` (Kompas.com), `v71PrTc_lzk` (REKAM DOC), `Ny7vrjL2ugg` (Watchdoc), `WjNRWr4lJqk` (Suaradotcom), `DGJDFxmuZnE` (Official iNews), `xPQ-CEHOLFM` (Tempodotco), `I-E1REJd_zA` (Nusantara TV), `dr4e2cfsSs8` (KOMPASTV Jember) |
+| Berita kejadian | `7ykDQEe8Z-o` (Liputan6), `myTRtbnj1c4` (SINDOnews), `Pg72ffNjGrw` (KOMPASTV), `JJ_06lazWT8` (tvOneNews) |
+| Dua sisi / suara pemerintah | `9ibLmF4EQ6E` (Najwa Shihab), `6DHmH5OQUmA` (Nusantara TV), `fp8v7cDYIHw` (Kompas.com), `3YgoCzvGPUg` (BeritaSatu), `lxqcB-28n8Q` (KOMPASTV), `l0dq149EKZY` (Nusantara TV), `8W2sjDM3FBA` (Kompascom Reporter), `vmCVIO0pC7Y` (tvOneNews) |
+
+**Isi awal (backfill).** `workflow_dispatch` dengan `since_days=90` (run
+38065607888): **API membalas 500 dan run-nya merah, TETAPI datanya tersimpan**
+— `/sinyal` sesudahnya menunjukkan 1.598 konten `SOSIAL` (jendela 30 hari)
+dari 1.464 akun berbeda. Penyebab 500 tidak dipastikan (log Render tidak
+terbaca agen); yang terukur: `collect-all` dengan 20 video × 100 komentar baru
+dalam SATU permintaan sinkron melewati 150 detik saat direproduksi di org uji.
+Ini batas yang sudah dicatat roadmap ("belum di worker terpisah"), sekarang
+tersentuh. **Run normal sesudahnya (`since_days=2`, run 38066280024) hijau:
+34/34 sumber ok**, jadi jadwal rutin tidak terganggu.
+
+**Yang berubah di dashboard karena ini, dan harus dibaca hati-hati:**
+- Kartu "Sentimen rata-rata" proyek MBG sekarang −0,28 dari 1.189 konten
+  ternilai dan didominasi `SOSIAL` (1.598 vs 203 `MEDIA`). Sebelumnya −0,47
+  dari 64 judul berita. Dua angka itu BUKAN deret yang sama; pakai saringan
+  `source` untuk membandingkan.
+- Angka itu NADA komentar pada 20 video terpilih, bukan dukungan/penolakan
+  publik terhadap MBG.
+
+**Risiko baru yang perlu diketahui:**
+- Kalau salah satu video dihapus atau komentarnya dimatikan, konektor membalas
+  error dan run terjadwal jadi merah sampai sumber itu dihapus di `/sinyal`.
+- Kuota YouTube: 20 unit per run × ~7 run/hari ≈ 140 unit dari 10.000/hari.
+- Hari dengan lonjakan komentar bisa mengulang 500 di atas; datanya tetap
+  masuk, tapi ringkasan run tidak terbit.
+- Video baru tidak terjaring sendiri; daftar ini perlu diperbarui manual.
+
 ## Langkah berikutnya (urut)
 
+1. ~~Verifikasi `field` di production~~ dan ~~daftarkan video MBG~~ — selesai,
+   lihat bagian di atas. Butir 1–2 di bawah dipertahankan sebagai riwayat.
 1. Setelah PR ini di-merge dan Render selesai deploy: `GET
    /v1/projects/{id}/signals/sentiment-quality` harus memuat `field`.
 2. Baru sesudah itu daftarkan video MBG sebagai sumber `youtube_api` (blok 8
