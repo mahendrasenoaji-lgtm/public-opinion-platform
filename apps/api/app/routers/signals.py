@@ -64,6 +64,7 @@ from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
 from app.services.sentiment_eval import LABELED
+from app.services.sentiment_eval_field import evaluate_field
 
 router = APIRouter(tags=["signals"])
 logger = logging.getLogger(__name__)
@@ -90,7 +91,30 @@ _MEDIA_LIMITATION = (
     "liputan yang tinggi berarti isu itu diangkat, bukan bahwa publik "
     "menyetujuinya."
 )
-_SENTIMENT_METHOD = f"leksikon Indonesia berbobot ({sentiment_svc.MODEL_VERSION})"
+#: Peringatan nada-vs-sikap untuk agregat percakapan sosial. Angkanya dari
+#: `sentiment_eval_field.evaluate_field()`, bukan dari proyek yang sedang
+#: dibuka — karena itu kalimatnya menyebut asal ukurannya.
+_TONE_NOT_STANCE_LIMITATION = (
+    "Sentimen mengukur NADA teks, bukan sikap terhadap kebijakan. Pada "
+    "komentar YouTube nyata yang dipakai menguji penilai ini, hampir separuh "
+    "komentar yang terbaca positif adalah pujian kepada orang yang sedang "
+    "mengkritik program, dan sarkasme tidak dikenali. Persentase positif "
+    "tidak boleh dibaca sebagai tingkat dukungan."
+)
+
+
+def _register_for(source: ModelSignalSource) -> sentiment_svc.Register:
+    """Ragam penilai sentimen untuk satu sumber.
+
+    Hanya SOCIAL yang memakai ragam informal. MEDIA tetap "baku" supaya deret
+    sentimen liputan tidak bergeser — lihat "Dua ragam" di services/sentiment.py.
+    """
+    return "informal" if source is ModelSignalSource.SOCIAL else "baku"
+
+
+def _sentiment_method(source: SignalSource) -> str:
+    register: sentiment_svc.Register = "informal" if source is SignalSource.SOCIAL else "baku"
+    return sentiment_svc.method_for(register)
 
 
 # --------------------------------------------------------------- skema ----
@@ -279,6 +303,37 @@ class SentimentQuality(BaseModel):
     abstain_by_class: dict[str, int]
     per_class: dict[str, dict[str, float]]
     caveat: str
+    #: Ukuran LAPANGAN ragam informal (komentar nyata). Terpisah dari angka di
+    #: atas, yang diukur pada kalimat buatan dan hanya batas atas.
+    field: FieldQuality
+
+
+class FieldScores(BaseModel):
+    accuracy: float
+    accuracy_scored_only: float
+    macro_f1: float
+    abstain_rate: float
+    abstain_by_class: dict[str, int]
+    per_class: dict[str, dict[str, float]]
+
+
+class FieldQuality(BaseModel):
+    """Mutu pada komentar YouTube nyata — lihat services/sentiment_eval_field.py."""
+
+    model_version: str
+    #: Jumlah komentar belahan uji (yang dipakai melapor) dan belahan kembang
+    #: (yang dipakai menyusun kamus, TIDAK ikut dihitung di angka mana pun).
+    n: int
+    n_dev: int
+    informal: FieldScores
+    #: Leksikon baku pada komentar yang sama — pembanding.
+    baseline: FieldScores
+    predicted_positive: int
+    predicted_positive_supporting_critic: int
+    predicted_positive_actually_negative: int
+    sarcasm_n: int
+    sarcasm_correct: int
+    caveat: str
 
 
 # ------------------------------------------------------------- konektor ----
@@ -443,7 +498,10 @@ async def _store(
 ) -> IngestResult:
     """Jalankan pipeline lalu simpan. Satu-satunya jalan masuk ke tabel mentions."""
     report = prepare_batch(
-        items, author_salt=get_settings().author_salt(), accept_langs=accept_langs
+        items,
+        author_salt=get_settings().author_salt(),
+        accept_langs=accept_langs,
+        register=_register_for(source),
     )
 
     stored = 0
@@ -1092,6 +1150,8 @@ async def summary(
         else SignalSource.SOCIAL
     )
     limitations = [_MEDIA_LIMITATION if dominant is SignalSource.MEDIA else _SOCIAL_LIMITATION]
+    if mix.get("SOCIAL", 0):
+        limitations.append(_TONE_NOT_STANCE_LIMITATION)
     if volume and len(scored) / volume < 0.6:
         limitations.append(
             f"Hanya {len(scored)} dari {volume} konten bisa dinilai sentimennya "
@@ -1121,7 +1181,7 @@ async def summary(
             value=mean if enough else None,
             unit="skala -1..1",
             source=dominant,
-            method=_SENTIMENT_METHOD,
+            method=_sentiment_method(dominant),
             effective_n=len(scored),
             period_start=since.date(),
             period_end=until.date(),
@@ -1254,8 +1314,24 @@ async def sentiment_quality(
     Perhatikan `caveat` yang ikut dikembalikan: angka ini diukur pada kalimat
     yang ditulis tim pengembang, bukan pada percakapan proyek Anda. Ia batas
     atas, bukan perkiraan lapangan.
+
+    `field` adalah ukuran lapangannya: ragam informal pada komentar YouTube
+    nyata (belahan uji), berdampingan dengan leksikon baku pada komentar yang
+    sama. Tetap bukan ukuran pada data proyek ANDA — satu isu, satu platform.
     """
     report = sentiment_svc.evaluate(LABELED)
+    field = evaluate_field()
+
+    def _scores(r: sentiment_svc.EvaluationReport) -> FieldScores:
+        return FieldScores(
+            accuracy=r.accuracy,
+            accuracy_scored_only=r.accuracy_scored_only,
+            macro_f1=r.macro_f1,
+            abstain_rate=r.abstain_rate,
+            abstain_by_class=r.abstain_by_class,
+            per_class=r.per_class,
+        )
+
     return SentimentQuality(
         model_version=sentiment_svc.MODEL_VERSION,
         n=report.n,
@@ -1266,4 +1342,17 @@ async def sentiment_quality(
         abstain_by_class=report.abstain_by_class,
         per_class=report.per_class,
         caveat=report.caveat,
+        field=FieldQuality(
+            model_version=sentiment_svc.INFORMAL_MODEL_VERSION,
+            n=field.informal.n,
+            n_dev=field.n_dev,
+            informal=_scores(field.informal),
+            baseline=_scores(field.baseline),
+            predicted_positive=field.predicted_positive,
+            predicted_positive_supporting_critic=field.predicted_positive_supporting_critic,
+            predicted_positive_actually_negative=field.predicted_positive_actually_negative,
+            sarcasm_n=field.sarcasm_n,
+            sarcasm_correct=field.sarcasm_correct,
+            caveat=field.informal.caveat,
+        ),
     )

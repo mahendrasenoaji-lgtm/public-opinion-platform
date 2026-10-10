@@ -45,6 +45,30 @@ interface ClassMetrics {
   support: number;
 }
 
+interface FieldScores {
+  accuracy: number;
+  accuracy_scored_only: number;
+  macro_f1: number;
+  abstain_rate: number;
+  abstain_by_class: Record<string, number>;
+  per_class: Record<string, ClassMetrics>;
+}
+
+/** Mutu pada komentar YouTube nyata; lihat services/sentiment_eval_field.py di API. */
+interface FieldQuality {
+  model_version: string;
+  n: number;
+  n_dev: number;
+  informal: FieldScores;
+  baseline: FieldScores;
+  predicted_positive: number;
+  predicted_positive_supporting_critic: number;
+  predicted_positive_actually_negative: number;
+  sarcasm_n: number;
+  sarcasm_correct: number;
+  caveat: string;
+}
+
 interface SentimentQuality {
   model_version: string;
   n: number;
@@ -55,6 +79,8 @@ interface SentimentQuality {
   abstain_by_class: Record<string, number>;
   per_class: Record<string, ClassMetrics>;
   caveat: string;
+  /** Tidak ada kalau backend belum memuat ragam informal (deploy tertinggal). */
+  field?: FieldQuality;
 }
 
 interface SourceRow {
@@ -338,7 +364,7 @@ export default async function SinyalPage() {
 
         <Panel
           kicker="Mutu pengukuran"
-          title="Akurasi leksikon sentimen"
+          title="Akurasi leksikon pada set internal"
           right={
             quality && <span className="pill pill-warn">{quality.model_version}</span>
           }
@@ -395,6 +421,75 @@ export default async function SinyalPage() {
             <Info size={13} />
             {quality.caveat}
           </p>
+            </>
+          )}
+        </Panel>
+
+        <Panel
+          kicker="Mutu pengukuran"
+          title="Akurasi pada komentar nyata"
+          right={
+            quality?.field && (
+              <span className="pill pill-warn">{quality.field.model_version}</span>
+            )
+          }
+        >
+          {!quality?.field ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : (
+            <>
+              {/* Angka panel di atas diukur pada kalimat buatan (batas atas).
+                  Panel ini ukuran lapangannya: komentar YouTube sungguhan,
+                  belahan uji, dengan leksikon baku sebagai pembanding pada
+                  komentar yang SAMA. */}
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Penilai ({quality.field.n} komentar uji)</th>
+                    <th>Macro F1</th>
+                    <th>Akurasi (yang dinilai)</th>
+                    <th>Akurasi (ketat)</th>
+                    <th>Tidak dinilai</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(
+                    [
+                      ["Ragam informal — dipakai untuk sumber sosial", quality.field.informal],
+                      ["Leksikon baku — pembanding", quality.field.baseline],
+                    ] as const
+                  ).map(([nama, m]) => (
+                    <tr key={nama}>
+                      <td>{nama}</td>
+                      <td className="mono">{m.macro_f1.toFixed(3)}</td>
+                      <td className="mono">{m.accuracy_scored_only.toFixed(3)}</td>
+                      <td className="mono">{m.accuracy.toFixed(3)}</td>
+                      <td className="mono">{pct(m.abstain_rate)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <p className="note">
+                <Info size={13} />
+                <span>
+                  <b>Positif bukan berarti mendukung.</b> Dari {quality.field.predicted_positive}{" "}
+                  komentar uji yang terbaca positif,{" "}
+                  {quality.field.predicted_positive_supporting_critic} adalah pujian kepada orang
+                  yang sedang mengkritik program dan{" "}
+                  {quality.field.predicted_positive_actually_negative} sebenarnya bernada negatif.
+                  Sarkasme tidak dikenali: hanya {quality.field.sarcasm_correct} dari{" "}
+                  {quality.field.sarcasm_n} komentar sarkastis yang nadanya terbaca benar, dan itu
+                  karena kata lain di kalimatnya.
+                </span>
+              </p>
+              <p className="note">
+                <Info size={13} />
+                <span>
+                  {quality.field.caveat} Kamusnya disusun dari {quality.field.n_dev} komentar
+                  lain yang tidak ikut dihitung di sini.
+                </span>
+              </p>
             </>
           )}
         </Panel>
