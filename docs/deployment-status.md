@@ -6,6 +6,219 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — serah-terima sesi, 10 Oktober 2026 (sentimen ragam informal)
+
+**Ditulis untuk sesi berikutnya di komputer lain.** Blok 8 Oktober tepat di
+bawah masih berlaku, KECUALI "Langkah berikutnya" no. 1 dan no. 4 di sana —
+keduanya dikerjakan di sesi ini.
+
+## Yang dikerjakan
+
+Temuan 8 Oktober ("leksikon gagal di komentar YouTube") ditutup sejauh yang
+bisa dicapai kamus kata. Pengguna memilih **leksikon saja, tanpa penilai
+LLM**.
+
+1. **Set berlabel dari data nyata** — `apps/api/app/services/sentiment_eval_field.py`.
+   440 komentar tingkat atas dari 8 video MBG (`lrqC8RB9QS4`, `v71PrTc_lzk`,
+   `zhFuIAXAHWw`, `Ny7vrjL2ugg`, `WjNRWr4lJqk`, `9ibLmF4EQ6E`, `YdQ6KGYMcTY`,
+   `i6JDtVVim2U`), ditarik lewat konektor resmi dari production ke proyek uji
+   di org sementara `uji-sentimen-1791645465` (dengan persetujuan pengguna).
+   Proyek uji dihapus (204, dicek ulang 404); **org kosongnya tertinggal**,
+   sama seperti `uji-yt-1791474316`. Yang di-commit hanya teks: tanpa nama
+   akun, tanpa ID, `@sebutan` dibuang (pengguna menyetujui teks masuk repo
+   publik). Label: NADA teks, satu penilai (agen), dibuat sebelum kode
+   normalisasi ditulis. Sebaran: 313 negatif, 74 netral, 53 positif. Dibelah
+   tetap lewat sha256 teks: 231 `kembang` (menyusun kamus), 209 `uji`
+   (melapor saja).
+2. **Normalisasi ragam informal** — `apps/api/app/services/informal.py`:
+   singkatan ("gk", "tdk", "mksh"), huruf dipanjangkan ("betuuuul"), tanda
+   ulang ("anak2"), klitik ekor ("parahnya"), frasa serangkai ("terima
+   kasih"), dan batas klausa dari tanda baca. Tidak ada stemming umum dan
+   tidak ada tebakan salah ketik.
+3. **Ragam kedua di penilai** — `sentiment.score(text, register="informal")`:
+   kosakata cakap (makian, tuduhan, tuntutan penolakan seperti "stop",
+   "bubarkan"), emoji bermuatan (sekali per jenis), dan larangan ("jangan
+   ngeyel") tidak lagi membalik kata negatif jadi positif. Versi:
+   `lexicon-id-1+informal-1`.
+4. **Hanya sumber `SOCIAL` yang memakainya** (`routers/signals.py:_register_for`).
+   `MEDIA` tetap `lexicon-id-1` tanpa perubahan apa pun — deret sentimen
+   liputan MBG tidak bergeser. Ada tes yang menguncinya.
+5. **Dilaporkan di UI** — `GET .../signals/sentiment-quality` kini membawa
+   `field`; `/sinyal` punya panel "Akurasi pada komentar nyata" yang
+   menyandingkan ragam informal dengan leksikon baku pada komentar yang sama.
+
+## Hasil pada belahan `uji` (209 komentar, tidak dipakai menyusun kamus)
+
+| | Leksikon baku | Ragam informal |
+|---|---|---|
+| Tidak dinilai (abstain) | 72,2% | **27,3%** |
+| Akurasi ketat (abstain = salah) | 0,182 | **0,560** |
+| Akurasi di antara yang dinilai | 0,655 | **0,770** |
+| Macro F1 | 0,311 | **0,612** |
+| Recall negatif | 0,209 | **0,642** |
+| Presisi negatif | 0,969 | 0,913 |
+
+Belahan `kembang` (231): abstain 74,9% → 30,3%, macro F1 0,291 → 0,642 —
+selisihnya dengan `uji` kecil, jadi kamusnya tidak sekadar menghafal.
+
+## Yang TIDAK terselesaikan, dan kenapa itu penting
+
+- **Nada bukan sikap.** Dari 34 komentar `uji` yang terbaca positif, 16 adalah
+  pujian kepada orang yang sedang MENGKRITIK program ("Betul sekali Bu,
+  lanjutkan") dan 9 sebenarnya bernada negatif. Di seluruh set, 35 dari 53
+  komentar bernada positif adalah dukungan kepada pengkritik. **Persentase
+  "positif" pada komentar MBG tidak boleh dibaca sebagai dukungan pada MBG.**
+  Peringatan ini sekarang ikut di `limitations` ringkasan sinyal setiap kali
+  ada konten sosial, dan di panel `/sinyal`.
+- **Sarkasme tidak dikenali.** 3 dari 6 komentar sarkastis dinilai benar, dan
+  itu karena kata lain di kalimatnya. "Sukses pak dengan program beracunnya,
+  bangga saya" tetap positif. Dua contoh 8 Oktober: "Stop MBG… anak2 aman,
+  APBN aman" sekarang **netral** (0,0; dulu +0,6) dan "Mantap Bu… tiap hari
+  keracunan" **netral** (+0,15; dulu +0,9) — tidak lagi salah arah, tapi juga
+  belum benar.
+- **Bahasa daerah** (Jawa, Sunda) tetap abstain.
+- **Satu penilai, satu isu, satu platform.** Tidak ada kesepakatan
+  antarpenilai. Pelabelan independen yang diminta `docs/progress.md` tetap
+  belum ada; set ini menggantikan "tidak ada ukuran lapangan", bukan itu.
+- **Komentar sosial yang sudah tersimpan tidak dinilai ulang.** Tabel
+  `mentions` tidak punya kolom versi penilai; 115 komentar YouTube proyek
+  karhutla (2026-09-11) masih berskor `lexicon-id-1`. Menilai ulang berarti
+  menulis ulang data riset — keputusan pengguna, tidak dilakukan.
+
+## Ukuran sekali jalan pada berita (TIDAK di-commit, tidak mengubah kode)
+
+Untuk menjawab "abstain ~78% di RSS itu cacat atau bukan": 160 judul+ringkasan
+nyata dari 6 feed (Antara, CNBC Indonesia, Republika, Sindonews, CNN
+Indonesia, Tempo; ditarik 2026-10-10 lewat `RSSConnector` apa adanya),
+dilabeli satu penilai. Teksnya tidak disimpan di repo (ringkasan milik
+penerbit). Hasil leksikon baku:
+
+- Abstain **78,1%** (125/160) — konsisten dengan tiga ronde sebelumnya.
+- **74 dari 125 abstain itu jatuh pada judul yang memang netral** — perilaku
+  benar. 51 sisanya judul bermuatan (34 negatif, 17 positif): bencana,
+  kriminal, kemenangan — hampir semuanya tanpa kata sifat bermuatan.
+- Yang lebih mengkhawatirkan dari abstainnya: **di antara 35 yang dinilai,
+  hanya 16 benar (0,457)**. 15 judul netral terbaca positif, kebanyakan lewat
+  "dukung"/"mendukung" dalam arti korporat ("Pertamina dukung Grand Prix") dan
+  "apresiasi" di nama program. Ini belum diperbaiki: mengubah leksikon baku
+  menggeser deret MEDIA yang sedang berjalan, dan labelnya satu penilai.
+
+## Langkah berikutnya (urut)
+
+1. Setelah PR ini di-merge dan Render selesai deploy: `GET
+   /v1/projects/{id}/signals/sentiment-quality` harus memuat `field`.
+2. Baru sesudah itu daftarkan video MBG sebagai sumber `youtube_api` (blok 8
+   Okt no. 2) — dengan membaca hasilnya sebagai NADA, bukan dukungan.
+3. Keputusan pengguna: (a) nilai ulang 115 komentar karhutla lama atau
+   biarkan; (b) rapikan "dukung/mendukung/apresiasi" di leksikon baku dengan
+   harga deret MEDIA bergeser; (c) penilai kedua untuk set lapangan.
+4. Sikap terhadap program (bukan nada) dan sarkasme hanya bisa didekati
+   dengan model; pengguna memilih tidak membangunnya sekarang.
+
+---
+
+# 🟢 MULAI DARI SINI — serah-terima sesi, 8 Oktober 2026 (komentar YouTube)
+
+**Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi ketujuh (16 Sep)
+dan sebelumnya masih ada di bawah blok ini dan masih berlaku. Sesi ini tidak
+mengubah kode — hanya pengecekan dan keputusan arah. **Pekerjaan berikutnya
+sengaja ditunda pengguna ("nanti saja")**; mulai dari "Langkah berikutnya" di
+bawah.
+
+## Pertanyaan pemicu
+
+"Kenapa tidak memakai komentar YouTube untuk sentimen/analisis komentar
+video?" Jawabannya: **konektornya sudah ada** (`apps/api/app/connectors/
+youtube.py`, `commentThreads` resmi, per `video_id`/`channel_id`, sumber
+`SOCIAL`) dan sudah pernah dipakai (115 komentar karhutla, 2026-09-11).
+Yang belum ada: **sumber YouTube di proyek MBG AGUSTUS 2026** (14 sumbernya
+RSS semua, jadi `collect-all` terjadwal tidak pernah menyentuh YouTube) dan
+**pencarian video per kata kunci** (konektor butuh ID video satu per satu;
+`search.list` = 100 unit kuota/panggilan dari jatah harian 10.000).
+
+Catatan basi yang perlu dikoreksi: `docs/progress.md` §"Yang BELUM
+diverifikasi" no. 2 masih menulis "Konektor YouTube dan X belum pernah
+menarik data sungguhan" — untuk YouTube itu sudah tidak benar (lihat di
+bawah). X tetap benar: `X_BEARER_TOKEN` belum diset di Render.
+
+## Video YouTube bertema MBG dengan komentar terbanyak (dicek 2026-10-08)
+
+Dicek sekali lewat browser (bukan konektor, bukan API; tidak ada yang masuk
+database): 6 kata kunci ("MBG makan bergizi gratis", "makan bergizi gratis",
+"program MBG", "MBG keracunan", "badan gizi nasional MBG", "MBG prabowo"),
+urut relevansi + urut tontonan → 154 video unik. Angka komentar = pembulatan
+tampilan YouTube; 12 video tanpa angka (kemungkinan komentar dimatikan).
+Umur video relatif terhadap 2026-10-08.
+
+| # | Komentar | Channel | video_id | Judul (dipotong) | Umur |
+|---|---|---|---|---|---|
+| 1 | 20 rb | Suaradotcom | `WjNRWr4lJqk` | Lagi, Keracunan MBG Hebohkan Indonesia! … Bandung Barat | ~1 thn |
+| 2 | 15 rb | Najwa Shihab | `9ibLmF4EQ6E` | Presiden Prabowo Menjawab (Part 1) … MBG … | ~6 bln |
+| 3 | 9,8 rb | Nusantara TV | `YdQ6KGYMcTY` | Ditunjuk Jadi Kepala BGN, Gaya Nanik S Deyang Sidak SPPG | ~4 bln |
+| 4 | 7,2 rb | Kompas.com | `lrqC8RB9QS4` | DPR Terdiam, Perwakilan Ibu Bongkar "Dosa" MBG | ~2 bln |
+| 5 | 7,1 rb | REKAM DOC | `v71PrTc_lzk` | Pemerintah sudah Buta dan Tuli – Annete Mau – MBG Watch | ~2 bln |
+| 6 | 6,4 rb | Apin Alexander | `zhFuIAXAHWw` | Keracunan MBG Malah Dijadikan Bahan Lucuan (shorts) | ~2 mgg |
+| 7 | 5,7 rb | Watchdoc Documentary | `Ny7vrjL2ugg` | MBG Pakai Uang Rakyat, Mengapa Tega Meracuni Anak-Anak Kami? | ~3 mgg |
+| 8 | 5,1 rb | Nusantara Joss | `i6JDtVVim2U` | 3 Negara yang Punya Program MBG (shorts) | ~3 bln |
+| 9 | 4,6 rb | Tempodotco | — | Kroni Prabowo dalam Proyek MBG | ~1 thn |
+| 10 | 4,2 rb | RuangBaca | — | Keracunan MBG, Guru yang Disalahkan (shorts) | ~3 mgg |
+
+Total per channel (hanya video yang terjaring): Suaradotcom ~20.000 (2
+video), Najwa Shihab ~15.000 (1), Kompas.com ~9.900 (3), Nusantara TV ~9.800
+(1), Watchdoc ~8.900 (3), REKAM DOC ~7.100 (1), Tempodotco ~4.800 (4),
+KOMPASTV ~3.900 (9). Untuk proyek MBG AGUSTUS 2026 yang paling relevan
+adalah video ≤ 2 bulan (Kompas.com, REKAM DOC, Watchdoc, Apin Alexander,
+RuangBaca); banyak video teratas shorts/bernada kritik keras → komentarnya
+condong satu arah, Najwa Shihab/Nusantara TV bisa jadi penyeimbang.
+
+## `YOUTUBE_API_KEY` di Render: ADA dan BERFUNGSI (dibuktikan dari production)
+
+Pengguna memilih **tetap memakai kunci lama** (tidak diganti).
+- Variabel `YOUTUBE_API_KEY` terlihat di Render → `pop-api`
+  (`srv-da3bicabkg8c7386qncg`) → Environment.
+- Dengan persetujuan pengguna, dibuat **org uji sementara**
+  `uji-yt-1791474316` lewat `POST /v1/auth/register` (bukan akun pengguna).
+  `GET /signals/connectors` → `youtube_api credential_configured: true`.
+- Proyek uji + sumber `youtube_api` `{"video_id":"lrqC8RB9QS4"}` →
+  `POST .../sources/{id}/collect?since_days=90&limit=20` → **200,
+  received 20, stored 20**. Proyek uji lalu dihapus (204, dicek ulang 404).
+- **Org uji itu masih ada** (kosong) — API belum punya endpoint hapus org.
+
+## Temuan penting: leksikon sentimen gagal di komentar YouTube
+
+Dari 20 komentar uji itu: **18 (90%) abstain** — singkatan ("Mksh", "sdh",
+"GK"), huruf dipanjangkan ("betuuuuul"), sangat pendek, emoji. 2 yang dinilai
+**keduanya salah arah**: "Stop MBG… anak2 aman, APBN aman" → **+0.6**, dan
+"Mantap Bu… tiap hari keracunan…" → **+0.9**, padahal keduanya menolak/
+mengkritik MBG. Konsisten dengan dugaan bias sarkasme klaster "sawit" (+0.75)
+di data karhutla 2026-09-11. **Jangan pakai angka sentimen komentar YouTube
+sampai ini diperbaiki.**
+
+## Hambatan lain yang ketahuan
+
+- **`SITE_PASSWORD` frontend BUKAN `mahesa`** (password bersama situs lain
+  ditolak: "Password salah."). Nilainya *Sensitive* di Vercel, tidak bisa
+  dibaca ulang. Untuk membuka `/sinyal` lagi: reset di Vercel → project
+  `public-opinion-platform` → Settings → Environment Variables →
+  `SITE_PASSWORD` → Redeploy (pengguna yang mengetik nilainya).
+- `vercel` CLI tidak terpasang di Mac pengguna.
+
+## Langkah berikutnya (urut, semuanya menunggu pengguna memulai)
+
+1. **Perbaiki sentimen untuk komentar SOCIAL**: normalisasi slang/singkatan/
+   huruf berulang sebelum leksikon, dan/atau penilai berbasis LLM (butuh
+   `ANTHROPIC_API_KEY` di Render). Ukur dengan set berlabel komentar nyata,
+   termasuk kasus sarkasme di atas.
+2. Daftarkan video MBG terbaru dari tabel di atas sebagai sumber
+   `youtube_api` di proyek MBG AGUSTUS 2026 (menulis ke production — minta
+   persetujuan pengguna dulu, termasuk daftar videonya). Perhatikan kuota:
+   `collect-all` tiap ~30 menit × jumlah video × halaman komentar.
+3. Opsional: penemuan video per kata kunci (`search.list`) dengan pembatas
+   kuota.
+4. Koreksi `docs/progress.md` no. 2 (YouTube sudah pernah menarik data).
+
+---
+
 # 🟢 MULAI DARI SINI — serah-terima sesi, 16 September 2026 (sesi ketujuh)
 
 **Ditulis untuk sesi berikutnya di komputer lain.** Blok sesi keenam (15 Sep)

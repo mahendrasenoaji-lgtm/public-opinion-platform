@@ -73,3 +73,18 @@ class TestUrl:
         item = _item()
         report = prepare_batch([item], author_salt=SALT)
         assert report.prepared[0].url is None
+
+
+class TestRagamSentimen:
+    def test_bawaan_baku_komentar_informal_abstain(self) -> None:
+        report = prepare_batch([_item(text="GK becus, bubarkan aja")], author_salt=SALT)
+        assert report.prepared[0].sentiment is None
+        assert report.sentiment_abstained == 1
+
+    def test_ragam_informal_diteruskan_ke_penilai(self) -> None:
+        report = prepare_batch(
+            [_item(text="GK becus, bubarkan aja")], author_salt=SALT, register="informal"
+        )
+        sentiment = report.prepared[0].sentiment
+        assert sentiment is not None and sentiment < 0
+        assert report.sentiment_abstained == 0

@@ -372,6 +372,38 @@ class TestMutuSentimen:
         assert 0 <= body["macro_f1"] <= 1
         assert "bukan sampel acak" in body["caveat"]
 
+    async def test_mutu_lapangan_ikut_dilaporkan(self, client) -> None:
+        """Ukuran pada komentar nyata tampil berdampingan dengan pembandingnya."""
+        headers, pid = await _new_project(client)
+        r = await client.get(
+            f"/v1/projects/{pid}/signals/sentiment-quality", headers=headers
+        )
+        field = r.json()["field"]
+        assert field["n"] > 0 and field["n_dev"] > 0
+        assert field["informal"]["abstain_rate"] < field["baseline"]["abstain_rate"]
+        assert field["informal"]["macro_f1"] > field["baseline"]["macro_f1"]
+        assert field["predicted_positive_supporting_critic"] <= field["predicted_positive"]
+        assert "NADA" in field["caveat"]
+
+    async def test_komentar_sosial_dinilai_ragam_informal_media_tidak(self, client) -> None:
+        """Teks yang sama: SOCIAL dinilai, MEDIA tetap abstain (deret tak bergeser)."""
+        headers, pid = await _new_project(client)
+        teks = "GK becus ngurusnya, bubarkan aja programnya skrg jg pak tolonglah"
+        for source in ("SOCIAL", "MEDIA"):
+            r = await client.post(
+                f"/v1/projects/{pid}/signals/ingest",
+                json={"source": source, "items": [_item(1, teks)]},
+                headers=headers,
+            )
+            assert r.status_code in (200, 201), r.text
+        r = await client.get(
+            f"/v1/projects/{pid}/mentions", params={"limit": 10}, headers=headers
+        )
+        assert r.status_code == 200, r.text
+        by_source = {m["source"]: m["sentiment"] for m in r.json()}
+        assert by_source["SOCIAL"] is not None and by_source["SOCIAL"] < 0
+        assert by_source["MEDIA"] is None
+
 
 class TestTopics:
     async def test_penemuan_tema_dari_data_asli(self, client) -> None:

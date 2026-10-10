@@ -327,8 +327,11 @@ Ini bagian terpenting dari dokumen ini.
    Supabase sudah dijalankan pengguna** (2026-09-02, sesi keempat) —
    `Success. No rows returned` di SQL Editor.
 
-2. **Konektor YouTube dan X belum pernah menarik data sungguhan** — butuh
-   kunci API yang tidak tersedia di sandbox mana pun sejauh ini. **RSS
+2. **Konektor X belum pernah menarik data sungguhan** (`X_BEARER_TOKEN` belum
+   diset). **YouTube sudah** — 115 komentar karhutla (2026-09-11), 20 komentar
+   uji (2026-10-08), dan 440 komentar MBG (2026-10-10), semuanya dari
+   production. Kalimat asli catatan ini ("YouTube dan X belum pernah") ditulis
+   sebelum itu; sisanya di bawah tetap berlaku untuk riwayat RSS. **RSS
    sekarang sudah, sebagian** (2026-09-02): `RSSConnector().fetch()` — kode
    produksi apa adanya, tidak ditulis ulang — dipakai lewat skrip mandiri di
    venv terisolasi untuk menarik 5 feed media Indonesia sungguhan (Antara,
@@ -535,6 +538,20 @@ Ini bagian terpenting dari dokumen ini.
    Detail lengkap di `docs/deployment-status.md` bagian "Verifikasi
    production 2026-09-11". Abstain rate 78.0%, konsisten dengan ronde 1-2.
 
+   **Ditutup untuk komentar YouTube, 2026-10-10.** Set berlabel dari data
+   nyata sekarang ada (`services/sentiment_eval_field.py`, 440 komentar MBG)
+   dan penilai untuk sumber `SOCIAL` punya ragam informal. Pada 209 komentar
+   belahan uji: abstain 72,2% → 27,3%, akurasi ketat 0,182 → 0,560, akurasi
+   di antara yang dinilai 0,655 → 0,770, macro F1 0,311 → 0,612. **Batas atas
+   0,897 dari set internal jangan dikutip lagi untuk komentar**; angka
+   lapangannya 0,770. Yang tetap terbuka: satu penilai (bukan independen),
+   sarkasme, bahasa daerah, dan — paling penting — nada bukan sikap (16 dari
+   34 komentar yang terbaca positif memuji pengkritik program). Untuk berita,
+   ukuran sekali jalan atas 160 judul nyata: abstain 78,1%, 74 dari 125
+   abstain itu memang judul netral, tapi di antara yang dinilai hanya 0,457
+   benar. Rincian di blok "MULAI DARI SINI" 10 Oktober di
+   `docs/deployment-status.md`.
+
 6. **15 dari 17 halaman dashboard rentan crash "Application error" pada
    error backend APA PUN — ditemukan+diperbaiki 2026-09-02 (sesi
    keempat), atas laporan pengguna "banyak yang belum bisa diklik".**
@@ -602,6 +619,10 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    sampel berlabel sistematis dari penilai independen, atau (b) metode
    berbasis model — dua-duanya di luar yang bisa diselesaikan lewat ronde
    pull-RSS-dan-baca-manual lagi.
+   **Update 2026-10-10**: jalur (a) dikerjakan untuk komentar YouTube, dengan
+   satu penilai — lihat poin 5 di "Yang BELUM diverifikasi". Penilai
+   independen kedua dan jalur (b) (model) tetap belum ada; pengguna memilih
+   leksikon saja.
 5. **Gelombang survei kedua (membuka forecast)** — **masih di luar wewenang
    agen**: butuh respons manusia sungguhan, tidak bisa difabrikasi tanpa
    melanggar R1 (data sintetis tidak boleh disajikan sebagai hasil survei

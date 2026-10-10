@@ -89,6 +89,9 @@ cookie httpOnly sebelum ada halaman publik.
 - [x] Sentiment + emotion (leksikon Indonesia; set evaluasi 52 kalimat
       berlabel manual, akurasi dilaporkan lewat
       `GET .../signals/sentiment-quality` dan tampil di `/sinyal`)
+      Sumber `SOCIAL` dinilai dengan ragam informal sejak 2026-10-10
+      (`services/informal.py`); mutunya diukur pada 440 komentar YouTube nyata
+      (`services/sentiment_eval_field.py`) dan tampil di panel kedua `/sinyal`.
 - [x] Topic discovery — **TF-IDF → LSA → HDBSCAN → label kata kunci**, BUKAN
       embedding → HDBSCAN → label LLM seperti tertulis semula. Belum ada
       provider embedding yang dikonfigurasi, dan `method` mengembalikan yang

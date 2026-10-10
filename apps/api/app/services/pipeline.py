@@ -130,6 +130,7 @@ def prepare_batch(
     author_salt: str,
     accept_langs: frozenset[str] | None = None,
     dedupe_batch: bool = True,
+    register: sentiment_svc.Register = "baku",
 ) -> BatchReport:
     """Bersihkan, dedup, deteksi bahasa, dan skor sentimen satu batch.
 
@@ -138,6 +139,10 @@ def prepare_batch(
     `language_unknown` — membuang teks pendek karena heuristik menyerah akan
     menghapus justru komentar-komentar singkat yang paling banyak jumlahnya.
     Yang dibuang hanya yang terdeteksi jelas sebagai bahasa lain.
+
+    `register` memilih ragam penilai sentimen: "informal" untuk percakapan
+    media sosial, "baku" untuk liputan media. Pemanggil yang menentukan,
+    karena hanya ia yang tahu sumbernya.
     """
     non_empty = [i for i in items if i.text and i.text.strip()]
     empty_dropped = len(items) - len(non_empty)
@@ -165,7 +170,7 @@ def prepare_batch(
             language_rejected += 1
             continue
 
-        scored = sentiment_svc.score(item.text)
+        scored = sentiment_svc.score(item.text, register=register)
         if scored.score is None:
             abstained += 1
 

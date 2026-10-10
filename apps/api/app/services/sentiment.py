@@ -27,14 +27,41 @@ tengah"; abstain berarti "metode ini tidak punya dasar untuk menilai teks
 ini". Menggabungkan keduanya jadi 0.0 akan membuat rata-rata sentimen terlihat
 tenang justru ketika alatnya sedang buta — persis kesalahan yang paling mahal
 di platform ini.
+
+## Dua ragam
+
+`score(text)` menilai ejaan baku, dan perilakunya untuk liputan media TIDAK
+berubah sejak `lexicon-id-1` — deret sentimen media tetap sinambung.
+
+`score(text, register="informal")` dipakai untuk sumber `SOCIAL`. Ia menambah
+tiga hal di atas leksikon yang sama: ejaan dikembalikan ke bentuk baku
+(`services/informal.py`), kosakata ragam cakap (`_INFORMAL_*` di bawah), dan
+emoji bermuatan (`EMOJI_LEXICON`). Kosakata tambahan itu SENGAJA tidak
+dipakai untuk media: "hebat", "stop", "anjing", "tutup" bermuatan di kolom
+komentar tapi netral atau berbalik makna di judul berita ("kebakaran hebat",
+"polisi hentikan pencarian").
+
+Mutunya diukur pada komentar nyata, bukan kalimat buatan — lihat
+`services/sentiment_eval_field.py:evaluate_field()`.
+
+Yang TIDAK diperbaiki ragam informal, dan tidak bisa diperbaiki kamus mana
+pun: sarkasme ("sukses pak dengan program beracunnya, bangga saya" tetap
+terbaca positif), dan selisih antara NADA dan SIKAP — komentar yang memuji
+seorang pengkritik program bernada positif padahal menolak programnya.
 """
 
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
+from typing import Literal
 
+from app.services.informal import CLAUSE_BOUNDARY, PHRASES, canonical_tokens, emoji_marks
 from app.services.ingestion import normalize_text, wordset
+
+#: Ragam teks yang dinilai. "baku" = ejaan media (RSS); "informal" = komentar
+#: media sosial. Lihat bagian "Dua ragam" di docstring modul.
+Register = Literal["baku", "informal"]
 
 #: Ambang label. Di antara keduanya dianggap netral.
 POSITIVE_THRESHOLD = 0.15
@@ -138,6 +165,77 @@ LEXICON: dict[str, float] = {
     **{w: -s for w, s in _NEGATIVE.items()},
 }
 
+#: Kosakata ragam cakap — HANYA untuk `register="informal"`. Disusun dari
+#: belahan `kembang` set lapangan (`sentiment_eval_field.py`) ditambah bentuk
+#: sekerabatnya; belahan `uji` tidak dibuka selama penyusunan.
+#:
+#: "hebat" ada di sini padahal dihapus dari leksikon baku: di kolom komentar
+#: ia pujian ("ibu hebat"), di judul berita ia penguat keparahan.
+_INFORMAL_POSITIVE: dict[str, float] = {
+    "betul": 0.5, "bener": 0.5, "benar": 0.4, "semangat": 0.6, "sehat": 0.4,
+    "syukur": 0.6, "bersyukur": 0.6, "alhamdulillah": 0.6, "cerdas": 0.6,
+    "hebat": 0.7, "terbaik": 0.7, "lanjutkan": 0.5, "mewakili": 0.4,
+    "suka": 0.6, "cinta": 0.6, "good": 0.6, "terbantu": 0.7, "sependapat": 0.5,
+    # Hampir selalu muncul bernegasi ("gak becus", "gak waras"); nilainya
+    # positif supaya pembalikan negasi yang menghasilkan tanda yang benar.
+    "becus": 0.6, "waras": 0.4, "tanggungjawab": 0.5,
+}
+
+_INFORMAL_NEGATIVE: dict[str, float] = {
+    # makian
+    "goblok": 0.9, "tolol": 0.9, "bodoh": 0.8, "bego": 0.8, "dungu": 0.8,
+    "biadab": 0.9, "bangsat": 0.9, "brengsek": 0.9, "anjing": 0.8, "babi": 0.7,
+    "kontol": 0.9, "bacot": 0.7, "laknat": 0.9, "iblis": 0.8, "najis": 0.8,
+    "jijik": 0.8, "sampah": 0.6, "mampus": 0.8, "sial": 0.6, "payah": 0.7,
+    "gila": 0.5, "stres": 0.5, "edan": 0.5, "ngawur": 0.7, "ngeyel": 0.6,
+    "tuli": 0.6, "budek": 0.6, "buta": 0.5, "bobrok": 0.9, "busuk": 0.8,
+    # tuduhan
+    "serakah": 0.8, "rakus": 0.8, "maruk": 0.7, "maling": 0.8, "koruptor": 0.9,
+    "penjilat": 0.8, "mafia": 0.7, "kroni": 0.6, "menzalimi": 0.9,
+    "jahat": 0.8, "kejam": 0.8, "sadis": 0.8, "tega": 0.6, "munafik": 0.8,
+    "pembohong": 0.9, "penipu": 0.9, "tipu": 0.8, "khianat": 0.9,
+    "pengkhianat": 0.9, "penjahat": 0.9, "penjajahan": 0.7, "pembunuh": 0.8,
+    "membunuh": 0.8, "bunuh": 0.8, "menghina": 0.7, "penghinaan": 0.7,
+    "hina": 0.7, "mengejek": 0.5, "ngejek": 0.5, "ejek": 0.5,
+    # bahaya dan penderitaan
+    "racun": 0.7, "beracun": 0.8, "keracunan": 0.6, "meracuni": 0.8,
+    "diracuni": 0.8, "basi": 0.6, "belatung": 0.7, "korban": 0.5,
+    "trauma": 0.7, "sakit": 0.5, "mati": 0.5, "meninggal": 0.5,
+    "bahaya": 0.6, "berbahaya": 0.6, "membahayakan": 0.6, "kelaparan": 0.6,
+    "miris": 0.7, "ngeri": 0.6, "seram": 0.6, "kasihan": 0.4, "sedih": 0.6,
+    "nangis": 0.4, "malu": 0.5, "menyesal": 0.7, "emosi": 0.5,
+    "merusak": 0.7, "rusak": 0.6, "menghancurkan": 0.8, "hancurkan": 0.8,
+    "mubazir": 0.6, "boros": 0.6, "utang": 0.4, "ngutang": 0.4, "phk": 0.5,
+    # tuntutan penolakan — sikap menolak yang dinyatakan sebagai perintah
+    "stop": 0.6, "hentikan": 0.6, "dihentikan": 0.5, "bubarkan": 0.7,
+    "bubar": 0.6, "dibubarkan": 0.6, "tutup": 0.4, "ditutup": 0.4,
+    "hapus": 0.5, "dihapus": 0.5, "pecat": 0.6, "dipecat": 0.5,
+    "lengserkan": 0.7, "dilengserkan": 0.7, "melengserkan": 0.7,
+    "tuntut": 0.5, "penjara": 0.5, "dipenjara": 0.5, "adili": 0.5,
+    "tangkap": 0.5, "dihukum": 0.4,
+    # lain-lain
+    "hujat": 0.6, "ruwet": 0.5, "banci": 0.7, "belagu": 0.6, "malas": 0.5,
+    "pemalas": 0.6, "mencuri": 0.7, "pencuri": 0.8, "curi": 0.7,
+}
+
+INFORMAL_LEXICON: dict[str, float] = {
+    **LEXICON,
+    **{w: s for w, s in _INFORMAL_POSITIVE.items()},
+    **{w: -s for w, s in _INFORMAL_NEGATIVE.items()},
+}
+
+#: Emoji bermuatan, hanya untuk ragam informal. Yang maknanya bergantung
+#: konteks SENGAJA tidak ada: 😂 (tertawa geli atau mengejek), 🙏 (terima kasih
+#: atau memohon), 👏 dan 😊 (keduanya sering dipakai menyindir di data
+#: lapangan), 🔥.
+EMOJI_LEXICON: dict[str, float] = {
+    **dict.fromkeys("😡🤬👿😠💩🖕☠👎🤮🤢", -0.8),
+    **dict.fromkeys("😢😥😩☹😞😔🥺😰😱", -0.5),
+    "😭": -0.4,
+    "👍": 0.6,
+    **dict.fromkeys("❤♥💕💖🥰😍🎉", 0.5),
+}
+
 #: Leksikon emosi. Jauh lebih kasar daripada sentimen: ia menghitung kehadiran
 #: kata penanda, bukan menyimpulkan keadaan afektif penulisnya. Dilaporkan
 #: sebagai proporsi penanda yang ditemukan, dan kosong kalau tidak ada.
@@ -151,6 +249,30 @@ EMOTION_LEXICON: dict[str, tuple[str, ...]] = {
 }
 
 MODEL_VERSION = "lexicon-id-1"
+#: Versi ragam informal. Dinaikkan setiap kali `_INFORMAL_*`, `EMOJI_LEXICON`,
+#: atau `services/informal.py` berubah dengan cara yang menggeser skor.
+INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-1"
+
+#: Semua bentuk yang perlu dikenali normalisasi: kata bermuatan, pengubah,
+#: penghubung klausa, dan kata penyusun frasa serangkai.
+_INFORMAL_VOCAB: frozenset[str] = (
+    frozenset(INFORMAL_LEXICON)
+    | NEGATORS
+    | PRE_INTENSIFIERS
+    | POST_INTENSIFIERS
+    | DIMINISHERS
+    | CLAUSE_BREAKS
+    | frozenset(word for pair in PHRASES for word in pair)
+)
+
+
+def method_for(register: Register) -> str:
+    if register == "informal":
+        return (
+            "leksikon berbobot + negasi + normalisasi ragam informal "
+            f"({INFORMAL_MODEL_VERSION})"
+        )
+    return f"leksikon berbobot + negasi ({MODEL_VERSION})"
 
 
 @dataclass(frozen=True, slots=True)
@@ -187,17 +309,29 @@ def _preceding_scope(tokens: Sequence[str], i: int) -> list[str]:
     """
     scope: list[str] = []
     for j in range(i - 1, max(-1, i - _WINDOW - 1), -1):
-        if tokens[j] in CLAUSE_BREAKS:
+        if tokens[j] in CLAUSE_BREAKS or tokens[j] == CLAUSE_BOUNDARY:
             break
         scope.append(tokens[j])
     return scope
 
 
-def _modifier(tokens: Sequence[str], i: int) -> float:
+#: Larangan, bukan penyangkalan. "tidak korupsi" menyangkal; "jangan korupsi"
+#: menegur — nadanya tetap negatif. Hanya dipakai ragam informal: di sana
+#: "jangan ngeyel", "jangan hina dia" terbaca POSITIF kalau larangan
+#: diperlakukan sebagai negasi (ditemukan di set lapangan, belahan kembang).
+PROHIBITIVES = wordset("jangan")
+
+
+def _modifier(
+    tokens: Sequence[str], i: int, *, base: float = 0.0, informal: bool = False
+) -> float:
     """Faktor dari negator/penguat/pelemah di sekitar posisi i."""
     factor = 1.0
     back = _preceding_scope(tokens, i)
-    if any(t in NEGATORS for t in back):
+    negators = [t for t in back if t in NEGATORS]
+    if informal and base < 0 and negators and all(t in PROHIBITIVES for t in negators):
+        negators = []
+    if negators:
         factor *= NEGATION_FACTOR
     if any(t in PRE_INTENSIFIERS for t in back):
         factor *= INTENSIFY_FACTOR
@@ -209,25 +343,42 @@ def _modifier(tokens: Sequence[str], i: int) -> float:
     return factor
 
 
-def score(text: str) -> SentimentResult:
+def score(text: str, *, register: Register = "baku") -> SentimentResult:
     """Skor sentimen -1..1, atau abstain kalau tak ada dasar.
 
     Perhatikan bahwa "kurang" ada di NEGATORS sekaligus bukan penanda negatif
     sendirian: "kurang puas" jadi negatif lewat pembalikan, bukan lewat entri
     leksikon terpisah. Itu disengaja — memasukkan "kurang" sebagai kata negatif
     akan menghitungnya dua kali.
+
+    `register="informal"` untuk komentar media sosial — lihat "Dua ragam" di
+    docstring modul. Di `matched`, kata tampil dalam bentuk SESUDAH
+    normalisasi ("gk becus" tercatat sebagai `becus`), dan emoji tampil apa
+    adanya.
     """
-    tokens = normalize_text(text).split()
+    informal = register == "informal"
+    if informal:
+        tokens = canonical_tokens(text, _INFORMAL_VOCAB)
+        lexicon = INFORMAL_LEXICON
+    else:
+        tokens = normalize_text(text).split()
+        lexicon = LEXICON
     matched: list[tuple[str, float]] = []
 
     for i, tok in enumerate(tokens):
-        base = LEXICON.get(tok)
+        base = lexicon.get(tok)
         if base is None:
             continue
-        matched.append((tok, round(base * _modifier(tokens, i), 3)))
+        factor = _modifier(tokens, i, base=base, informal=informal)
+        matched.append((tok, round(base * factor, 3)))
+
+    if informal:
+        matched.extend((e, EMOJI_LEXICON[e]) for e in emoji_marks(text, EMOJI_LEXICON))
 
     if not matched:
-        return SentimentResult(score=None, label="tidak dinilai", confidence=0.0)
+        return SentimentResult(
+            score=None, label="tidak dinilai", confidence=0.0, method=method_for(register)
+        )
 
     values = [v for _, v in matched]
     raw = sum(values) / len(values)
@@ -239,11 +390,17 @@ def score(text: str) -> SentimentResult:
     agreement = abs(sum(values)) / magnitude if magnitude else 0.0
     evidence = min(1.0, len(matched) / 3)
 
+    # Label dari skor yang SUDAH dibulatkan — yaitu angka yang disimpan dan
+    # yang nanti dilabeli ulang oleh aggregate(). Tanpa ini (0.9 - 0.6) / 2
+    # = 0.15000000000000002 berlabel "positif" di sini tapi "netral" di agregat.
+    rounded = round(clipped, 3)
+
     return SentimentResult(
-        score=round(clipped, 3),
-        label=label_for(clipped),
+        score=rounded,
+        label=label_for(rounded),
         confidence=round(agreement * evidence, 3),
         matched=matched,
+        method=method_for(register),
     )
 
 
@@ -323,7 +480,12 @@ class EvaluationReport:
     caveat: str
 
 
-def evaluate(labeled: Sequence[tuple[str, str]]) -> EvaluationReport:
+def evaluate(
+    labeled: Sequence[tuple[str, str]],
+    *,
+    register: Register = "baku",
+    caveat: str | None = None,
+) -> EvaluationReport:
     """Ukur leksikon terhadap pasangan (teks, label_benar).
 
     Pada `accuracy`, abstain dihitung SALAH, bukan dikeluarkan dari penyebut.
@@ -342,7 +504,7 @@ def evaluate(labeled: Sequence[tuple[str, str]]) -> EvaluationReport:
     for text, truth in labeled:
         if truth not in classes:
             raise ValueError(f"label tidak dikenal: {truth}")
-        r = score(text)
+        r = score(text, register=register)
         if r.score is None:
             abstained += 1
             abstain_by_class[truth] += 1
@@ -382,7 +544,8 @@ def evaluate(labeled: Sequence[tuple[str, str]]) -> EvaluationReport:
         abstain_rate=round(abstained / n, 3) if n else 0.0,
         abstain_by_class=abstain_by_class,
         confusion=confusion,
-        caveat=(
+        caveat=caveat
+        or (
             "Angka ini diukur pada set evaluasi internal yang ditulis tim "
             "pengembang, bukan sampel acak dari percakapan yang sedang "
             "dianalisis. Ia menunjukkan bahwa leksikon berperilaku seperti yang "

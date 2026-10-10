@@ -9,6 +9,7 @@ supaya `url` ikut teruji lewat pipeline penuh, bukan cuma lewat ORM.
 
 import os
 import uuid
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -57,11 +58,21 @@ async def _register_and_create_project(client) -> tuple[dict[str, str], str]:
     return headers, proj.json()["id"]
 
 
+def _days_ago(days: int) -> str:
+    """Tanggal RELATIF terhadap hari tes dijalankan.
+
+    Dulu di sini tertulis "2026-09-10" apa adanya. Endpoint-nya memakai jendela
+    bawaan 30 hari, jadi seluruh berkas ini memerah sendiri pada 2026-10-10
+    tanpa ada kode yang berubah.
+    """
+    return (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%dT12:00:00Z")
+
+
 async def _ingest(client, project_id: str, headers: dict[str, str], **item_overrides):
     item = {
         "external_id": f"ext-{uuid.uuid4().hex[:12]}",
         "text": "opini warga tentang kebijakan ini cukup panjang untuk lolos deteksi bahasa",
-        "published_at": "2026-09-10T12:00:00Z",
+        "published_at": _days_ago(2),
     }
     item.update(item_overrides)
     r = await client.post(
@@ -133,7 +144,7 @@ async def test_filter_source_hanya_mengembalikan_sumber_diminta(client) -> None:
                 {
                     "external_id": f"soc-{uuid.uuid4().hex[:8]}",
                     "text": "komentar warganet soal isu ini yang cukup panjang untuk lolos deteksi",
-                    "published_at": "2026-09-10T12:00:00Z",
+                    "published_at": _days_ago(2),
                 }
             ],
         },
@@ -155,8 +166,8 @@ async def test_filter_source_hanya_mengembalikan_sumber_diminta(client) -> None:
 
 async def test_urutan_terbaru_dulu_dan_limit_dihormati(client) -> None:
     headers, project_id = await _register_and_create_project(client)
-    await _ingest(client, project_id, headers, published_at="2026-09-08T12:00:00Z")
-    await _ingest(client, project_id, headers, published_at="2026-09-10T12:00:00Z")
+    await _ingest(client, project_id, headers, published_at=_days_ago(4))
+    await _ingest(client, project_id, headers, published_at=_days_ago(2))
 
     r = await client.get(
         f"/v1/projects/{project_id}/mentions",
@@ -167,7 +178,7 @@ async def test_urutan_terbaru_dulu_dan_limit_dihormati(client) -> None:
     assert r.status_code == 200, r.text
     body = r.json()
     assert len(body) == 1
-    assert body[0]["published_at"].startswith("2026-09-10")
+    assert body[0]["published_at"].startswith(_days_ago(2)[:10])
 
 
 async def test_isolasi_tenant_org_lain_tidak_terlihat(client) -> None:

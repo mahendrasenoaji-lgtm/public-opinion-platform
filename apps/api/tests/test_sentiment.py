@@ -17,6 +17,7 @@ from app.services.sentiment import (
     score,
 )
 from app.services.sentiment_eval import LABELED
+from app.services.sentiment_eval_field import FIELD, evaluate_field, labeled
 
 
 class TestSkorDasar:
@@ -195,3 +196,139 @@ class TestEvaluasi:
     def test_label_asing_ditolak(self) -> None:
         with pytest.raises(ValueError, match="label tidak dikenal"):
             evaluate([("apa saja", "campuran")])
+
+
+class TestRagamInformal:
+    """Komentar media sosial. Contoh di sini diambil dari data lapangan."""
+
+    def test_singkatan_dan_pemanjangan_tidak_lagi_abstain(self) -> None:
+        for teks in ("Betuuuul sekaliiii bu", "Mksh Bu sdh mewakili kami", "GK becus"):
+            assert score(teks).abstained, teks
+            assert not score(teks, register="informal").abstained, teks
+
+    def test_negator_singkat_membalik(self) -> None:
+        r = score("pemerintah gk peduli", register="informal")
+        assert r.label == "negatif"
+        assert ("peduli", -0.525) in r.matched
+
+    def test_tuntutan_penolakan_negatif(self) -> None:
+        assert score("Bubarkan mbg.", register="informal").label == "negatif"
+        assert score("Stop MBG", register="informal").label == "negatif"
+
+    def test_larangan_tidak_membalik_kata_negatif(self) -> None:
+        """"jangan ngeyel" menegur — bukan pujian."""
+        assert score("prabowo dengarkan, jangan ngeyel aja", register="informal").label == "negatif"
+
+    def test_negasi_berhenti_di_tanda_baca(self) -> None:
+        """Negasi klausa pertama tidak boleh membalik tuntutan di klausa kedua."""
+        r = score("GK becus, bubarkan aja", register="informal")
+        assert ("bubarkan", -0.7) in r.matched
+        assert r.label == "negatif"
+
+    def test_label_konsisten_dengan_skor_yang_disimpan(self) -> None:
+        """(0.9 - 0.6) / 2 adalah 0.15000000000000002 — tepat di ambang, bukan di atasnya."""
+        r = score("Mantap Bu, tiap hari keracunan dimana mana", register="informal")
+        assert r.score == 0.15
+        assert r.label == label_for(r.score) == "netral"
+
+    def test_penyangkalan_tetap_membalik(self) -> None:
+        assert score("gak bodoh kok", register="informal").label == "positif"
+
+    def test_emoji_dihitung_sekali_per_jenis(self) -> None:
+        r = score("😡😡😡😡", register="informal")
+        assert r.matched == [("😡", -0.8)]
+        assert score("👍", register="informal").label == "positif"
+
+    def test_emoji_ambigu_tetap_abstain(self) -> None:
+        assert score("😂😂😂", register="informal").abstained
+
+    def test_method_menyebut_ragamnya(self) -> None:
+        assert "informal" in score("mantap", register="informal").method
+        assert "informal" not in score("mantap").method
+
+
+class TestRagamBakuTidakBergeser:
+    """Deret sentimen MEDIA harus tetap sinambung dengan lexicon-id-1."""
+
+    def test_kosakata_informal_tidak_bocor_ke_baku(self) -> None:
+        # "hebat" dihapus dari leksikon baku 2026-09-11 (penguat keparahan di
+        # judul berita); ia hanya boleh hidup di ragam informal.
+        assert score("Kebakaran hebat melanda kantor").abstained
+        assert score("Polisi hentikan pencarian").abstained
+        assert score("Anjing pelacak dikerahkan").abstained
+
+    def test_normalisasi_tidak_dipakai_di_baku(self) -> None:
+        assert score("gk becus").abstained
+        assert score("terima kasih").abstained
+
+    def test_cakupan_set_internal_tidak_berubah(self) -> None:
+        """Angka set internal untuk ragam baku tidak berubah oleh pekerjaan ini."""
+        r = evaluate(LABELED)
+        assert (r.n, r.n_scored) == (52, 39)
+
+
+class TestSetLapangan:
+    """Integritas set komentar nyata — lihat sentiment_eval_field.py."""
+
+    def test_kedua_belahan_punya_ketiga_kelas(self) -> None:
+        for split in ("kembang", "uji"):
+            assert {lbl for _, lbl in labeled(split)} == {"positif", "netral", "negatif"}
+
+    def test_belahan_ditentukan_hash_teks_bukan_dipilih(self) -> None:
+        """Memindahkan satu komentar dari `uji` ke `kembang` harus memerahkan tes ini."""
+        import hashlib
+
+        for item in FIELD:
+            first = int(hashlib.sha256(item.text.encode()).hexdigest()[0], 16)
+            assert item.split == ("uji" if first < 8 else "kembang"), item.text[:40]
+
+    def test_tidak_ada_identitas_akun(self) -> None:
+        assert not any("@" in item.text for item in FIELD)
+        assert len({item.text for item in FIELD}) == len(FIELD)
+
+    def test_penanda_hanya_yang_didokumentasikan(self) -> None:
+        assert all(set(item.flags) <= set("sdc") for item in FIELD)
+
+
+class TestMutuLapangan:
+    """Lantai pada belahan UJI. Angka persisnya ada di docs/progress.md."""
+
+    def test_informal_jauh_di_atas_baku_pada_komentar_yang_sama(self) -> None:
+        r = evaluate_field()
+        assert r.informal.abstain_rate <= 0.35, r.informal.abstain_rate
+        assert r.baseline.abstain_rate >= 0.65
+        assert r.informal.macro_f1 >= 0.55, r.informal.macro_f1
+        assert r.informal.macro_f1 >= r.baseline.macro_f1 + 0.20
+        assert r.informal.accuracy >= 0.50, r.informal.accuracy
+
+    def test_cakupan_naik_tanpa_mengorbankan_ketepatan(self) -> None:
+        """Lebih sering bersuara tidak boleh dibayar dengan lebih sering salah."""
+        r = evaluate_field()
+        assert r.informal.accuracy_scored_only >= 0.72, r.informal.accuracy_scored_only
+        assert r.informal.accuracy_scored_only >= r.baseline.accuracy_scored_only
+
+    def test_nada_bukan_sikap_masih_berlaku(self) -> None:
+        """Mengunci kalimat `_TONE_NOT_STANCE_LIMITATION` di routers/signals.py.
+
+        Kalimat itu menyebut "hampir separuh". Kalau proporsinya keluar dari
+        rentang ini, kalimatnya harus ikut disunting — bukan tesnya dilonggarkan.
+        """
+        r = evaluate_field()
+        share = r.predicted_positive_supporting_critic / r.predicted_positive
+        assert 0.40 <= share <= 0.55, share
+
+    def test_sarkasme_tetap_batas_yang_diakui(self) -> None:
+        """Bukan lantai mutu: mencatat bahwa leksikon TIDAK mengenali sarkasme.
+
+        Sebagian komentar sarkastis tetap dinilai benar karena kata lain di
+        kalimatnya ("program beracun"), bukan karena sarkasmenya terbaca. Kalau
+        suatu hari SEMUANYA benar, peringatan di UI perlu ditinjau ulang.
+        """
+        r = evaluate_field()
+        assert r.sarcasm_n >= 5
+        assert r.sarcasm_correct < r.sarcasm_n
+        sindiran = "Sukses pak dengan program beracunnya, bangga saya"
+        assert score(sindiran, register="informal").label == "positif"
+
+    def test_caveat_lapangan_menyebut_nada(self) -> None:
+        assert "NADA" in evaluate_field().informal.caveat
