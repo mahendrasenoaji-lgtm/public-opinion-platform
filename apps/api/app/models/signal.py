@@ -112,6 +112,27 @@ class Mention(Base):
     reach_est: Mapped[int | None] = mapped_column(Integer)
     province_code: Mapped[str | None] = mapped_column(Text)
     sentiment: Mapped[Decimal | None] = mapped_column(Numeric(4, 3))
+    #: Versi penilai yang menghasilkan `sentiment` (mis. "lexicon-id-1").
+    #: NULL = baris lama yang belum dinilai ulang; lihat
+    #: POST /projects/{id}/signals/rescore.
+    #:
+    #: `sentiment_alt` adalah skor penilai LAIN untuk teks yang sama, disimpan
+    #: berdampingan dan TIDAK pernah dipakai deret utama:
+    #:   - liputan (MEDIA): skor ragam berita; `sentiment` tetap leksikon baku
+    #:     supaya deret yang sedang berjalan tidak bergeser;
+    #:   - percakapan (SOCIAL) yang dinilai ulang: skor LAMA sebelum diganti,
+    #:     supaya penilaian ulang tidak menghapus apa yang dulu dilaporkan.
+    #: `sentiment_alt_model` menyebut versinya, jadi dua pemakaian itu tidak
+    #: pernah tertukar.
+    #:
+    #: Ketiganya `deferred`: tidak ikut di SELECT biasa. Kolom baru yang ikut
+    #: di setiap SELECT menjatuhkan tiga halaman production pada 2026-09-02
+    #: ketika kode naik sebelum migrasinya. Hanya ringkasan sentimen, ingest,
+    #: dan penilaian ulang yang menyentuh kolom ini, dan hanya lewat query
+    #: yang menyebutnya eksplisit.
+    sentiment_model: Mapped[str | None] = mapped_column(Text, deferred=True)
+    sentiment_alt: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), deferred=True)
+    sentiment_alt_model: Mapped[str | None] = mapped_column(Text, deferred=True)
     emotion: Mapped[dict | None] = mapped_column(JSON)
     #: Relasi balasan/kutipan (services/network.py) -- akun tujuan sudah
     #: di-hash, sama seperti author_hash. Hanya diisi kalau sumbernya
