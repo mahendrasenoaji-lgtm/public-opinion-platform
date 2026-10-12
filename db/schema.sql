@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "citext";
 
 -- ---------------------------------------------------------------- enums ----
 
-CREATE TYPE signal_source   AS ENUM ('SURVEY', 'SOCIAL', 'MEDIA', 'DIGITAL');
+CREATE TYPE signal_source   AS ENUM ('SURVEY', 'SOCIAL', 'MEDIA', 'DIGITAL', 'SENSOR');
 CREATE TYPE sampling_method AS ENUM ('SRS', 'STRATIFIED', 'CLUSTER', 'MULTISTAGE', 'QUOTA', 'PURPOSIVE');
 CREATE TYPE user_role       AS ENUM ('SUPER_ADMIN', 'RESEARCH_DIRECTOR', 'RESEARCHER', 'DATA_ANALYST',
                                      'COMM_STRATEGIST', 'EXECUTIVE', 'CLIENT', 'VIEWER');
@@ -179,6 +179,11 @@ CREATE TABLE mentions (
     reach_est     integer,
     province_code text,
     sentiment     numeric(4,3),             -- -1..1
+    -- Versi penilai `sentiment`; skor penilai lain untuk teks yang sama dan
+    -- versinya. Lihat app/models/signal.py. Ditambahkan 2026-10-12.
+    sentiment_model     text,
+    sentiment_alt       numeric(4,3),
+    sentiment_alt_model text,
     emotion       jsonb,                    -- {anger:0.2, fear:0.1, ...}
     topic_id      uuid,
     narrative_id  uuid,
