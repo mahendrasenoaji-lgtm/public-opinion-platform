@@ -13,6 +13,7 @@ class SignalSource(StrEnum):
     SOCIAL = "SOCIAL"
     MEDIA = "MEDIA"
     DIGITAL = "DIGITAL"
+    SENSOR = "SENSOR"
 
 
 class Metric(BaseModel):

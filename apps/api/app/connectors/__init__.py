@@ -15,6 +15,7 @@ from app.connectors import (  # noqa: F401 — diimpor untuk efek samping @regis
     wikipedia,
     x,
     youtube,
+    youtube_search,
 )
 from app.connectors.base import (
     Connector,

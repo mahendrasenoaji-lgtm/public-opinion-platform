@@ -33,22 +33,14 @@ memenuhi syarat CLAUDE.md §6 untuk peta MapLibre — untuk lapisan kualitas
 udaranya sendiri, bukan untuk skor opini per provinsi. Yang asli adalah
 LOKASINYA; nilainya tetap estimasi model pada resolusi ±45 km.
 
-## Soal `source = DIGITAL` — keputusan yang perlu ditinjau pengguna
+## `source = SENSOR`
 
-Tidak ada nilai `SignalSource` yang benar-benar pas. Enum-nya SURVEY / SOCIAL
-/ MEDIA / DIGITAL, dan data lingkungan (model maupun sensor) bukan salah
-satunya; DIGITAL paling dekat ("perilaku terukur, bukan pernyataan") tapi
-tetap meleset — kualitas udara bukan perilaku.
-
-Yang benar secara desain adalah menambah nilai enum baru (mis. `SENSOR`, atau
-nama yang juga mencakup keluaran model seperti `ENVIRONMENT`).
-Itu TIDAK dilakukan di sini karena butuh `ALTER TYPE signal_source ADD VALUE`
-di Supabase — migrasi manual yang, persis kelas ini, pernah menjatuhkan tiga
-halaman production pada 2026-09-02 (docs/deployment-status.md). Menambahkannya
-diam-diam berarti kode ini jalan di lokal dan gagal 500 di production.
-
-Sampai keputusan itu diambil, setiap baris membawa peringatannya di `method`,
-yang ikut tampil di UI.
+Data lingkungan bukan pernyataan siapa pun (SURVEY/SOCIAL/MEDIA) dan bukan
+perilaku manusia (DIGITAL), jadi ia punya nilai `SignalSource` sendiri sejak
+2026-10-12. Namanya SENSOR atas keputusan pengguna; isinya di sini tetap
+ESTIMASI MODEL, bukan sensor lapangan — karena itu setiap baris tetap membawa
+peringatannya di `method`, yang ikut tampil di UI. Baris lama yang dulu
+dititipkan di DIGITAL dipindahkan oleh db/migrations/2026-10-12-keputusan.sql.
 
 ## Batas legal
 
@@ -192,7 +184,7 @@ def parse_air_quality(
             period_start=day,
             period_end=day,
             value=mean,
-            source=SignalSource.DIGITAL,
+            source=SignalSource.SENSOR,
             method=method,
             province_code=province_code,
             breakdown={
@@ -212,7 +204,7 @@ class OpenMeteoAirQualityConnector(MetricConnector):
 
     key: ClassVar[str] = "openmeteo_air_quality"
     label: ClassVar[str] = "Open-Meteo — PM2.5 harian per provinsi"
-    source: ClassVar[SignalSource] = SignalSource.DIGITAL
+    source: ClassVar[SignalSource] = SignalSource.SENSOR
     requires_credential: ClassVar[str | None] = None
     config_fields: ClassVar[tuple[str, ...]] = ("province_code",)
     notes: ClassVar[str] = (
