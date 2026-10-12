@@ -19,8 +19,10 @@ yang diukur.
 - Yang dilabeli adalah NADA teks (positif / netral / negatif), sama dengan
   yang diklaim `sentiment.score()`. BUKAN sikap terhadap program.
 - Sarkasme dilabeli menurut maksudnya, bukan kata-katanya.
-- Satu penilai, dan penilai itu agen yang juga menulis normalisasinya. Tidak
-  ada penilai kedua, jadi tidak ada angka kesepakatan antarpenilai. Ini lebih
+- Label di file ini dari satu penilai, dan penilai itu agen yang juga menulis
+  normalisasinya. Penilai KEDUA ditambahkan 2026-10-12 di
+  `sentiment_eval_rater2.py` (kesepakatan 92,5%, kappa 0,823) — juga agen AI,
+  jadi tetap bukan pengganti penilai manusia. Ini lebih
   lemah daripada pelabelan independen yang diminta `docs/progress.md`; ia
   menggantikan "tidak ada ukuran lapangan sama sekali", bukan menggantikan
   pelabelan independen.

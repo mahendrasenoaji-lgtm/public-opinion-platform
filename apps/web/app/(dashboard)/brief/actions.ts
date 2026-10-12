@@ -14,7 +14,7 @@ export interface BriefPayload {
 export interface EvidenceRef {
   kind: string;
   label: string;
-  source: "SURVEY" | "SOCIAL" | "MEDIA" | "DIGITAL";
+  source: "SURVEY" | "SOCIAL" | "MEDIA" | "DIGITAL" | "SENSOR";
   n: number | null;
 }
 

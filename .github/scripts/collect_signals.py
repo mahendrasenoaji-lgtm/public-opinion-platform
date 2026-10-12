@@ -148,6 +148,9 @@ def collect(base: str, token: str, since_days: int) -> tuple[bool, list[str]]:
     for r in data["results"]:
         stored = r["result"]["stored"] if r["result"] else "–"
         status_cell = "ok" if r["ok"] else f"GAGAL: {r['error']}"
+        # Sumber penemuan video melaporkan apa yang ia lakukan lewat `note`.
+        if r["ok"] and r.get("note"):
+            status_cell += f" — {r['note']}"
         gap = "YA" if r["coverage_gap"] else ""
         offered = r["offered"] if r["offered"] is not None else "–"
         matched = r["matched"] if r["matched"] is not None else "–"

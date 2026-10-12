@@ -6,7 +6,7 @@
  * sebuah selector, tambahkan tokennya dulu di KEDUA blok tema — kalau tidak,
  * warna itu akan benar di satu tema dan salah di tema lain.
  *
- * Warna sumber (--survey / --social / --media / --digital) menandai asal
+ * Warna sumber (--survey / --social / --media / --digital / --sensor) menandai asal
  * data, bukan estetika. Lihat lib/tokens.ts dan CLAUDE.md aturan R1.
  *
  * Nilainya BERBEDA antar tema, perannya TIDAK. Biru tema gelap #4DA3FF hanya
@@ -46,6 +46,7 @@
   --social:#C2481B;
   --media:#5D45D1;
   --digital:#0A7A6F;
+  --sensor:#7A6A12;
   --survey-bg:#E4EFFC;
   --social-bg:#FBE9E1;
   --media-bg:#EBE7FB;
@@ -117,6 +118,7 @@
   --social:#FF7A45;
   --media:#9B8AFB;
   --digital:#5FD4C4;
+  --sensor:#C9B458;
   --survey-bg:#11202F;
   --social-bg:#2A1810;
   --media-bg:#1C1830;

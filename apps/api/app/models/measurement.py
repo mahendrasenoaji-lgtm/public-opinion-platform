@@ -43,6 +43,11 @@ class SignalSource(str, enum.Enum):  # noqa: UP042 — lihat catatan di bawah
     SOCIAL = "SOCIAL"
     MEDIA = "MEDIA"
     DIGITAL = "DIGITAL"
+    #: Pengukuran atau estimasi model atas keadaan LINGKUNGAN (kualitas udara).
+    #: Bukan perilaku manusia (DIGITAL) dan bukan pernyataan siapa pun.
+    #: Ditambahkan 2026-10-12; butuh `ALTER TYPE signal_source ADD VALUE
+    #: 'SENSOR'` di database (db/migrations/2026-10-12-keputusan.sql).
+    SENSOR = "SENSOR"
 
 
 class MetricSnapshot(Base):

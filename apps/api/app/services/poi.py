@@ -27,6 +27,7 @@ class SignalSource(StrEnum):
     SOCIAL = "SOCIAL"
     MEDIA = "MEDIA"
     DIGITAL = "DIGITAL"
+    SENSOR = "SENSOR"
 
 
 #: Sumber yang boleh diklaim mewakili populasi.

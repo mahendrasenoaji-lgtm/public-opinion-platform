@@ -61,7 +61,7 @@ from app.services.ingestion import normalize_text, wordset
 
 #: Ragam teks yang dinilai. "baku" = ejaan media (RSS); "informal" = komentar
 #: media sosial. Lihat bagian "Dua ragam" di docstring modul.
-Register = Literal["baku", "informal"]
+Register = Literal["baku", "informal", "berita"]
 
 #: Ambang label. Di antara keduanya dianggap netral.
 POSITIVE_THRESHOLD = 0.15
@@ -266,7 +266,47 @@ _INFORMAL_VOCAB: frozenset[str] = (
 )
 
 
+#: Ragam BERITA (2026-10-12). Leksikon baku dikurangi kata yang di judul
+#: berita hampir selalu bermakna korporat/seremonial, bukan penilaian:
+#: "Pertamina dukung Grand Prix", "Program Apresiasi Guru". Pada 160 judul
+#: nyata (10 Okt 2026) leksikon baku hanya benar 16 dari 35 yang ia nilai,
+#: dan 15 kesalahannya adalah judul NETRAL yang terbaca positif, kebanyakan
+#: lewat tiga kata ini.
+#:
+#: Ragam ini TIDAK menggantikan skor baku pada liputan: deret MEDIA yang
+#: sedang berjalan tetap `lexicon-id-1` supaya tidak patah di tengah. Skor
+#: ragam berita disimpan BERDAMPINGAN (`mentions.sentiment_alt`) dan
+#: ditampilkan sebagai angka kedua yang berlabel.
+#:
+#: Batasnya: 160 judul itu tidak disimpan di repo (ringkasan milik penerbit),
+#: jadi perbaikan ini tidak bisa diukur ulang pada set yang sama. Yang bisa
+#: dijamin hanyalah arah: ragam ini tidak pernah menilai teks yang oleh
+#: leksikon baku tidak dinilai, dan hanya berbeda pada teks yang memuat kata
+#: di bawah.
+NEWS_NEUTRALIZED: frozenset[str] = frozenset({"dukung", "mendukung", "apresiasi"})
+
+NEWS_LEXICON: dict[str, float] = {
+    w: s for w, s in LEXICON.items() if w not in NEWS_NEUTRALIZED
+}
+
+NEWS_MODEL_VERSION = "lexicon-id-1+berita-1"
+
+
+def model_version_for(register: Register) -> str:
+    """Versi penilai yang menghasilkan skor ragam ini — yang disimpan per baris."""
+    if register == "informal":
+        return INFORMAL_MODEL_VERSION
+    if register == "berita":
+        return NEWS_MODEL_VERSION
+    return MODEL_VERSION
+
+
 def method_for(register: Register) -> str:
+    if register == "berita":
+        return (
+            "leksikon berbobot + negasi, tanpa kata bermakna korporat di berita "
+            f"({NEWS_MODEL_VERSION})"
+        )
     if register == "informal":
         return (
             "leksikon berbobot + negasi + normalisasi ragam informal "
@@ -362,7 +402,7 @@ def score(text: str, *, register: Register = "baku") -> SentimentResult:
         lexicon = INFORMAL_LEXICON
     else:
         tokens = normalize_text(text).split()
-        lexicon = LEXICON
+        lexicon = NEWS_LEXICON if register == "berita" else LEXICON
     matched: list[tuple[str, float]] = []
 
     for i, tok in enumerate(tokens):

@@ -3,6 +3,7 @@ import { Info } from "lucide-react";
 import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
+import { RescoreButton } from "@/components/RescoreButton";
 import { SourceManager } from "@/components/SourceManager";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
@@ -24,6 +25,8 @@ export const dynamic = "force-dynamic";
 interface SignalSummary {
   volume: Metric;
   sentiment: Metric;
+  /** Tidak ada kalau backend belum memuat ragam berita (deploy tertinggal). */
+  sentiment_revised?: Metric | null;
   distinct_authors: number;
   concentration_top10: number;
   source_mix: Record<string, number>;
@@ -68,6 +71,16 @@ interface FieldQuality {
   sarcasm_n: number;
   sarcasm_correct: number;
   caveat: string;
+  /** Kesepakatan dua penilai; tidak ada kalau backend tertinggal. */
+  agreement?: {
+    n: number;
+    observed_agreement: number;
+    kappa: number;
+    informal_macro_f1_vs_rater2: number;
+    informal_macro_f1_on_agreed: number;
+    agreed_test_n: number;
+    caveat: string;
+  };
 }
 
 interface SentimentQuality {
@@ -211,7 +224,7 @@ export default async function SinyalPage() {
               <InsufficientData reason="Belum ada percakapan yang masuk untuk proyek ini." />
             </div>
           ) : (
-            sentimentBySource.map(({ source, metric }) => (
+            sentimentBySource.map(({ source, metric, revised }) => (
               <div className="stat" key={source}>
                 <div className="kicker">Sentimen rata-rata · {SOURCE[source].label}</div>
                 {metric.value === null ? (
@@ -231,6 +244,20 @@ export default async function SinyalPage() {
                       limits={SENTIMENT_LIMITS[source]}
                     />
                   </>
+                )}
+                {/* Angka KEDUA, bukan pengganti: skor utama liputan tetap
+                    leksikon baku supaya deret yang sedang berjalan tidak
+                    patah. Ragam berita membuang kata yang di judul berita
+                    bermakna korporat ("dukung", "apresiasi"). */}
+                {revised && (
+                  <div className="proj-s" style={{ marginTop: 8 }}>
+                    Ragam berita:{" "}
+                    <b style={{ color: SOURCE[source].color }}>
+                      {revised.value === null ? "belum cukup" : formatSentiment(revised.value)}
+                    </b>{" "}
+                    · n {revised.effective_n ?? 0}
+                    {revised.note ? ` · ${revised.note}` : ""}
+                  </div>
                 )}
               </div>
             ))
@@ -515,6 +542,22 @@ export default async function SinyalPage() {
                   lain yang tidak ikut dihitung di sini.
                 </span>
               </p>
+              {quality.field.agreement && (
+                <p className="note">
+                  <Info size={13} />
+                  <span>
+                    <b>Kesepakatan dua penilai.</b> Dari {quality.field.agreement.n} komentar,
+                    kedua penilai memberi label sama pada{" "}
+                    {pct(quality.field.agreement.observed_agreement)} (kappa Cohen{" "}
+                    {quality.field.agreement.kappa.toFixed(3)}). Terhadap label penilai kedua,
+                    Macro F1 ragam informal{" "}
+                    {quality.field.agreement.informal_macro_f1_vs_rater2.toFixed(3)}; pada{" "}
+                    {quality.field.agreement.agreed_test_n} komentar uji yang disepakati,{" "}
+                    {quality.field.agreement.informal_macro_f1_on_agreed.toFixed(3)}.{" "}
+                    {quality.field.agreement.caveat}
+                  </span>
+                </p>
+              )}
             </>
           )}
         </Panel>
@@ -532,6 +575,7 @@ export default async function SinyalPage() {
               tokenStatus={tokenStatus}
             />
           )}
+          {canManageTokens && <RescoreButton projectId={projectId} />}
 
           <h3 className="kicker" style={{ marginTop: 22 }}>Konektor yang tersedia</h3>
           {!connectors ? (

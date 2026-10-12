@@ -45,7 +45,7 @@ class EvidenceRef(BaseModel):
     label: str = Field(min_length=1, description="Deskripsi bukti yang bisa dibaca manusia")
     period: str | None = None
     n: int | None = Field(default=None, ge=0)
-    source: Literal["SURVEY", "SOCIAL", "MEDIA", "DIGITAL"]
+    source: Literal["SURVEY", "SOCIAL", "MEDIA", "DIGITAL", "SENSOR"]
 
     @field_validator("n")
     @classmethod

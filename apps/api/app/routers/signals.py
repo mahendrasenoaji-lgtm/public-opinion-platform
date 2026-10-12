@@ -24,15 +24,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import Select, delete, func, select
+from sqlalchemy import Select, and_, bindparam, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.config import get_settings
@@ -43,7 +44,9 @@ from app.connectors import (
     RawItem,
     available,
     get_connector,
+    youtube_search,
 )
+from app.connectors.youtube import YouTubeConnector
 from app.deps import (
     RANK,
     ActorSession,
@@ -65,8 +68,10 @@ from app.services import sentiment as sentiment_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
+from app.services.rescoring import rescore as rescore_mention
 from app.services.sentiment_eval import LABELED
 from app.services.sentiment_eval_field import evaluate_field
+from app.services.sentiment_eval_rater2 import evaluate_agreement
 
 router = APIRouter(tags=["signals"])
 logger = logging.getLogger(__name__)
@@ -83,7 +88,7 @@ MAX_INGEST_ITEMS = 1000
 #: bukan pengukuran, itu anekdot dengan desimal.
 MIN_MENTIONS_FOR_AGGREGATE = 30
 
-#: Baris per pernyataan INSERT. 18 kolom x 200 = 3.600 parameter, jauh di bawah
+#: Baris per pernyataan INSERT. 21 kolom x 200 = 4.200 parameter, jauh di bawah
 #: batas 32.767 protokol Postgres.
 STORE_CHUNK = 200
 
@@ -93,6 +98,14 @@ STORE_CHUNK = 200
 #: sinkron jadi pekerjaan bermenit-menit. Yang tidak terambil di satu run
 #: terambil di run berikutnya (dedup menjaga tidak ada yang ganda).
 MAX_COLLECT_ALL_ITEMS = 4000
+
+#: Batas sumber `youtube_api` per proyek yang boleh dicapai lewat penemuan
+#: otomatis. Tanpa batas, kata kunci yang longgar menambah sumber tiap hari
+#: tanpa ada yang memeriksanya, dan tiap sumber memakai kuota di tiap run.
+MAX_YOUTUBE_SOURCES = 60
+
+#: Baris per panggilan penilaian ulang.
+RESCORE_BATCH = 500
 
 _SOCIAL_LIMITATION = (
     "Percakapan media sosial bersifat self-selected: yang menulis bukan sampel "
@@ -145,6 +158,11 @@ def _register_for(source: ModelSignalSource) -> sentiment_svc.Register:
     sentimen liputan tidak bergeser — lihat "Dua ragam" di services/sentiment.py.
     """
     return "informal" if source is ModelSignalSource.SOCIAL else "baku"
+
+
+def _news_score(text: str) -> Decimal | None:
+    value = sentiment_svc.score(text, register="berita").score
+    return None if value is None else Decimal(str(value))
 
 
 def _sentiment_method(source: SignalSource) -> str:
@@ -311,6 +329,10 @@ class MentionOut(BaseModel):
 class SignalSummary(BaseModel):
     volume: Metric
     sentiment: Metric
+    #: Hanya untuk liputan (MEDIA): nada menurut ragam berita, BERDAMPINGAN
+    #: dengan `sentiment` yang tetap leksikon baku. None bila ringkasan ini
+    #: bukan tentang liputan, atau belum ada konten yang dinilai ragam berita.
+    sentiment_revised: Metric | None = None
     distinct_authors: int
     concentration_top10: float
     source_mix: dict[str, int]
@@ -352,6 +374,20 @@ class FieldScores(BaseModel):
     per_class: dict[str, dict[str, float]]
 
 
+class AgreementOut(BaseModel):
+    n: int
+    observed_agreement: float
+    kappa: float
+    #: confusion[label_penilai_1][label_penilai_2]
+    confusion: dict[str, dict[str, int]]
+    #: Macro F1 ragam informal terhadap label penilai KEDUA (belahan uji), dan
+    #: hanya pada komentar uji yang disepakati kedua penilai.
+    informal_macro_f1_vs_rater2: float
+    informal_macro_f1_on_agreed: float
+    agreed_test_n: int
+    caveat: str
+
+
 class FieldQuality(BaseModel):
     """Mutu pada komentar YouTube nyata — lihat services/sentiment_eval_field.py."""
 
@@ -369,6 +405,8 @@ class FieldQuality(BaseModel):
     sarcasm_n: int
     sarcasm_correct: int
     caveat: str
+    #: Kesepakatan dua penilai atas set yang sama — services/sentiment_eval_rater2.py.
+    agreement: AgreementOut
 
 
 # ------------------------------------------------------------- konektor ----
@@ -532,12 +570,17 @@ async def _store(
     accept_langs: frozenset[str] | None,
 ) -> IngestResult:
     """Jalankan pipeline lalu simpan. Satu-satunya jalan masuk ke tabel mentions."""
+    register = _register_for(source)
     report = prepare_batch(
         items,
         author_salt=get_settings().author_salt(),
         accept_langs=accept_langs,
-        register=_register_for(source),
+        register=register,
     )
+    model_version = sentiment_svc.model_version_for(register)
+    # Liputan membawa skor ragam berita di kolom pendamping; skor utamanya
+    # tetap leksikon baku (lihat NEWS_LEXICON di services/sentiment.py).
+    with_news = register == "baku"
 
     # ON CONFLICT DO NOTHING pada (project_id, connector, external_id):
     # menarik ulang rentang waktu yang sama adalah operasi normal, dan tidak
@@ -563,6 +606,9 @@ async def _store(
             "reach_est": p.reach_est,
             "province_code": p.province_code,
             "sentiment": None if p.sentiment is None else Decimal(str(p.sentiment)),
+            "sentiment_model": model_version,
+            "sentiment_alt": _news_score(p.text) if with_news else None,
+            "sentiment_alt_model": sentiment_svc.NEWS_MODEL_VERSION if with_news else None,
             "emotion": p.emotion or None,
             "reply_to_hash": p.reply_to_hash,
             "quote_of_hash": p.quote_of_hash,
@@ -844,6 +890,8 @@ class SourceCollectOut(BaseModel):
     #: dari feed dan TIDAK tersimpan. Jadwal perlu dirapatkan untuk sumber ini.
     coverage_gap: bool
     result: IngestResult | None
+    #: Keterangan untuk sumber yang tidak mengambil konten (penemuan video).
+    note: str | None = None
 
 
 class CollectAllOut(BaseModel):
@@ -881,6 +929,115 @@ def _failed_source(
         coverage_gap=False,
         result=None,
     )
+
+
+async def _discover_videos(
+    session: TenantSession,
+    *,
+    sources: Sequence[DataSource],
+    org_id: UUID,
+    project_id: UUID,
+    actor_id: UUID,
+) -> list[SourceCollectOut]:
+    """Jalankan sumber `youtube_search` yang sudah waktunya. Satu baris hasil per sumber.
+
+    Pencarian yang belum waktunya TIDAK memanggil API (kuota: 100 unit per
+    pencarian) dan dilaporkan apa adanya — "ok, belum waktunya" — bukan
+    didiamkan, supaya dari ringkasan run terlihat sumber itu masih hidup.
+    """
+    searches = [s for s in sources if s.is_active and s.connector == youtube_search.KEY]
+    if not searches:
+        return []
+    known = {
+        str((s.config or {}).get("video_id") or "")
+        for s in sources
+        if s.connector == YouTubeConnector.key
+    }
+    now = datetime.now(UTC)
+    out: list[SourceCollectOut] = []
+
+    def row(source: DataSource, *, offered: int | None, matched: int | None, note: str) -> None:
+        out.append(
+            SourceCollectOut(
+                source_id=source.id,
+                connector=source.connector,
+                label=_source_label(source),
+                ok=True,
+                error=None,
+                offered=offered,
+                matched=matched,
+                oldest_offered=None,
+                previous_sync_at=source.last_sync_at,
+                coverage_gap=False,
+                result=None,
+                note=note,
+            )
+        )
+
+    for source in searches:
+        previous = source.last_sync_at
+        label = _source_label(source)
+        try:
+            config = youtube_search.parse_config(dict(source.config))
+            if not youtube_search.is_due(config, last_run=previous, now=now):
+                row(
+                    source,
+                    offered=None,
+                    matched=None,
+                    note=f"belum waktunya (sekali per {config.interval_hours} jam)",
+                )
+                continue
+            connector = get_connector(source.connector)
+            if not isinstance(connector, youtube_search.YouTubeSearchConnector):
+                raise ConnectorError("konektor penemuan video tidak terdaftar dengan benar")
+            videos = await connector.discover(dict(source.config))
+        except ConnectorError as e:
+            out.append(_failed_source(source.id, source.connector, label, previous, str(e)))
+            continue
+
+        room = max(0, MAX_YOUTUBE_SOURCES - len(known))
+        unseen = [v for v in videos if v.video_id not in known]
+        fresh = unseen[:room]
+        for video in fresh:
+            session.add(
+                DataSource(
+                    org_id=org_id,
+                    project_id=project_id,
+                    source=ModelSignalSource.SOCIAL,
+                    connector=YouTubeConnector.key,
+                    config={
+                        "video_id": video.video_id,
+                        "label": youtube_search.video_label(video),
+                        "discovered_by": str(source.id),
+                    },
+                )
+            )
+            known.add(video.video_id)
+        if fresh:
+            # Mesin menambah sumber data: itu keputusan yang harus bisa
+            # ditelusuri, sama seperti peneliti yang menambahkannya.
+            session.add(
+                AuditLog(
+                    org_id=org_id,
+                    actor_id=actor_id,
+                    action="discover",
+                    entity="data_source",
+                    entity_id=source.id,
+                    metadata_={
+                        "project_id": str(project_id),
+                        "query": config.query,
+                        "video_ids": [v.video_id for v in fresh],
+                    },
+                )
+            )
+        note = f"{len(videos)} video ditemukan, {len(fresh)} baru didaftarkan"
+        if len(fresh) < len(unseen):
+            note += f" (batas {MAX_YOUTUBE_SOURCES} sumber video tercapai)"
+        row(source, offered=len(videos), matched=len(fresh), note=note)
+        source.last_sync_at = now
+
+    await session.flush()
+    return out
 
 
 async def _current_collector_token(
@@ -1049,9 +1206,24 @@ async def collect_all(
         .scalars()
         .all()
     )
-    active = [s for s in sources if s.is_active]
+    # Fase penemuan: sumber `youtube_search` yang sudah waktunya mencari video
+    # baru dan mendaftarkannya sebagai sumber `youtube_api`. Di-commit sebelum
+    # pengambilan supaya video temuan ikut ditarik di run yang sama.
+    discovery = await _discover_videos(
+        session, sources=sources, org_id=actor.org_id, project_id=project_id, actor_id=actor_id
+    )
+    if discovery:
+        await commit_step(session, actor.org_id)
+        sources = (
+            (await session.execute(select(DataSource).where(DataSource.project_id == project_id)))
+            .scalars()
+            .all()
+        )
+
+    active = [s for s in sources if s.is_active and s.connector != youtube_search.KEY]
     active_ids = [s.id for s in active]
     sources_total = len(sources)
+    sources_inactive = sum(1 for s in sources if not s.is_active)
     per_source_limit = min(limit, max(1, MAX_COLLECT_ALL_ITEMS // max(1, len(active))))
     fetched_all = await asyncio.gather(
         *(_fetch_source(s, since_days=since_days, limit=per_source_limit) for s in active)
@@ -1062,7 +1234,7 @@ async def collect_all(
     # baris yang ditolak database) membalas 500 untuk SELURUH run dan tidak
     # menerbitkan ringkasan apa pun. Sekarang kegagalan menyimpan satu sumber
     # dilaporkan sebagai sumber itu gagal, dan yang sudah selesai tetap ada.
-    results: list[SourceCollectOut] = []
+    results: list[SourceCollectOut] = list(discovery)
     for index, fetched in enumerate(fetched_all):
         source = active[index]
         source_id, connector_key = source.id, source.connector
@@ -1171,7 +1343,7 @@ async def collect_all(
         sources_total=sources_total,
         sources_ok=sum(1 for r in results if r.ok),
         sources_failed=sum(1 for r in results if not r.ok),
-        sources_inactive=sources_total - len(active),
+        sources_inactive=sources_inactive,
         coverage_gaps=sum(1 for r in results if r.coverage_gap),
         stored_total=sum(r.result.stored for r in results if r.result is not None),
         results=results,
@@ -1188,6 +1360,153 @@ def coverage_gap(*, oldest_offered: datetime | None, previous_sync_at: datetime 
     if oldest_offered is None or previous_sync_at is None:
         return False
     return oldest_offered > previous_sync_at
+
+
+# ------------------------------------------------------- penilaian ulang ----
+
+
+class RescoreOut(BaseModel):
+    #: Baris yang diperiksa pada panggilan ini.
+    examined: int
+    #: Percakapan sosial yang skor UTAMANYA berubah (skor lama diarsipkan).
+    primary_changed: int
+    #: Liputan yang mendapat skor ragam berita di kolom pendamping.
+    alt_written: int
+    #: Baris yang masih menunggu; panggil lagi sampai nol.
+    remaining: int
+    models: dict[str, str]
+
+
+def _pending_rescore(project_id: UUID) -> Any:
+    social = and_(
+        Mention.source == ModelSignalSource.SOCIAL,
+        Mention.sentiment_model.is_distinct_from(sentiment_svc.INFORMAL_MODEL_VERSION),
+    )
+    other = and_(
+        Mention.source != ModelSignalSource.SOCIAL,
+        or_(
+            Mention.sentiment_model.is_(None),
+            Mention.sentiment_alt_model.is_distinct_from(sentiment_svc.NEWS_MODEL_VERSION),
+        ),
+    )
+    return and_(Mention.project_id == project_id, or_(social, other))
+
+
+@router.post(
+    "/projects/{project_id}/signals/rescore",
+    response_model=RescoreOut,
+    dependencies=[Depends(require_role(Role.RESEARCH_DIRECTOR))],
+)
+async def rescore(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    limit: int = Query(default=RESCORE_BATCH, ge=1, le=2000),
+) -> RescoreOut:
+    """Nilai ulang konten lama dengan penilai terkini, tanpa menghapus skor lamanya.
+
+    - Percakapan sosial yang dulu dinilai leksikon baku dinilai ulang dengan
+      ragam informal; skor lamanya pindah ke kolom pendamping.
+    - Liputan TIDAK diubah skor utamanya (deret MEDIA tidak bergeser); ia
+      mendapat skor ragam berita di kolom pendamping.
+
+    Idempoten dan bertahap: tiap panggilan mengerjakan paling banyak `limit`
+    baris dan melaporkan `remaining`. Memanggil ulang setelah `remaining` nol
+    tidak mengubah apa pun. RESEARCH_DIRECTOR ke atas, karena yang ditulis
+    ulang adalah data riset.
+    """
+    pending = _pending_rescore(project_id)
+    rows = (
+        await session.execute(
+            select(
+                Mention.id,
+                Mention.source,
+                Mention.text,
+                Mention.sentiment,
+                Mention.sentiment_model,
+                Mention.sentiment_alt,
+                Mention.sentiment_alt_model,
+            )
+            .where(pending)
+            .order_by(Mention.id)
+            .limit(limit)
+        )
+    ).all()
+
+    def _dec(value: float | None) -> Decimal | None:
+        return None if value is None else Decimal(str(value))
+
+    params: list[dict[str, object]] = []
+    primary_changed = alt_written = 0
+    for r in rows:
+        social = r.source is ModelSignalSource.SOCIAL
+        new = rescore_mention(
+            social=social,
+            text=r.text,
+            sentiment=None if r.sentiment is None else float(r.sentiment),
+            sentiment_model=r.sentiment_model,
+            sentiment_alt=None if r.sentiment_alt is None else float(r.sentiment_alt),
+            sentiment_alt_model=r.sentiment_alt_model,
+        )
+        primary_changed += new.primary_changed
+        alt_written += not social
+        params.append(
+            {
+                "b_id": r.id,
+                "b_sentiment": _dec(new.sentiment),
+                "b_model": new.sentiment_model,
+                "b_alt": _dec(new.sentiment_alt),
+                "b_alt_model": new.sentiment_alt_model,
+            }
+        )
+
+    if params:
+        table = Mention.__table__
+        connection = await session.connection()
+        await connection.execute(
+            table.update()
+            .where(table.c.id == bindparam("b_id"))
+            .values(
+                sentiment=bindparam("b_sentiment"),
+                sentiment_model=bindparam("b_model"),
+                sentiment_alt=bindparam("b_alt"),
+                sentiment_alt_model=bindparam("b_alt_model"),
+            ),
+            params,
+        )
+
+    remaining = (
+        await session.execute(select(func.count()).select_from(Mention).where(pending))
+    ).scalar_one()
+    models = {
+        "SOCIAL": sentiment_svc.INFORMAL_MODEL_VERSION,
+        "MEDIA": sentiment_svc.MODEL_VERSION,
+        "MEDIA (pendamping)": sentiment_svc.NEWS_MODEL_VERSION,
+    }
+    if params:
+        session.add(
+            AuditLog(
+                org_id=user.org_id,
+                actor_id=user.user_id,
+                action="rescore",
+                entity="project",
+                entity_id=project_id,
+                metadata_={
+                    "examined": len(params),
+                    "primary_changed": primary_changed,
+                    "alt_written": alt_written,
+                    "remaining": remaining,
+                    "models": models,
+                },
+            )
+        )
+    return RescoreOut(
+        examined=len(params),
+        primary_changed=primary_changed,
+        alt_written=alt_written,
+        remaining=remaining,
+        models=models,
+    )
 
 
 # ------------------------------------------------------------- agregasi ----
@@ -1269,7 +1588,53 @@ async def summary(
             "Ini deskripsi sebaran, bukan indikasi koordinasi."
         )
 
+    revised: Metric | None = None
+    if dominant is SignalSource.MEDIA and not mixed and volume:
+        news_rows = (
+            (
+                await session.execute(
+                    _scoped(select(Mention.sentiment_alt), project_id, since, until).where(
+                        Mention.source == ModelSignalSource.MEDIA,
+                        Mention.sentiment_alt_model == sentiment_svc.NEWS_MODEL_VERSION,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if news_rows:
+            news_scored = [float(v) for v in news_rows if v is not None]
+            news_enough = len(news_scored) >= MIN_MENTIONS_FOR_AGGREGATE
+            media_volume = mix.get("MEDIA", 0)
+            notes = []
+            if not news_enough:
+                notes.append(
+                    f"Perlu minimal {MIN_MENTIONS_FOR_AGGREGATE} konten bernilai "
+                    f"sentimen; tersedia {len(news_scored)}."
+                )
+            if len(news_rows) < media_volume:
+                notes.append(
+                    f"Baru {len(news_rows)} dari {media_volume} liputan yang dinilai "
+                    "ragam berita; jalankan penilaian ulang untuk sisanya."
+                )
+            revised = Metric(
+                key="signal_sentiment_revised",
+                label="Sentimen rata-rata (ragam berita)",
+                value=(
+                    round(sum(news_scored) / len(news_scored), 3) if news_enough else None
+                ),
+                unit="skala -1..1",
+                source=SignalSource.MEDIA,
+                method=sentiment_svc.method_for("berita"),
+                effective_n=len(news_scored),
+                period_start=since.date(),
+                period_end=until.date(),
+                insufficient_data=not news_enough,
+                note=" ".join(notes) or None,
+            )
+
     return SignalSummary(
+        sentiment_revised=revised,
         volume=Metric(
             key="signal_volume",
             label="Volume percakapan",
@@ -1429,6 +1794,7 @@ async def sentiment_quality(
     """
     report = sentiment_svc.evaluate(LABELED)
     field = evaluate_field()
+    agreement = evaluate_agreement()
 
     def _scores(r: sentiment_svc.EvaluationReport) -> FieldScores:
         return FieldScores(
@@ -1462,5 +1828,15 @@ async def sentiment_quality(
             sarcasm_n=field.sarcasm_n,
             sarcasm_correct=field.sarcasm_correct,
             caveat=field.informal.caveat,
+            agreement=AgreementOut(
+                n=agreement.n,
+                observed_agreement=agreement.observed_agreement,
+                kappa=agreement.kappa,
+                confusion=agreement.confusion,
+                informal_macro_f1_vs_rater2=agreement.informal_vs_rater2.macro_f1,
+                informal_macro_f1_on_agreed=agreement.informal_on_agreed.macro_f1,
+                agreed_test_n=agreement.agreed_test_n,
+                caveat=agreement.caveat,
+            ),
         ),
     )

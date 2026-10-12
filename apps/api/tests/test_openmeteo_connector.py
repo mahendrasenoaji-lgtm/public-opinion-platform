@@ -147,14 +147,14 @@ class TestParsing:
         assert obs[0].breakdown["unit"] == "ug/m3"
         assert obs[0].breakdown["hours_used"] == "24"
 
-    def test_sumber_digital_bukan_survey(self) -> None:
+    def test_sumber_sensor_bukan_survey_atau_perilaku(self) -> None:
         times, values = _full_day("2026-09-10", 30.0)
 
         obs = parse_air_quality(
             _payload(times, values), province_code="62", method=METHOD, min_hours=18
         )
 
-        assert obs[0].source is SignalSource.DIGITAL
+        assert obs[0].source is SignalSource.SENSOR
 
     def test_method_membawa_peringatan_bukan_opini(self) -> None:
         """Peringatan ini ikut tersimpan ke metric_snapshots.method dan dari

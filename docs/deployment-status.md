@@ -6,6 +6,122 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 12 Oktober 2026 (lanjutan): keputusan pengguna dikerjakan
+
+**Baca ini dulu.** Blok "gerbang dilepas + butir 1–7" tepat di bawah sudah
+tayang (PR #32). Blok ini pekerjaan sesudahnya, di **PR #33**.
+
+## ⚠️ Urutan tayang: MIGRASI DULU, baru merge
+
+PR #33 menambah tiga kolom dan satu nilai enum. Jalankan
+`db/migrations/2026-10-12-keputusan.sql` di Supabase → SQL Editor **sebelum**
+merge: BAGIAN A dulu, lalu BAGIAN B (dua kali jalan; Postgres menolak memakai
+nilai enum baru di transaksi yang sama dengan `ADD VALUE`). Skripnya idempoten
+dan hanya menambah, jadi aman untuk kode lama yang sedang tayang.
+
+Kalau urutannya terbalik (merge dulu): halaman lain tetap hidup karena kolom
+barunya `deferred`, tapi **ingest/collect-all gagal menyimpan** dan ringkasan
+sentimen liputan di `/sinyal` membalas 500 sampai migrasi dijalankan.
+
+BAGIAN B harus mengembalikan 3 baris pada `DELETE ... RETURNING` (tiga org
+uji). Kalau kurang, org itu ternyata punya proyek dan sengaja dibiarkan.
+
+Sesudah merge + deploy, **klik "Nilai ulang konten lama" di `/sinyal`** pada
+tiap proyek (peran RESEARCH_DIRECTOR ke atas). Tanpa itu konten lama belum
+punya versi penilai, 115 komentar karhutla masih berskor leksikon baku, dan
+liputan lama belum punya angka ragam berita.
+
+## Keputusan pengguna (12 Okt) dan apa yang dilakukan
+
+| # | Keputusan | Yang dikerjakan |
+|---|---|---|
+| baru | `/daftar` terbuka: **dibiarkan** | Tidak ada perubahan |
+| 8 | Penilai berbasis model: **tetap leksikon** | Tidak ada perubahan |
+| 9 | Penilai kedua: **silakan dinilai** | `services/sentiment_eval_rater2.py`: 440 label kedua, dibuat dari teks saja tanpa melihat label pertama. **Kesepakatan 92,5%, kappa Cohen 0,823.** Tampil di `/sinyal` |
+| 10 | Leksikon berita: **perbaiki tanpa menggeser** | Ragam `berita` (`lexicon-id-1+berita-1`): leksikon baku tanpa "dukung/mendukung/apresiasi". Disimpan di kolom pendamping `sentiment_alt`; **skor utama liputan tetap `lexicon-id-1`**. Kartu MEDIA menampilkan dua angka |
+| 11 | Nilai ulang komentar lama: **kerjakan** | Kolom `sentiment_model`; `POST /projects/{id}/signals/rescore` + tombol di `/sinyal`. Skor lama komentar diarsipkan di `sentiment_alt`, tidak dihapus |
+| 12 | Penemuan video: **pakai kuota** | Konektor `youtube_search`; `collect-all` mendaftarkan video temuan sebagai sumber `youtube_api` |
+| 13 | Jadwal ~5 jam: **tidak apa-apa** | Tidak ada perubahan. `CELAH` pada Antara/Republika adalah akibat yang diterima |
+| 14 | `SENSOR`: **kerjakan** | Nilai enum baru; Open-Meteo pindah dari `DIGITAL`; warna `--sensor` |
+| 15 | Tiga org uji: **sesuaikan** | Dihapus oleh BAGIAN B migrasi, hanya bila masih kosong |
+
+### Yang perlu diketahui
+
+- **Penilai kedua juga agen AI** dari keluarga model yang sama. Ia tidak
+  melihat label pertama, tapi bukan penilai manusia; kappa 0,823 adalah batas
+  atas yang wajar. Ketidaksepakatan terbesar: 26 komentar yang penilai pertama
+  beri "netral" dan penilai kedua "negatif" (keluhan tanpa makian, ajakan
+  "stop MBG"). Di situlah pedoman pelabelannya tidak cukup tegas. Terhadap
+  label penilai kedua, Macro F1 ragam informal pada belahan uji 0,584 (terhadap
+  penilai pertama 0,612); pada 197 komentar uji yang disepakati, 0,608.
+- **Ragam berita tidak diukur pada 160 judul 10 Oktober** — teksnya tidak
+  disimpan (ringkasan milik penerbit). Diperiksa sekali jalan pada 345 judul
+  nyata dari 6 feed yang sama (12 Okt): leksikon baku menilai 70, ragam berita
+  57; berbeda pada 19 judul, semuanya "dukung/mendukung/apresiasi" bermakna
+  korporat atau seremonial ("Dukung NZE 2060, Pupuk Kaltim…", "Apresiasi
+  Pemerintah Daerah Berprestasi"). 13 jadi tidak dinilai, 6 turun skornya.
+  Ini memperbaiki satu kelas galat, bukan seluruh 0,457.
+- **Dua angka di kartu MEDIA memang disengaja.** Angka utama = deret lama yang
+  tidak bergeser; "Ragam berita" = angka pendamping berlabel. Kalau kelak
+  diputuskan pindah deret, itu keputusan tersendiri (deret patah di tanggal
+  perpindahan).
+- **`sentiment_alt` punya dua arti, dibedakan `sentiment_alt_model`:** untuk
+  liputan = skor ragam berita; untuk komentar yang dinilai ulang = skor LAMA.
+- **Kuota penemuan video:** `search.list` 100 unit per panggilan. Sumber
+  `youtube_search` hanya mencari sekali per `interval_hours` (bawaan 24,
+  minimum 6) walau jadwal datang lebih sering, satu halaman, `max_videos`
+  bawaan 5. Satu sumber bawaan = 100 unit/hari dari 10.000. Total sumber video
+  per proyek dibatasi 60 (`MAX_YOUTUBE_SOURCES`). Tiap penambahan otomatis
+  dicatat di `audit_logs` (`action = discover`).
+- **Video temuan adalah urutan peringkat YouTube, bukan sampel.** Judulnya
+  disimpan sebagai label sumber supaya bisa diperiksa dan dihapus di `/sinyal`.
+- **Belum ada sumber `youtube_search` di proyek MBG.** Menambahkannya satu
+  isian di `/sinyal` → konektor "YouTube — temukan video per kata kunci" →
+  `query` (mis. `makan bergizi gratis`). Butuh login pengguna.
+- **SENSOR berisi estimasi model CAMS**, bukan sensor lapangan; peringatannya
+  tetap ada di kolom `method`.
+
+## Verifikasi
+
+- Backend **718 tes** (674 + 44) lulus lokal terhadap Postgres 16 + pgvector,
+  role `pop_app`, RLS aktif. Frontend **30 tes**. `ruff`, `mypy --strict`,
+  `tsc`, `next build` hijau.
+- Migrasi digladi dua kali berturut-turut pada database yang dibangun dari
+  `db/schema.sql` versi `main`: kolom bertambah, `airquality_pm25` pindah ke
+  `SENSOR` (deret Wikipedia tetap `DIGITAL`), dua org uji kosong terhapus, org
+  berproyek utuh; jalan kedua tidak mengubah apa pun.
+- Lokal ujung-ke-ujung (API + web): `/sinyal` menampilkan "Ragam berita: −0.90
+  · n 32" di kartu MEDIA, catatan "Kesepakatan dua penilai", tombol "Nilai
+  ulang konten lama", konektor penemuan video; `/deret` menampilkan
+  `airquality_pm25` berlabel `SENSOR` (10 hari dari Open-Meteo sungguhan).
+- **Belum diverifikasi di production** — menunggu migrasi + merge.
+
+## Verifikasi production PR #32 (12 Okt, 07:32 UTC)
+
+- `/` → `/masuk?next=%2F`; `/login` → `/masuk`; `/masuk`, `/daftar` 200.
+- `openapi.json` memuat `limit_applied` (backend baru hidup di Render).
+- Run manual 38218628114: 34 sumber ok, 0 gagal; sumber YouTube kini
+  melaporkan `ditawarkan`/`cocok`. `CELAH` pada Antara dan Republika.
+- Kartu sentimen per sumber di `/sinyal` belum dilihat di production (butuh
+  login pengguna); sudah dilihat di server lokal.
+
+## Yang KURANG sekarang
+
+**Butuh akun/kredensial pengguna:**
+
+- Jalankan migrasi, merge PR #33, klik "Nilai ulang konten lama" (di atas).
+- Tambah sumber `youtube_search` untuk proyek MBG (di atas).
+- 16 — K7: feed Katadata pengganti Kontan.
+- 17 — K8: pengumpulan otomatis proyek KEBAKARAN HUTAN.
+- 19 — `X_BEARER_TOKEN`, `ANTHROPIC_API_KEY` belum diset di Render.
+- 20 — survei gelombang kedua; Phase 4.
+
+**Terbuka, tidak ada yang menunggu keputusan saat ini:** penilai manusia untuk
+set lapangan; set berita berlabel yang boleh disimpan (tanpa itu ragam berita
+tidak bisa diukur ulang).
+
+---
+
 # 🟢 MULAI DARI SINI — 12 Oktober 2026: gerbang dilepas + butir 1–7 selesai
 
 **Baca ini dulu.** Blok 10 Oktober di bawah masih berlaku untuk latar
