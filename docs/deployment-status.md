@@ -6,6 +6,166 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — keadaan akhir 12 Oktober 2026 + yang KURANG
+
+**Baca blok ini dulu kalau melanjutkan di komputer lain.** Dua blok 12 Oktober
+di bawahnya adalah rinciannya (PR #32 dan PR #33); blok ini keadaan terakhir
+sesudah semuanya tayang, termasuk hal yang berjalan TIDAK sesuai rencana.
+
+## Keadaan sekarang (semua di `main`, tidak ada PR terbuka selain PR catatan ini)
+
+| Hal | Keadaan | Bukti |
+|---|---|---|
+| PR #32, #33, #34 | Merged 12 Okt (07:32, 08:07, ~08:20 UTC), tayang | CI `main` hijau; `openapi.json` memuat `limit_applied`, `signals/rescore`, `SENSOR` |
+| Gerbang password situs | Dilepas | `/` → `/masuk?next=%2F`, `/login` → `/masuk`, `/masuk` dan `/daftar` 200 |
+| Migrasi `2026-10-12-keputusan.sql` BAGIAN A | **Masuk** (dijalankan agen lewat Chrome di SQL Editor, atas permintaan pengguna) | "Success. No rows returned"; sesudahnya `rescore` berjalan |
+| BAGIAN B — pindah kualitas udara ke `SENSOR` | Dijalankan, **0 baris** | Production belum pernah menyimpan `airquality_pm25` |
+| BAGIAN B — hapus tiga org uji | **BELUM** — lihat "Yang KURANG" no. 1 | Perintahnya sudah diketik di editor, tidak dijalankan |
+| Penilaian ulang MBG AGUSTUS 2026 | Selesai | 2.337 diperiksa, 0 komentar berubah, 215 liputan mendapat skor ragam berita |
+| Penilaian ulang KEBAKARAN HUTAN | Selesai | 157 diperiksa, **32 komentar berubah** (skor lama diarsipkan), 42 liputan |
+| Kartu sentimen `/sinyal` (MBG) | Per sumber, dua angka untuk liputan | SOSIAL −0,26 (n 1.339); MEDIA −0,44 (n 66), "Ragam berita: −0,45 · n 65" |
+| Kesepakatan dua penilai | Tampil di `/sinyal` | 93%, kappa Cohen 0,823 |
+| Penemuan video YouTube (MBG) | **Aktif** | Sumber `youtube_search`, `query = makan bergizi gratis`, bawaan 5 video / 24 jam / 14 hari |
+| Pengumpulan terjadwal | Jalan | Run 38225447213: 40 sumber ok, 0 gagal |
+| Proyek MBG | 40 sumber: 14 RSS + 25 `youtube_api` + 1 `youtube_search` | Run yang sama |
+
+## Kejadian 12 Oktober yang perlu diketahui — penyimpanan mati ±20 menit
+
+Urutannya, supaya tidak terulang:
+
+1. Pengguna melaporkan migrasi sudah dijalankan; PR #33 di-merge (08:07 UTC).
+2. Dua run pengumpulan berikutnya (38221889464, 38222292307) gagal: **setiap
+   sumber yang punya item baru** melapor `gagal menyimpan (ProgrammingError)`.
+   Sumber tanpa item baru lolos. Halaman dashboard tetap hidup (kolom baru
+   `deferred`), tapi tidak ada konten baru yang tersimpan.
+3. Penyebab, dibuktikan belakangan lewat query di Supabase: **migrasinya tidak
+   pernah masuk** — `mentions` hanya punya kolom `sentiment`, enum belum punya
+   `SENSOR`. Laporan "sudah dijalankan" tidak diverifikasi sebelum merge.
+4. PR #34 (hotfix): bila kolom versi belum ada (SQLSTATE 42703), konten tetap
+   disimpan ke kolom lama dengan caveat; ringkasan liputan terbit tanpa angka
+   pendamping; `rescore` menolak 409 dengan pesan yang menyebut migrasinya;
+   laporan run menyebut SQLSTATE galat penyimpanan. Run 38223563423 sesudahnya:
+   34 ok.
+5. Migrasi BAGIAN A dijalankan sungguhan, lalu `rescore` di kedua proyek.
+
+**Pelajaran yang mengikat sesi berikutnya:**
+
+- "Migrasi sudah dijalankan" **diverifikasi dulu**, bukan dipercaya:
+
+  ```sql
+  SELECT column_name FROM information_schema.columns
+  WHERE table_schema = 'public' AND table_name = 'mentions'
+    AND column_name LIKE 'sentiment%';   -- harus 4 baris
+  ```
+
+- Database production = proyek Supabase **`publicopinion`**, ref
+  `uvqzxkabrsnaeeeefjzq`, organisasi **ALWAYSLEARN** (terpasang lewat Vercel).
+  Akun yang sama punya organisasi `natadigital` dengan dua proyek lain yang
+  BUKAN database platform ini.
+- Jangan menempel BAGIAN A dan B sekaligus: Postgres menolak memakai nilai enum
+  baru di transaksi yang sama dengan `ADD VALUE`, dan seluruh transaksi batal.
+- SQL Editor Supabase menampilkan dialog "Potential issue detected" untuk
+  `DELETE`; yang menekan "Run query" harus pengguna.
+- Konten yang tersimpan lewat jalur cadangan (antara PR #34 dan migrasi) tidak
+  punya versi penilai sampai `rescore` dijalankan — sudah dijalankan 12 Okt.
+
+## Yang KURANG — urut dari yang paling dekat
+
+**Tinggal diklik pengguna:**
+
+1. **Hapus tiga org uji.** Supabase → proyek `publicopinion` → SQL Editor:
+
+   ```sql
+   DELETE FROM organizations o
+   WHERE  o.slug IN ('uji-yt-1791474316', 'uji-sentimen-1791645465', 'uji-verif-1791647047')
+     AND  NOT EXISTS (SELECT 1 FROM projects p WHERE p.org_id = o.id)
+   RETURNING o.slug;
+   ```
+
+   Harus mengembalikan 3 baris. Hanya menghapus org yang tidak punya proyek.
+2. **Periksa video temuan** di tabel sumber `/sinyal` proyek MBG dan hapus yang
+   di luar tema. Pencarian pertama (run 38223994069) mendaftarkan 5 video;
+   hasilnya urutan peringkat YouTube, antara lain "Kebun sayur di sekolah dari
+   galon bekas dan MBG" (59 komentar) dan dua video pendek "Menu MBG … Pak
+   Prabowo". Kalau terlalu longgar, hapus sumber pencariannya dan buat lagi
+   dengan kata kunci yang lebih sempit.
+
+**Bisa dikerjakan agen tanpa keputusan siapa pun:**
+
+3. **Label kolom keliru di formulir "Tambah sumber".** Untuk konektor
+   `youtube_search`, kolom `query` berlabel "Kueri pencarian X" (label milik
+   konektor X) — lihat pemetaan label di `apps/web/components/SourceManager.tsx`.
+   Tidak memengaruhi fungsi.
+4. **Skrip pengumpul tidak mencetak `caveats` penyimpanan.** Kalau jalur
+   cadangan PR #34 terpakai lagi, dari log run tidak terlihat — dari luar
+   "ok" lewat kolom baru dan "ok" lewat kolom lama tampak sama. Cetak caveat
+   `Versi penilai tidak tercatat` sebagai `::warning::` di
+   `.github/scripts/collect_signals.py`.
+5. **`docs/progress.md`** belum dirombak per komponen untuk PR #33/#34 (hanya
+   baris ringkasan angka yang diperbarui).
+
+**Butuh akun/kredensial pengguna:**
+
+6. K7 — feed Katadata pengganti Kontan (satu isian di `/sinyal`).
+7. K8 — pengumpulan otomatis proyek KEBAKARAN HUTAN: 13 feed sudah
+   diverifikasi; lalu token pengumpul baru + baris baru di secret
+   `POP_COLLECTOR_TOKENS`. Proyek itu saat ini 0 konten dalam jendela 30 hari.
+8. `X_BEARER_TOKEN` dan `ANTHROPIC_API_KEY` belum diset di Render — Executive
+   Brief dan Copilot belum pernah menjawab dengan LLM sungguhan.
+9. Survei gelombang kedua (forecast opini tetap `insufficient_data`); Phase 4
+   (SSO, MFA wajib, billing, API publik).
+
+**Sudah diputuskan pengguna 12 Okt — JANGAN dibuka lagi tanpa diminta:**
+
+- `/daftar` terbuka untuk umum: dibiarkan.
+- Penilai sentimen: tetap leksikon, tanpa penilai berbasis model.
+- Jadwal pengumpulan nyatanya ~5 jam: diterima. `CELAH` pada Antara dan
+  Republika adalah akibatnya, bukan galat.
+- Deret MEDIA tidak digeser: skor utama liputan tetap `lexicon-id-1`.
+
+**Terbuka, tidak ada yang menunggu:** penilai manusia untuk set lapangan
+(penilai kedua yang ada juga agen AI); set berita berlabel yang boleh disimpan
+(tanpa itu ragam berita tidak bisa diukur ulang).
+
+## Ringkasan percakapan 12 Oktober (apa yang diminta, apa yang terjadi)
+
+1. *"Cek apa saja yang kurang, kerjakan sampai tuntas; gate awal hilangkan
+   dulu."* → PR #32: gerbang dilepas + butir 1–7 daftar 10 Oktober.
+2. *"Push commit deploy supaya bisa dikerjakan di komputer lain."* → merge
+   oleh agen ditolak pengaman sesi; pengguna merge sendiri (`! gh pr merge 32
+   --merge`). Verifikasi production dicatat di blok PR #32.
+3. Pengguna menjawab sembilan butir keputusan (dibiarkan / sesuai yang lama /
+   silakan dinilai / perbaiki tanpa menggeser / kerjakan / gunakan kuota / 5
+   jam tidak apa-apa / kerjakan / sesuaikan) → PR #33.
+4. *"Migrasi sudah saya jalankan, lanjutkan merge dan verifikasi."* → merge
+   berhasil, verifikasi GAGAL (kejadian di atas) → PR #34, di-merge pengguna.
+5. *"Menambah sumber YouTube … kerjakan sampai selesai."* → ditambahkan agen
+   lewat Chrome di sesi pengguna; run 38223994069 membuktikannya.
+6. *"Jalankan migrasinya lewat Chrome di Supabase saya."* → pengguna login,
+   agen menjalankan BAGIAN A dan pemindahan SENSOR, `rescore` dua proyek, run
+   verifikasi. `DELETE` org uji diserahkan ke pengguna.
+7. *"Simpan semuanya di progress."* → blok ini.
+
+## Melanjutkan di komputer lain
+
+1. `git clone https://github.com/mahendrasenoaji-lgtm/public-opinion-platform`
+   atau `git pull` di `main`. Tidak ada pekerjaan yang hanya ada di satu
+   komputer.
+2. Baca `CLAUDE.md`, lalu blok ini. Rincian: blok PR #33 dan PR #32 di bawah.
+3. Tes lokal: perintah lengkap ada di blok PR #32 ("Menjalankan tes lokal di
+   Windows"). Angka terakhir: **721 tes backend**, **30 tes frontend**.
+4. `test_kolom_versi_belum_ada.py` menjatuhkan lalu memulihkan tiga kolom di
+   database tes; butuh `ADMIN_DATABASE_URL` selain `TEST_DATABASE_URL_APP`.
+5. Merge ke `main`: sesi agen bisa ditolak pengaman ("Merge Without Review").
+   Kalau begitu, pengguna menjalankan `! gh pr merge <nomor> --merge`.
+6. Verifikasi production tanpa akun: `gh workflow run collect-signals.yml`,
+   lalu baca log run (tabel per sumber). Yang butuh login (`/sinyal`, `rescore`,
+   tambah sumber) dikerjakan lewat sesi browser pengguna.
+7. Login penilaian ulang: peran RESEARCH_DIRECTOR ke atas. Proyek aktif
+   diganti di `/proyek` → "Aktifkan".
+
+---
+
 # 🟢 MULAI DARI SINI — 12 Oktober 2026 (lanjutan): keputusan pengguna dikerjakan
 
 **Baca ini dulu.** Blok "gerbang dilepas + butir 1–7" tepat di bawah sudah
