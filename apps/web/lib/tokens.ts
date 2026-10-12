@@ -44,6 +44,13 @@ export const SOURCE = {
     label: "DIGITAL",
     meaning: "Perilaku terukur, bukan pernyataan",
   },
+  // Ditambahkan 2026-10-12 bersama enum SignalSource.SENSOR di backend.
+  SENSOR: {
+    color: "var(--sensor)",
+    hex: "#C9B458",
+    label: "SENSOR",
+    meaning: "Keadaan lingkungan (terukur atau dimodelkan), bukan opini",
+  },
 } as const;
 
 export type SignalSource = keyof typeof SOURCE;

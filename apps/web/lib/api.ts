@@ -11,7 +11,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { SESSION_COOKIE } from "@/lib/session";
 
-export type SignalSource = "SURVEY" | "SOCIAL" | "MEDIA" | "DIGITAL";
+export type SignalSource = "SURVEY" | "SOCIAL" | "MEDIA" | "DIGITAL" | "SENSOR";
 
 export interface Metric {
   key: string;

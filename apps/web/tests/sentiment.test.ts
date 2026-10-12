@@ -49,6 +49,15 @@ describe("sentimentCards", () => {
     expect(cards[0]?.metric.value).toBeNull();
   });
 
+  it("angka ragam berita ikut di kartu liputan, tidak pernah menggantikan angka utama", () => {
+    const media = { ...summary(203, -0.2, "MEDIA"), sentiment_revised: metric(-0.35, "MEDIA") };
+    const cards = sentimentCards({ SOCIAL: summary(10, null, "SOCIAL"), MEDIA: media });
+    expect(cards.map((c) => [c.source, c.metric.value, c.revised?.value ?? null])).toEqual([
+      ["SOCIAL", null, null],
+      ["MEDIA", -0.2, -0.35],
+    ]);
+  });
+
   it("backend tidak menjawab: tidak ada kartu, bukan error", () => {
     expect(sentimentCards({ SOCIAL: null, MEDIA: null })).toEqual([]);
   });

@@ -12,6 +12,8 @@ export const SENTIMENT_LIMITS: Record<SentimentSource, string> = {
 interface SummaryLike {
   volume: Metric;
   sentiment: Metric;
+  /** Hanya liputan: nada menurut ragam berita, berdampingan dengan `sentiment`. */
+  sentiment_revised?: Metric | null;
 }
 
 /**
@@ -21,11 +23,11 @@ interface SummaryLike {
  */
 export function sentimentCards(
   bySource: Record<SentimentSource, SummaryLike | null>,
-): { source: SentimentSource; metric: Metric }[] {
+): { source: SentimentSource; metric: Metric; revised: Metric | null }[] {
   return (["SOCIAL", "MEDIA"] as const).flatMap((source) => {
     const summary = bySource[source];
     if (!summary || (summary.volume.value ?? 0) <= 0) return [];
-    return [{ source, metric: summary.sentiment }];
+    return [{ source, metric: summary.sentiment, revised: summary.sentiment_revised ?? null }];
   });
 }
 

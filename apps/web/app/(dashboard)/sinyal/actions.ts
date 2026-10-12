@@ -75,6 +75,8 @@ interface SourceCollectOut {
   matched: number | null;
   coverage_gap: boolean;
   result: IngestResult | null;
+  /** Keterangan sumber penemuan video; tidak ada di backend lama. */
+  note?: string | null;
 }
 
 export interface CollectAllOut {
@@ -98,6 +100,32 @@ export interface CollectAllOut {
 export async function runCollectAll(projectId: string): Promise<Result<CollectAllOut>> {
   try {
     const result = await api<CollectAllOut>(`/projects/${projectId}/signals/collect-all`, {
+      method: "POST",
+    });
+    revalidatePath("/sinyal");
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+export interface RescoreOut {
+  examined: number;
+  primary_changed: number;
+  alt_written: number;
+  remaining: number;
+  models: Record<string, string>;
+}
+
+/**
+ * Satu putaran penilaian ulang (backend membatasi 500 baris per panggilan dan
+ * melaporkan `remaining`). Pengulangannya di RescoreButton, bukan di sini,
+ * supaya kemajuan terlihat dan satu server action tidak berjalan bermenit-menit.
+ */
+export async function runRescore(projectId: string): Promise<Result<RescoreOut>> {
+  try {
+    const result = await api<RescoreOut>(`/projects/${projectId}/signals/rescore`, {
       method: "POST",
     });
     revalidatePath("/sinyal");

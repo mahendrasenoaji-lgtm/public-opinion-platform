@@ -342,7 +342,10 @@ function CollectAllButton({ projectId }: { projectId: string }) {
             <tbody>
               {summary.results.map((r) => (
                 <tr key={r.source_id}>
-                  <td>{r.label ?? r.connector}</td>
+                  <td>
+                    {r.label ?? r.connector}
+                    {r.note && <div className="proj-s">{r.note}</div>}
+                  </td>
                   <td>
                     {r.ok ? (
                       <span className="pill pill-ok">ok{r.coverage_gap ? " · celah" : ""}</span>
