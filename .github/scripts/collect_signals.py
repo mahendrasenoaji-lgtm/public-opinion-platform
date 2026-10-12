@@ -138,9 +138,11 @@ def collect(base: str, token: str, since_days: int) -> tuple[bool, list[str]]:
         "",
         f"Sumber: {data['sources_ok']} berhasil, **{data['sources_failed']} gagal**, "
         f"{data['sources_inactive']} nonaktif · tersimpan baru: **{data['stored_total']}** · "
-        f"celah cakupan: {data['coverage_gaps']} · token berlaku s.d. {expires:%Y-%m-%d}",
+        f"celah cakupan: {data['coverage_gaps']} · token berlaku s.d. {expires:%Y-%m-%d}"
+        # .get: API lama (sebelum 2026-10-12) belum mengirim field ini.
+        + (f" · batas per sumber: {data['limit_applied']}" if data.get("limit_applied") else ""),
         "",
-        "| Sumber | Status | Ditawarkan feed | Cocok tema | Tersimpan baru | Celah |",
+        "| Sumber | Status | Ditawarkan sumber | Cocok | Tersimpan baru | Celah |",
         "|---|---|---:|---:|---:|---|",
     ]
     for r in data["results"]:
@@ -163,8 +165,8 @@ def collect(base: str, token: str, since_days: int) -> tuple[bool, list[str]]:
         if r["coverage_gap"]:
             _annotate(
                 "warning",
-                f"{r['label']}: item tertua di feed lebih baru dari pengambilan "
-                "sebelumnya — ada berita yang terlewat. Rapatkan jadwal.",
+                f"{r['label']}: item tertua yang ditawarkan sumber lebih baru dari "
+                "pengambilan sebelumnya — ada yang terlewat. Rapatkan jadwal.",
             )
     lines.append("")
 

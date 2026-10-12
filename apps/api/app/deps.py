@@ -164,6 +164,32 @@ async def current_actor(
     return decode_actor(creds.credentials)
 
 
+async def bind_org(session: AsyncSession, org_id: UUID) -> None:
+    """Setel konteks tenant untuk transaksi yang SEDANG berjalan.
+
+    `is_local=true` berarti nilainya hilang saat commit/rollback. Siapa pun
+    yang meng-commit di tengah permintaan wajib memanggil ini lagi sebelum
+    query berikutnya — tanpa itu RLS menolak semuanya (dan itu memang yang
+    diinginkan: gagal tertutup, bukan terbuka).
+    """
+    await session.execute(
+        text("SELECT set_config('app.current_org', :org, true)"),
+        {"org": str(org_id)},
+    )
+
+
+async def commit_step(session: AsyncSession, org_id: UUID) -> None:
+    """Commit hasil sejauh ini, lalu buka transaksi baru dengan tenant yang sama."""
+    await session.commit()
+    await bind_org(session, org_id)
+
+
+async def rollback_step(session: AsyncSession, org_id: UUID) -> None:
+    """Batalkan langkah yang gagal tanpa membuang langkah yang sudah di-commit."""
+    await session.rollback()
+    await bind_org(session, org_id)
+
+
 async def actor_session(
     actor: Annotated[Principal | CollectorPrincipal, Depends(current_actor)],
 ) -> AsyncIterator[AsyncSession]:
@@ -171,13 +197,20 @@ async def actor_session(
 
     Organisasi diambil dari token yang tanda tangannya sudah diverifikasi —
     RLS tetap yang menegakkan batasnya, persis seperti sesi pengguna.
+
+    Berbeda dari `tenant_session`, transaksinya TIDAK dibungkus
+    `session.begin()`: `collect-all` meng-commit per sumber (`commit_step`)
+    supaya batch besar yang putus di tengah tidak membuang sumber yang sudah
+    selesai, dan SQLAlchemy melarang commit di dalam blok `begin()`.
     """
-    async with SessionLocal() as session, session.begin():
-        await session.execute(
-            text("SELECT set_config('app.current_org', :org, true)"),
-            {"org": str(actor.org_id)},
-        )
-        yield session
+    async with SessionLocal() as session:
+        await bind_org(session, actor.org_id)
+        try:
+            yield session
+            await session.commit()
+        except BaseException:
+            await session.rollback()
+            raise
 
 
 def require_role(minimum: Role):

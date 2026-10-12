@@ -52,7 +52,9 @@ from app.deps import (
     CurrentUser,
     Role,
     TenantSession,
+    commit_step,
     require_role,
+    rollback_step,
 )
 from app.models.governance import AuditLog
 from app.models.measurement import SignalSource as ModelSignalSource
@@ -81,6 +83,17 @@ MAX_INGEST_ITEMS = 1000
 #: bukan pengukuran, itu anekdot dengan desimal.
 MIN_MENTIONS_FOR_AGGREGATE = 30
 
+#: Baris per pernyataan INSERT. 18 kolom x 200 = 3.600 parameter, jauh di bawah
+#: batas 32.767 protokol Postgres.
+STORE_CHUNK = 200
+
+#: Batas item yang DIAMBIL satu panggilan collect-all, dijumlah lintas sumber.
+#: `limit` per sumber diturunkan supaya totalnya tidak melewati ini: menambah
+#: banyak sumber sekaligus tidak boleh diam-diam mengubah satu permintaan
+#: sinkron jadi pekerjaan bermenit-menit. Yang tidak terambil di satu run
+#: terambil di run berikutnya (dedup menjaga tidak ada yang ganda).
+MAX_COLLECT_ALL_ITEMS = 4000
+
 _SOCIAL_LIMITATION = (
     "Percakapan media sosial bersifat self-selected: yang menulis bukan sampel "
     "dari populasi mana pun. Angka ini tidak bisa digeneralisasi ke penduduk "
@@ -100,6 +113,12 @@ _TONE_NOT_STANCE_LIMITATION = (
     "komentar yang terbaca positif adalah pujian kepada orang yang sedang "
     "mengkritik program, dan sarkasme tidak dikenali. Persentase positif "
     "tidak boleh dibaca sebagai tingkat dukungan."
+)
+
+_MIXED_SENTIMENT_NOTE = (
+    "Sentimen tidak dirata-rata lintas sumber: liputan media dan percakapan "
+    "sosial dinilai terpisah. Minta per sumber dengan ?source=SOCIAL atau "
+    "?source=MEDIA."
 )
 
 
@@ -520,34 +539,42 @@ async def _store(
         register=_register_for(source),
     )
 
+    # ON CONFLICT DO NOTHING pada (project_id, connector, external_id):
+    # menarik ulang rentang waktu yang sama adalah operasi normal, dan tidak
+    # boleh menggandakan volume. Deduplikasi di prepare_batch hanya berlaku
+    # DALAM satu batch; ini yang menjaga antar-batch.
+    #
+    # Satu pernyataan per STORE_CHUNK baris, bukan satu per baris: 20 video x
+    # 100 komentar dulu berarti 2.000 perjalanan bolak-balik Render->Supabase
+    # dalam satu permintaan, dan itu yang melewati 150 detik (2026-10-10).
+    rows = [
+        {
+            "org_id": org_id,
+            "project_id": project_id,
+            "source": source,
+            "connector": connector,
+            "external_id": p.external_id,
+            "published_at": p.published_at,
+            "author_hash": p.author_hash,
+            "text": p.text,
+            "url": p.url,
+            "lang": p.lang,
+            "engagement": p.engagement,
+            "reach_est": p.reach_est,
+            "province_code": p.province_code,
+            "sentiment": None if p.sentiment is None else Decimal(str(p.sentiment)),
+            "emotion": p.emotion or None,
+            "reply_to_hash": p.reply_to_hash,
+            "quote_of_hash": p.quote_of_hash,
+            "conversation_id": p.conversation_id,
+        }
+        for p in report.prepared
+    ]
     stored = 0
-    for p in report.prepared:
-        # ON CONFLICT DO NOTHING pada (project_id, connector, external_id):
-        # menarik ulang rentang waktu yang sama adalah operasi normal, dan
-        # tidak boleh menggandakan volume. Deduplikasi di prepare_batch hanya
-        # berlaku DALAM satu batch; ini yang menjaga antar-batch.
+    for start in range(0, len(rows), STORE_CHUNK):
         result = await session.execute(
             pg_insert(Mention)
-            .values(
-                org_id=org_id,
-                project_id=project_id,
-                source=source,
-                connector=connector,
-                external_id=p.external_id,
-                published_at=p.published_at,
-                author_hash=p.author_hash,
-                text=p.text,
-                url=p.url,
-                lang=p.lang,
-                engagement=p.engagement,
-                reach_est=p.reach_est,
-                province_code=p.province_code,
-                sentiment=None if p.sentiment is None else Decimal(str(p.sentiment)),
-                emotion=p.emotion or None,
-                reply_to_hash=p.reply_to_hash,
-                quote_of_hash=p.quote_of_hash,
-                conversation_id=p.conversation_id,
-            )
+            .values(rows[start : start + STORE_CHUNK])
             .on_conflict_do_nothing(index_elements=["project_id", "connector", "external_id"])
         )
         stored += result.rowcount or 0
@@ -822,6 +849,9 @@ class SourceCollectOut(BaseModel):
 class CollectAllOut(BaseModel):
     project_id: UUID
     via: Literal["user", "collector_token"]
+    #: Batas item per sumber yang BENAR-BENAR dipakai; lebih kecil dari `limit`
+    #: yang diminta bila jumlah sumber x limit melewati MAX_COLLECT_ALL_ITEMS.
+    limit_applied: int
     sources_total: int
     sources_ok: int
     sources_failed: int
@@ -829,6 +859,28 @@ class CollectAllOut(BaseModel):
     coverage_gaps: int
     stored_total: int
     results: list[SourceCollectOut]
+
+
+def _failed_source(
+    source_id: UUID,
+    connector: str,
+    label: str | None,
+    previous_sync_at: datetime | None,
+    message: str,
+) -> SourceCollectOut:
+    return SourceCollectOut(
+        source_id=source_id,
+        connector=connector,
+        label=label,
+        ok=False,
+        error=message,
+        offered=None,
+        matched=None,
+        oldest_offered=None,
+        previous_sync_at=previous_sync_at,
+        coverage_gap=False,
+        result=None,
+    )
 
 
 async def _current_collector_token(
@@ -998,46 +1050,73 @@ async def collect_all(
         .all()
     )
     active = [s for s in sources if s.is_active]
+    active_ids = [s.id for s in active]
+    sources_total = len(sources)
+    per_source_limit = min(limit, max(1, MAX_COLLECT_ALL_ITEMS // max(1, len(active))))
     fetched_all = await asyncio.gather(
-        *(_fetch_source(s, since_days=since_days, limit=limit) for s in active)
+        *(_fetch_source(s, since_days=since_days, limit=per_source_limit) for s in active)
     )
 
+    # Tiap sumber disimpan dan di-COMMIT sendiri (2026-10-12). Dulu semuanya
+    # satu transaksi: batch besar yang putus di tengah (timeout proxy, satu
+    # baris yang ditolak database) membalas 500 untuk SELURUH run dan tidak
+    # menerbitkan ringkasan apa pun. Sekarang kegagalan menyimpan satu sumber
+    # dilaporkan sebagai sumber itu gagal, dan yang sudah selesai tetap ada.
     results: list[SourceCollectOut] = []
-    for source, fetched in zip(active, fetched_all, strict=True):
+    for index, fetched in enumerate(fetched_all):
+        source = active[index]
+        source_id, connector_key = source.id, source.connector
         previous = source.last_sync_at
         stats = fetched.connector.last_fetch if fetched.connector is not None else None
         label = _source_label(source)
+
         if fetched.error is not None:
             results.append(
-                SourceCollectOut(
-                    source_id=source.id,
-                    connector=source.connector,
-                    label=label,
-                    ok=False,
-                    error=str(fetched.error),
-                    offered=None,
-                    matched=None,
-                    oldest_offered=None,
-                    previous_sync_at=previous,
-                    coverage_gap=False,
-                    result=None,
+                _failed_source(source_id, connector_key, label, previous, str(fetched.error))
+            )
+            continue
+        try:
+            stored = await _store_fetched(
+                session,
+                source=source,
+                fetched=fetched,
+                actor_id=actor_id,
+                via=via,
+                token_id=token_id,
+                write_audit=False,
+            )
+            await commit_step(session, actor.org_id)
+        except Exception as e:  # noqa: BLE001
+            logger.exception("menyimpan sumber %s gagal", source_id)
+            await rollback_step(session, actor.org_id)
+            # Rollback meng-expire semua objek ORM; sumber-sumber berikutnya
+            # dimuat ulang supaya atributnya tidak memicu lazy-load.
+            reloaded = (
+                (
+                    await session.execute(
+                        select(DataSource).where(DataSource.project_id == project_id)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            by_id = {s.id: s for s in reloaded}
+            active = [by_id.get(sid, s) for sid, s in zip(active_ids, active, strict=True)]
+            results.append(
+                _failed_source(
+                    source_id,
+                    connector_key,
+                    label,
+                    previous,
+                    f"gagal menyimpan ({type(e).__name__})",
                 )
             )
             continue
-        stored = await _store_fetched(
-            session,
-            source=source,
-            fetched=fetched,
-            actor_id=actor_id,
-            via=via,
-            token_id=token_id,
-            write_audit=False,
-        )
         oldest = stats.oldest_offered if stats is not None else None
         results.append(
             SourceCollectOut(
-                source_id=source.id,
-                connector=source.connector,
+                source_id=source_id,
+                connector=connector_key,
                 label=label,
                 ok=True,
                 error=None,
@@ -1066,7 +1145,8 @@ async def collect_all(
             metadata_={
                 "via": via,
                 "token_id": str(token_id) if token_id is not None else None,
-                "sources_total": len(sources),
+                "sources_total": sources_total,
+                "limit_applied": per_source_limit,
                 "sources_ok": sum(1 for r in results if r.ok),
                 "sources_failed": sum(1 for r in results if not r.ok),
                 "sources": [
@@ -1087,10 +1167,11 @@ async def collect_all(
     return CollectAllOut(
         project_id=project_id,
         via=via,
-        sources_total=len(sources),
+        limit_applied=per_source_limit,
+        sources_total=sources_total,
         sources_ok=sum(1 for r in results if r.ok),
         sources_failed=sum(1 for r in results if not r.ok),
-        sources_inactive=len(sources) - len(active),
+        sources_inactive=sources_total - len(active),
         coverage_gaps=sum(1 for r in results if r.coverage_gap),
         stored_total=sum(r.result.stored for r in results if r.result is not None),
         results=results,
@@ -1154,13 +1235,22 @@ async def summary(
     concentration = concentration_ratio(r.author_hash for r in rows)
 
     mix: dict[str, int] = {}
+    scored_mix: dict[str, int] = {}
     for r in rows:
         mix[r.source.value] = mix.get(r.source.value, 0) + 1
+        if r.sentiment is not None:
+            scored_mix[r.source.value] = scored_mix.get(r.source.value, 0) + 1
+    # R1: nada liputan media dan nada komentar sosial diukur penilai berbeda
+    # atas populasi berbeda. Tanpa `source`, begitu keduanya ada, rata-ratanya
+    # hanya mengikuti sumber yang lebih banyak (proyek MBG: -0,47 dari 64
+    # judul jadi -0,28 begitu 1.100 komentar masuk). Angka itu tidak
+    # diterbitkan; pemanggil meminta per sumber lewat `?source=`.
+    mixed = source is None and len(scored_mix) > 1
 
     enough = volume >= MIN_MENTIONS_FOR_AGGREGATE and len(scored) >= MIN_MENTIONS_FOR_AGGREGATE
     mean = round(sum(scored) / len(scored), 3) if scored else None
 
-    dominant = (
+    dominant = source or (
         SignalSource.MEDIA
         if mix.get("MEDIA", 0) > mix.get("SOCIAL", 0)
         else SignalSource.SOCIAL
@@ -1194,7 +1284,7 @@ async def summary(
         sentiment=Metric(
             key="signal_sentiment",
             label="Sentimen rata-rata",
-            value=mean if enough else None,
+            value=mean if enough and not mixed else None,
             unit="skala -1..1",
             source=dominant,
             method=_sentiment_method(dominant),
@@ -1203,7 +1293,9 @@ async def summary(
             period_end=until.date(),
             insufficient_data=not enough,
             note=(
-                None
+                _MIXED_SENTIMENT_NOTE
+                if mixed
+                else None
                 if enough
                 else (
                     f"Perlu minimal {MIN_MENTIONS_FOR_AGGREGATE} konten bernilai "

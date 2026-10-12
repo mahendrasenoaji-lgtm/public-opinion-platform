@@ -9,6 +9,7 @@ import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import type { CollectorTokenStatus } from "./actions";
+import { SENTIMENT_LIMITS, formatSentiment, sentimentCards } from "./sentiment";
 
 //: Cermin RANK[RESEARCHER]/RANK[RESEARCH_DIRECTOR] di app/deps.py + tiap
 //: dependencies=[Depends(require_role(...))] di app/routers/signals.py.
@@ -143,8 +144,22 @@ export default async function SinyalPage() {
   // jadi "Application error". Kelas bug yang sama pernah kena tiga halaman
   // lain di repo ini (lihat docs/deployment-status.md, bagian registrasi
   // self-service).
-  const [summary, trend, quality, sources, connectors, mentions, tokenStatus] = await Promise.all([
+  const [
+    summary,
+    summarySocial,
+    summaryMedia,
+    trend,
+    quality,
+    sources,
+    connectors,
+    mentions,
+    tokenStatus,
+  ] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
+    // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
+    // hanya dipakai untuk volume, komposisi, dan sebaran akun.
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=SOCIAL`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=MEDIA`),
     apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
@@ -161,6 +176,7 @@ export default async function SinyalPage() {
   const volume = summary?.volume.value ?? 0;
   // Warna mengikuti sumber yang dominan, bukan estetika (R1).
   const tone = SOURCE[summary?.volume.source ?? "SOCIAL"].color;
+  const sentimentBySource = sentimentCards({ SOCIAL: summarySocial, MEDIA: summaryMedia });
   const withVolume = (trend ?? []).filter((p) => p.volume > 0);
   const peak = Math.max(1, ...withVolume.map((p) => p.volume));
 
@@ -185,31 +201,40 @@ export default async function SinyalPage() {
             )}
           </div>
 
-          <div className="stat">
-            <div className="kicker">Sentimen rata-rata</div>
-            {!summary || summary.sentiment.value === null ? (
-              <InsufficientData
-                reason={
-                  summary?.sentiment.note ??
-                  "Belum ada percakapan yang masuk untuk proyek ini."
-                }
-              />
-            ) : (
-              <>
-                <div className="stat-v" style={{ color: tone }}>
-                  {summary.sentiment.value > 0 ? "+" : ""}
-                  {summary.sentiment.value.toFixed(2)}
-                  <span className="stat-u">/ 1.00</span>
-                </div>
-                <Provenance
-                  method={summary.sentiment.method}
-                  n={summary.sentiment.effective_n ?? 0}
-                  confidence="Rendah"
-                  limits="Self-selected. Bukan sentimen publik, melainkan sentimen yang menulis."
-                />
-              </>
-            )}
-          </div>
+          {/* Satu kartu per sumber, tidak pernah satu angka gabungan: nada
+              liputan dan nada komentar diukur penilai berbeda atas populasi
+              berbeda, dan rata-ratanya hanya mengikuti sumber yang lebih
+              banyak (proyek MBG: -0,47 jadi -0,28 begitu komentar masuk). */}
+          {sentimentBySource.length === 0 ? (
+            <div className="stat">
+              <div className="kicker">Sentimen rata-rata</div>
+              <InsufficientData reason="Belum ada percakapan yang masuk untuk proyek ini." />
+            </div>
+          ) : (
+            sentimentBySource.map(({ source, metric }) => (
+              <div className="stat" key={source}>
+                <div className="kicker">Sentimen rata-rata · {SOURCE[source].label}</div>
+                {metric.value === null ? (
+                  <InsufficientData
+                    reason={metric.note ?? "Belum cukup konten bernilai sentimen."}
+                  />
+                ) : (
+                  <>
+                    <div className="stat-v" style={{ color: SOURCE[source].color }}>
+                      {formatSentiment(metric.value)}
+                      <span className="stat-u">/ 1.00</span>
+                    </div>
+                    <Provenance
+                      method={metric.method}
+                      n={metric.effective_n ?? 0}
+                      confidence="Rendah"
+                      limits={SENTIMENT_LIMITS[source]}
+                    />
+                  </>
+                )}
+              </div>
+            ))
+          )}
 
           <div className="stat">
             <div className="kicker">Akun berbeda</div>

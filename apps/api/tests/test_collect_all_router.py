@@ -58,20 +58,24 @@ class _StaticTestConnector(Connector):
         if config.get("crash"):
             raise ValueError("bug di konektor")
         now = datetime.now(UTC)
+        # NUL ditolak Postgres di kolom text: kegagalan PENYIMPANAN sungguhan,
+        # bukan kegagalan pengambilan.
+        suffix = "\x00" if config.get("unstorable") else ""
+        count = int(str(config.get("count", "2")))
         items = [
             RawItem(
                 external_id=f"https://contoh.id/{config['name']}/{i}",
-                text=f"Program makan bergizi gratis dievaluasi, bagian {i}",
+                text=f"Program makan bergizi gratis dievaluasi, bagian {i}{suffix}",
                 published_at=now - timedelta(minutes=10 * (i + 1)),
                 url=f"https://contoh.id/{config['name']}/{i}",
             )
-            for i in range(2)
+            for i in range(count)
         ]
         oldest_minutes = int(str(config.get("oldest_minutes_ago", "20")))
         self.last_fetch = FetchStats(
-            offered=2,
+            offered=count,
             oldest_offered=now - timedelta(minutes=oldest_minutes),
-            matched=2,
+            matched=count,
         )
         return items[:limit]
 
@@ -191,6 +195,72 @@ class TestCollectAll:
         body = r.json()
         assert body["sources_ok"] == 1 and body["sources_failed"] == 1
         assert "ValueError" in next(s for s in body["results"] if not s["ok"])["error"]
+
+    async def test_gagal_menyimpan_satu_sumber_tidak_membuang_yang_lain(self, client) -> None:
+        """Sumber di tengah ditolak database; yang sebelum DAN sesudahnya tetap tersimpan.
+
+        Dulu seluruh run satu transaksi: satu baris yang ditolak berarti 500
+        tanpa ringkasan, dan sumber yang sudah selesai ikut batal.
+        """
+        headers, pid = await _new_project(client)
+        await _add_source(client, headers, pid)
+        await _add_source(client, headers, pid, unstorable="1")
+        await _add_source(client, headers, pid)
+
+        r = await client.post(f"/v1/projects/{pid}/signals/collect-all", headers=headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["sources_ok"] == 2 and body["sources_failed"] == 1
+        assert body["stored_total"] == 4
+        failed = next(s for s in body["results"] if not s["ok"])
+        assert "gagal menyimpan" in failed["error"]
+
+        # Benar-benar tersimpan (bukan cuma dilaporkan), dan sumber yang gagal
+        # tidak dicatat seolah pernah berhasil ditarik.
+        mentions = await client.get(f"/v1/projects/{pid}/mentions?limit=50", headers=headers)
+        assert len(mentions.json()) == 4
+        sources = (
+            await client.get(f"/v1/projects/{pid}/signals/sources", headers=headers)
+        ).json()
+        synced = {s["id"]: s["last_sync_at"] for s in sources}
+        assert synced[failed["source_id"]] is None
+        assert sum(1 for v in synced.values() if v is not None) == 2
+
+    async def test_batch_besar_tersimpan_utuh(self, client) -> None:
+        """Lebih dari satu potongan INSERT (STORE_CHUNK), dihitung dengan benar."""
+        headers, pid = await _new_project(client)
+        await _add_source(client, headers, pid, count="450")
+        url = f"/v1/projects/{pid}/signals/collect-all?limit=1000"
+        body = (await client.post(url, headers=headers)).json()
+        assert body["stored_total"] == 450
+        again = (await client.post(url, headers=headers)).json()
+        assert again["stored_total"] == 0
+        assert again["results"][0]["result"]["already_present"] == 450
+
+    async def test_limit_per_sumber_diturunkan_bila_total_melewati_anggaran(
+        self, client, monkeypatch
+    ) -> None:
+        from app.routers import signals
+
+        monkeypatch.setattr(signals, "MAX_COLLECT_ALL_ITEMS", 3)
+        headers, pid = await _new_project(client)
+        for _ in range(3):
+            await _add_source(client, headers, pid)
+        body = (
+            await client.post(f"/v1/projects/{pid}/signals/collect-all", headers=headers)
+        ).json()
+        assert body["limit_applied"] == 1
+        assert body["stored_total"] == 3
+
+    async def test_limit_yang_diminta_dipakai_bila_di_bawah_anggaran(self, client) -> None:
+        headers, pid = await _new_project(client)
+        await _add_source(client, headers, pid)
+        body = (
+            await client.post(
+                f"/v1/projects/{pid}/signals/collect-all?limit=50", headers=headers
+            )
+        ).json()
+        assert body["limit_applied"] == 50
 
     async def test_tarik_ulang_tidak_menggandakan(self, client) -> None:
         headers, pid = await _new_project(client)
