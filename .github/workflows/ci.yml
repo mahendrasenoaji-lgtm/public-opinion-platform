@@ -8,6 +8,10 @@ name: CI
 # tes jalan — superuser mengabaikan RLS dan akan membuat CI lulus palsu,
 # sama seperti peringatan di apps/api/tests/test_tenant_isolation.py.
 
+# Runner dipaku ke ubuntu-24.04 (2026-10-12): `ubuntu-latest` pindah ke
+# Ubuntu 26 mulai 19 Okt 2026, dan perpindahan image tidak boleh jadi sebab
+# CI merah yang tidak ada hubungannya dengan kode. Naikkan dengan sengaja.
+
 on:
   push:
     branches: [main]
@@ -15,7 +19,7 @@ on:
 
 jobs:
   backend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         # pgvector/pgvector:pg16, bukan image postgres polos — schema.sql
@@ -54,9 +58,9 @@ jobs:
       run:
         working-directory: apps/api
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
@@ -93,16 +97,16 @@ jobs:
         run: python -m pytest -q
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: apps/web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: apps/web/package-lock.json
 
@@ -110,6 +114,11 @@ jobs:
 
       - name: typecheck
         run: npm run typecheck
+
+      # Ditambahkan 2026-10-12. Sebelumnya frontend hanya typecheck + build:
+      # middleware (siapa diarahkan ke mana) tidak punya tes sama sekali.
+      - name: vitest
+        run: npm test
 
       - name: next build
         env:

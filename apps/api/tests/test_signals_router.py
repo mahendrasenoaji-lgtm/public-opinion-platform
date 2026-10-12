@@ -339,6 +339,50 @@ class TestAgregasi:
         body = (await client.get(f"/v1/projects/{pid}/signals/summary", headers=headers)).json()
         assert any("self-selected" in x for x in body["limitations"])
 
+    async def test_sentimen_tidak_dirata_rata_lintas_sumber(self, client) -> None:
+        """R1: begitu MEDIA dan SOCIAL sama-sama ada, angka gabungan tidak terbit."""
+        headers, pid = await _new_project(client)
+        sosial = [_item(i, f"program ini parah dan mengecewakan warga {i}") for i in range(40)]
+        media = [
+            _item(i, f"pelayanan program ini sangat bagus dan membantu warga nomor {i}")
+            for i in range(35)
+        ]
+        for source, items in (("SOCIAL", sosial), ("MEDIA", media)):
+            r = await client.post(
+                f"/v1/projects/{pid}/signals/ingest",
+                json={"source": source, "connector": f"manual_{source.lower()}", "items": items},
+                headers=headers,
+            )
+            assert r.status_code == 200, r.text
+
+        url = f"/v1/projects/{pid}/signals/summary"
+        gabungan = (await client.get(url, headers=headers)).json()
+        assert gabungan["sentiment"]["value"] is None
+        assert "lintas sumber" in gabungan["sentiment"]["note"]
+        assert gabungan["volume"]["value"] == 75
+        assert gabungan["source_mix"] == {"SOCIAL": 40, "MEDIA": 35}
+
+        s = (await client.get(url, params={"source": "SOCIAL"}, headers=headers)).json()
+        m = (await client.get(url, params={"source": "MEDIA"}, headers=headers)).json()
+        assert s["sentiment"]["source"] == "SOCIAL" and s["sentiment"]["value"] < 0
+        assert m["sentiment"]["source"] == "MEDIA" and m["sentiment"]["value"] > 0
+        assert s["volume"]["value"] == 40 and m["volume"]["value"] == 35
+
+    async def test_ringkasan_per_sumber_berlabel_sumber_yang_diminta_walau_kosong(
+        self, client
+    ) -> None:
+        headers, pid = await _new_project(client)
+        body = (
+            await client.get(
+                f"/v1/projects/{pid}/signals/summary",
+                params={"source": "MEDIA"},
+                headers=headers,
+            )
+        ).json()
+        assert body["volume"]["source"] == "MEDIA"
+        assert body["sentiment"]["source"] == "MEDIA"
+        assert body["sentiment"]["value"] is None
+
     async def test_proyek_kosong_tidak_jatuh(self, client) -> None:
         headers, pid = await _new_project(client)
         r = await client.get(f"/v1/projects/{pid}/signals/summary", headers=headers)

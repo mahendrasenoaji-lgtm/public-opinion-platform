@@ -1,6 +1,17 @@
 // Site-wide password gate — pre-launch lock.
 // HMAC-SHA256 signed session cookie via Web Crypto (Edge-safe, no external deps).
 
+//
+// DILEPAS 2026-10-12 atas permintaan pemilik: gerbang ini mati kecuali
+// SITE_GATE=on di environment. Yang menjaga data tetap sesi pengguna
+// (lib/session.ts) + verifikasi JWT dan RLS di backend — gerbang ini hanya
+// tirai pra-rilis di depannya. Menghidupkannya lagi: set SITE_GATE=on,
+// SITE_PASSWORD, dan SESSION_SECRET di Vercel, lalu redeploy.
+
+export function siteGateEnabled(): boolean {
+  return process.env.SITE_GATE === "on";
+}
+
 export const COOKIE_NAME = "pop_gate_session";
 export const COOKIE_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 

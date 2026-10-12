@@ -6,7 +6,108 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — keadaan akhir 10 Oktober 2026 + yang KURANG
+# 🟢 MULAI DARI SINI — 12 Oktober 2026: gerbang dilepas + butir 1–7 selesai
+
+**Baca ini dulu.** Blok 10 Oktober di bawah masih berlaku untuk latar
+belakangnya, tapi daftar "Yang KURANG" di sana sudah digantikan daftar di blok
+ini.
+
+## Yang dikerjakan (PR #32)
+
+Permintaan pengguna: "cek apa saja yang kurang, kerjakan sampai tuntas; gate
+awal hilangkan dulu".
+
+| # lama | Hal | Yang berubah | Bukti |
+|---|---|---|---|
+| — | **Gerbang password situs dilepas** | `apps/web/middleware.ts` hanya menjalankan lapis gerbang bila `SITE_GATE=on`; `/login` meneruskan ke `/masuk`. Login pengguna (`/masuk`), verifikasi JWT backend, dan RLS **tidak berubah** | `tests/middleware.test.ts`; server lokal dengan `SITE_PASSWORD` lama masih terpasang: `/` → `/masuk?next=%2F`, `/login` → `/masuk`, `/masuk` 200 |
+| 1 | `collect-all` tidak tahan batch besar | Insert massal (200 baris per pernyataan, dulu 1 baris = 1 perjalanan ke database); tiap sumber di-commit sendiri; gagal menyimpan satu sumber dilaporkan sebagai sumber itu gagal, bukan 500 untuk seluruh run; total item per permintaan dibatasi `MAX_COLLECT_ALL_ITEMS` = 4000 (`limit_applied` di respons) | `test_gagal_menyimpan_satu_sumber_tidak_membuang_yang_lain`, `test_batch_besar_tersimpan_utuh`, dua tes `limit_applied` |
+| 2 | Konektor RSS tanpa retry | Satu percobaan ulang (jeda 2 dtk) untuk koneksi putus, 5xx, dan XML terpotong. 4xx/429/halaman HTML **tidak** diulang | `TestRSSCobaUlang` (7 tes) |
+| 3 | Kartu sentimen mencampur `MEDIA` + `SOSIAL` | `/sinyal` menampilkan satu kartu per sumber; `GET .../signals/summary` tanpa `?source=` mengembalikan `value: null` + catatan begitu dua sumber sama-sama punya konten bernilai | `test_sentimen_tidak_dirata_rata_lintas_sumber`; uji lokal API+web: kartu "Sentimen rata-rata · SOSIAL" dan "· MEDIA" |
+| 4 | Ringkasan run tanpa `ditawarkan`/`cocok` untuk YouTube | Konektor YouTube mengisi `last_fetch`, dan berhenti membalik halaman begitu melewati `since` (hemat kuota) | `TestYouTubeBatasDanStatistik` (6 tes) |
+| 5 | Frontend tanpa tes | Vitest: 29 tes (middleware, gerbang, sesi, kartu sentimen); langkah `vitest` di CI | `npm test` |
+| 6 | Peringatan workflow | `checkout@v5`, `setup-python@v6`, `setup-node@v6` (Node 24), Node 22 untuk build; runner dipaku `ubuntu-24.04` | run CI PR #32 |
+| 7 | Tes ber-tanggal tetap | Dicari di semua tes ber-database. Yang tersisa (`metric_snapshots` di alerts/phase3/impact/synthetic-control) adalah penanda periode, dan endpoint-nya tidak menyaring dengan jendela "N hari terakhir" — tidak akan memerah karena waktu berjalan | `grep`, dibaca per endpoint |
+
+Angka: tes backend **674** (655 + 19), semuanya lulus lokal terhadap
+Postgres 16 + pgvector sungguhan, role `pop_app`, RLS aktif. Tes frontend
+**29**. `ruff`, `mypy --strict`, `tsc`, `next build` hijau.
+
+### Yang perlu diketahui tentang perubahan ini
+
+- **Gerbang "dilepas dulu", bukan dihapus.** Kodenya utuh. Menghidupkan lagi:
+  set `SITE_GATE=on` + `SITE_PASSWORD` + `SESSION_SECRET` di Vercel → Redeploy.
+  Env `SITE_PASSWORD`/`SESSION_SECRET` lama di Vercel boleh dibiarkan; tanpa
+  `SITE_GATE=on` keduanya tidak dibaca.
+- **Akibat melepas gerbang:** `/masuk` dan `/daftar` kini bisa dibuka siapa
+  pun. `/daftar` membuat organisasi baru yang kosong; RLS memisahkannya dari
+  data org lain, tapi belum ada endpoint hapus org (butir 15 lama) dan belum
+  ada pembatasan pendaftaran selain rate limit per IP. Kalau situs akan
+  disebar luas, putuskan dulu apakah pendaftaran dibiarkan terbuka.
+- **`actor_session` tidak lagi memakai `session.begin()`** (`app/deps.py`),
+  supaya `collect-all` bisa commit per sumber. `commit_step`/`rollback_step`
+  menyetel ulang `app.current_org` setelah tiap commit — `SET LOCAL` hilang
+  saat transaksi berakhir, dan tanpa itu RLS menolak semuanya (gagal tertutup).
+  Hanya `collect-all` yang memakai dependency ini.
+- **Penyebab 500 pada 10 Okt tidak pernah dilihat langsung** (tidak ada akses
+  log Render). Yang diperbaiki adalah penyebab yang terukur: 2.000 INSERT
+  berurutan dalam satu permintaan. Kalau 500 muncul lagi, ringkasan run
+  sekarang menyebut sumber mana yang gagal disimpan dan jenis galatnya.
+- **`coverage_gap` untuk YouTube** hanya menyala bila pengambilan berhenti
+  karena `limit` padahal komentar tertua yang terambil masih lebih baru dari
+  pengambilan sebelumnya. Video yang komentarnya sudah habis terambil tidak
+  pernah dilaporkan celah.
+
+## Yang KURANG sekarang
+
+Tidak ada lagi butir yang bisa dikerjakan agen tanpa keputusan atau
+kredensial. Penomoran mengikuti blok 10 Oktober supaya rujukan lama tetap
+cocok.
+
+**Butuh keputusan pengguna:**
+
+- 8 — nada bukan sikap, sarkasme (butuh penilai berbasis model).
+- 9 — penilai kedua untuk set lapangan 440 komentar.
+- 10 — leksikon baku salah pada judul berita; memperbaikinya menggeser deret `MEDIA`.
+- 11 — komentar lama belum dinilai ulang (butuh kolom versi penilai = migrasi).
+- 12 — daftar video statis; penemuan per kata kunci belum dibangun (100 unit kuota per panggilan).
+- 13 — K1: jadwal 30 menit nyatanya ~5 jam; butuh pemicu di luar GitHub Actions.
+- 14 — `SignalSource` `SENSOR` (migrasi `ALTER TYPE`).
+- 15 — tiga org uji kosong di production; belum ada endpoint hapus org.
+- baru — pendaftaran terbuka setelah gerbang dilepas (lihat di atas).
+
+**Butuh akun/kredensial pengguna:**
+
+- 16 — K7: feed Katadata pengganti Kontan (satu isian di `/sinyal`).
+- 17 — K8: pengumpulan otomatis proyek KEBAKARAN HUTAN.
+- 18 — ~~`SITE_PASSWORD` tidak diketahui~~ **tidak relevan lagi**: gerbang
+  dilepas, komputer mana pun langsung sampai ke `/masuk`.
+- 19 — `X_BEARER_TOKEN`, `ANTHROPIC_API_KEY` belum diset di Render.
+- 20 — survei gelombang kedua; Phase 4 (SSO, MFA wajib, billing, API publik).
+
+## Menjalankan tes lokal di Windows (dipakai sesi ini)
+
+Python yang terpasang 3.14; semua dependensi terpasang dan 674 tes lulus di
+situ (CI tetap 3.12).
+
+```
+cd apps/api
+python -m venv .venv-test
+.venv-test/Scripts/python -m pip install -r requirements.txt pytest pytest-asyncio ruff mypy types-reportlab
+docker run -d --name pop-test-tmp -e POSTGRES_USER=pop -e POSTGRES_PASSWORD=pop -e POSTGRES_DB=pop -p 55432:5432 pgvector/pgvector:pg16
+docker exec -i pop-test-tmp psql -U pop -d pop -v ON_ERROR_STOP=1 -q < ../../db/schema.sql
+docker exec -i pop-test-tmp psql -U pop -d pop -v ON_ERROR_STOP=1 -q < ../../db/rls.sql
+TEST_DATABASE_URL_APP=postgresql+asyncpg://pop_app:change-me@localhost:55432/pop \
+DATABASE_URL=postgresql+asyncpg://pop_app:change-me@localhost:55432/pop \
+JWT_SECRET=test-secret-for-unit-tests .venv-test/Scripts/python -m pytest -q
+docker rm -f pop-test-tmp
+```
+
+Port 55432, bukan 5432: di mesin ini 5432 dipakai kontainer proyek lain.
+Frontend: `cd apps/web && npm ci && npm test`.
+
+---
+
+# Keadaan akhir 10 Oktober 2026 + yang KURANG (daftar KURANG-nya digantikan blok 12 Oktober)
 
 **Baca ini dulu kalau melanjutkan di komputer lain.** Rincian tiap butir ada
 di blok "10 Oktober 2026 (sentimen ragam informal)" tepat di bawah.

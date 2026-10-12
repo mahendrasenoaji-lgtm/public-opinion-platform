@@ -1,7 +1,9 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-09-17 (sesi kedelapan, komputer Windows terpisah
+menahannya.** Diperbarui 2026-10-12 (gerbang password situs dilepas; butir 1–7
+dari daftar "yang kurang" 10 Oktober selesai — lihat blok "MULAI DARI SINI" di
+kepala `docs/deployment-status.md`). Sebelumnya 2026-09-17 (sesi kedelapan, komputer Windows terpisah
 dari sesi-sesi sebelumnya — K4/K9/K11 dari tabel "Pengumpulan sinyal
 terjadwal" dikerjakan tuntas dan sudah live di production; K7/K8 diriset
 tuntas dan siap dieksekusi tapi butuh token admin produksi; K10/K2 dianalisis
@@ -41,6 +43,8 @@ yang lulus tanpa database.
 |---|---|
 | Tes backend | **548** = 499 dikonfirmasi CI + **49 baru** (konektor deret: Wikipedia 25, Open-Meteo 24). Yang 499 via CI (role `pop_app`, RLS aktif): 486 [PR #5](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/5), 492 [PR #6](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/6), 499 [PR #7](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/7). Yang 49 (konektor deret) **dikonfirmasi CI lewat [PR #9](https://github.com/mahendrasenoaji-lgtm/public-opinion-platform/pull/9)** |
 | Tes backend (2026-09-15) | **593 lulus lokal** (Postgres 16, role `pop_app`, RLS aktif, schema dengan kolom vector di-shim) setelah PR #15: +21 tes `test_collect_all_router.py`, +~20 tes konektor RSS/kata kunci. **CI PR #15 dan #16 hijau** (pgvector sungguhan) |
+| Tes backend (2026-10-12) | **674 lulus lokal** (Postgres 16 + pgvector sungguhan, role `pop_app`, RLS aktif): +19 untuk collect-all per sumber, retry RSS, statistik YouTube, sentimen per sumber |
+| Tes frontend (2026-10-12) | **29** (Vitest: middleware, gerbang situs, sesi, kartu sentimen) — sebelumnya tidak ada |
 | Endpoint API | **68** (+4 pada 2026-09-15: `POST /projects/{id}/signals/collect-all`, `POST`/`GET`/`DELETE /projects/{id}/signals/collector-token`). Sebelumnya 64 (+3 metrics, 2026-09-11) |
 | Otomasi terjadwal | **1** — `.github/workflows/collect-signals.yml`, tiap 30 menit (2026-09-15) |
 | Halaman dashboard | 18 (9 Phase 1 + 9 Phase 2/3, termasuk `/deret` baru) |

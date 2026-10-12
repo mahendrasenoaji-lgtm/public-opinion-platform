@@ -11,9 +11,11 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 
 from app.connectors import available, get_connector
+from app.connectors import rss as rss_module
 from app.connectors.base import (
     Connector,
     ConnectorError,
@@ -30,7 +32,7 @@ from app.connectors.rss import (
     parse_feed,
 )
 from app.connectors.x import parse_search
-from app.connectors.youtube import parse_comment_threads
+from app.connectors.youtube import fetch_stats, parse_comment_threads, reached_cutoff
 from app.models.measurement import SignalSource
 
 RSS_SAMPLE = b"""<?xml version="1.0"?>
@@ -426,3 +428,136 @@ def test_timezone_selalu_disertakan() -> None:
     for item in parse_feed(RSS_SAMPLE) + parse_feed(ATOM_SAMPLE):
         assert item.published_at.tzinfo is not None
         assert item.published_at.astimezone(UTC).year == 2026
+
+
+def _feed_client(monkeypatch: pytest.MonkeyPatch, responses: list[object]) -> list[str]:
+    """Ganti jaringan konektor RSS dengan jawaban berurutan. Mengembalikan log URL.
+
+    Tiap unsur `responses` adalah httpx.Response, atau Exception yang dilempar
+    saat permintaan itu dibuat. Jeda antar percobaan dinolkan.
+    """
+    calls: list[str] = []
+    queue = list(responses)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(str(request.url))
+        nxt = queue.pop(0)
+        if isinstance(nxt, Exception):
+            raise nxt
+        assert isinstance(nxt, httpx.Response)
+        return nxt
+
+    real_client = httpx.AsyncClient
+
+    def factory(**kwargs: object) -> httpx.AsyncClient:
+        return real_client(transport=httpx.MockTransport(handler), **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(rss_module.httpx, "AsyncClient", factory)
+    monkeypatch.setattr(rss_module, "RETRY_DELAY_SECONDS", 0.0)
+    return calls
+
+
+class TestRSSCobaUlang:
+    """Satu percobaan ulang untuk gangguan sesaat — dan HANYA untuk itu."""
+
+    URL: str = "https://contoh.id/rss"
+
+    async def test_koneksi_putus_sekali_lalu_berhasil(self, monkeypatch) -> None:
+        calls = _feed_client(
+            monkeypatch,
+            [
+                httpx.RemoteProtocolError("Server disconnected without sending a response."),
+                httpx.Response(200, content=RSS_SAMPLE),
+            ],
+        )
+        items = await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(items) == 1
+        assert len(calls) == 2
+
+    async def test_xml_terpotong_sekali_lalu_berhasil(self, monkeypatch) -> None:
+        calls = _feed_client(
+            monkeypatch,
+            [
+                httpx.Response(200, content=RSS_SAMPLE[: len(RSS_SAMPLE) // 2]),
+                httpx.Response(200, content=RSS_SAMPLE),
+            ],
+        )
+        connector = get_connector("rss")
+        items = await connector.fetch({"feed_url": self.URL})
+        assert len(items) == 1
+        assert len(calls) == 2
+        # Statistik berasal dari percobaan yang berhasil, bukan yang terpotong.
+        assert connector.last_fetch is not None and connector.last_fetch.offered == 1
+
+    async def test_5xx_diulang_dan_pesan_akhir_tetap_menyebut_kodenya(self, monkeypatch) -> None:
+        calls = _feed_client(monkeypatch, [httpx.Response(503), httpx.Response(502)])
+        with pytest.raises(ConnectorError, match="502"):
+            await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(calls) == 2
+
+    async def test_gagal_dua_kali_dilaporkan_bukan_diulang_terus(self, monkeypatch) -> None:
+        calls = _feed_client(
+            monkeypatch,
+            [httpx.ConnectError("putus"), httpx.ConnectError("putus lagi")],
+        )
+        with pytest.raises(ConnectorError, match="tidak bisa diambil"):
+            await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(calls) == 2
+
+    async def test_403_tidak_diulang(self, monkeypatch) -> None:
+        """Penolakan penerbit adalah jawaban, bukan gangguan (connectors/base.py)."""
+        calls = _feed_client(monkeypatch, [httpx.Response(403)])
+        with pytest.raises(ConnectorError, match="403"):
+            await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(calls) == 1
+
+    async def test_429_tidak_diulang(self, monkeypatch) -> None:
+        calls = _feed_client(monkeypatch, [httpx.Response(429)])
+        with pytest.raises(ConnectorError, match="429"):
+            await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(calls) == 1
+
+    async def test_halaman_html_tidak_diulang(self, monkeypatch) -> None:
+        calls = _feed_client(
+            monkeypatch, [httpx.Response(200, content=b"<!DOCTYPE html><html></html>")]
+        )
+        with pytest.raises(ConnectorError, match="halaman HTML"):
+            await get_connector("rss").fetch({"feed_url": self.URL})
+        assert len(calls) == 1
+
+
+def _komentar(minutes_ago: int) -> RawItem:
+    return RawItem(
+        external_id=f"c{minutes_ago}",
+        text="isi",
+        published_at=datetime(2026, 10, 1, 12, 0, tzinfo=UTC) - timedelta(minutes=minutes_ago),
+    )
+
+
+class TestYouTubeBatasDanStatistik:
+    CUTOFF: datetime = datetime(2026, 10, 1, 11, 0, tzinfo=UTC)
+
+    def test_halaman_yang_melewati_batas_menghentikan_pembalikan(self) -> None:
+        assert reached_cutoff([_komentar(10), _komentar(90)], self.CUTOFF) is True
+
+    def test_halaman_yang_seluruhnya_baru_dilanjutkan(self) -> None:
+        assert reached_cutoff([_komentar(10), _komentar(50)], self.CUTOFF) is False
+
+    def test_tanpa_batas_atau_halaman_kosong_tidak_menghentikan(self) -> None:
+        assert reached_cutoff([_komentar(90)], None) is False
+        assert reached_cutoff([], self.CUTOFF) is False
+
+    def test_statistik_melaporkan_ditawarkan_dan_cocok(self) -> None:
+        stats = fetch_stats([_komentar(10), _komentar(90)], matched=1, exhausted=False)
+        assert (stats.offered, stats.matched) == (2, 1)
+        assert stats.oldest_offered == _komentar(90).published_at
+
+    def test_daftar_yang_habis_bukan_bukti_celah(self) -> None:
+        """Video baru dengan sedikit komentar tidak boleh dilaporkan 'ada yang terlewat'."""
+        stats = fetch_stats([_komentar(10)], matched=1, exhausted=True)
+        assert stats.offered == 1
+        assert stats.oldest_offered is None
+
+    def test_tanpa_komentar(self) -> None:
+        stats = fetch_stats([], matched=0, exhausted=True)
+        assert (stats.offered, stats.matched, stats.oldest_offered) == (0, 0, None)

@@ -1,18 +1,20 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { verifyToken, COOKIE_NAME } from "@/lib/auth";
+import { verifyToken, COOKIE_NAME, siteGateEnabled } from "@/lib/auth";
 import { SESSION_COOKIE, decodeJwtPayload, isExpired } from "@/lib/session";
 
 // Dua lapis, dua concern berbeda — jangan digabung:
 // 1) Gerbang password situs (pre-launch, satu password bersama semua orang).
-// 2) Sesi user asli (JWT per-user dari backend, RBAC).
+//    MATI secara bawaan sejak 2026-10-12; hidup hanya bila SITE_GATE=on
+//    (lihat lib/auth.ts).
+// 2) Sesi user asli (JWT per-user dari backend, RBAC). Selalu hidup.
 const SITE_GATE_PUBLIC = ["/login", "/api/auth"];
 const APP_SESSION_PUBLIC = ["/login", "/api/auth", "/masuk", "/daftar", "/api/session"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Lapis 1 — gerbang password situs (tidak diubah dari sebelumnya).
-  if (!SITE_GATE_PUBLIC.some((p) => pathname.startsWith(p))) {
+  // Lapis 1 — gerbang password situs.
+  if (siteGateEnabled() && !SITE_GATE_PUBLIC.some((p) => pathname.startsWith(p))) {
     const secret = process.env.SESSION_SECRET;
     // Fail-closed by design: kalau SESSION_SECRET belum diset, situs TETAP
     // terkunci (redirect ke /login) alih-alih otomatis terbuka ke publik.
