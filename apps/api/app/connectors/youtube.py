@@ -27,6 +27,7 @@ from app.connectors.base import (
     Connector,
     ConnectorError,
     CredentialMissing,
+    FetchStats,
     RawItem,
     register,
 )
@@ -131,8 +132,11 @@ class YouTubeConnector(Connector):
         else:
             params["allThreadsRelatedToChannelId"] = channel_id
 
+        cutoff = None if since is None else (since if since.tzinfo else since.replace(tzinfo=UTC))
         collected: list[RawItem] = []
         page_token: str | None = None
+        #: True bila API sudah menyerahkan SEMUA komentar yang ia punya.
+        exhausted = False
         try:
             async with httpx.AsyncClient(timeout=REQUEST_TIMEOUT) as client:
                 while len(collected) < limit:
@@ -142,11 +146,12 @@ class YouTubeConnector(Connector):
                     response.raise_for_status()
                     payload = response.json()
                     batch = parse_comment_threads(payload)
-                    if not batch:
-                        break
                     collected.extend(batch)
                     page_token = payload.get("nextPageToken")
-                    if not page_token:
+                    if not batch or not page_token:
+                        exhausted = True
+                        break
+                    if reached_cutoff(batch, cutoff):
                         break
         except httpx.HTTPStatusError as e:
             # 403 di API ini hampir selalu berarti kuota habis atau komentar
@@ -159,7 +164,39 @@ class YouTubeConnector(Connector):
         except httpx.HTTPError as e:
             raise ConnectorError(f"YouTube API tidak bisa dihubungi: {e}") from e
 
-        if since is not None:
-            cutoff = since if since.tzinfo else since.replace(tzinfo=UTC)
-            collected = [i for i in collected if i.published_at >= cutoff]
-        return collected[:limit]
+        matched = [i for i in collected if cutoff is None or i.published_at >= cutoff]
+        self.last_fetch = fetch_stats(collected, matched=len(matched), exhausted=exhausted)
+        return matched[:limit]
+
+
+def reached_cutoff(batch: list[RawItem], cutoff: datetime | None) -> bool:
+    """Apakah halaman ini sudah melewati batas `since`. Fungsi murni.
+
+    Komentar diminta `order=time` (terbaru dulu), jadi begitu satu halaman
+    memuat komentar yang lebih tua dari batas, halaman berikutnya seluruhnya
+    lebih tua lagi. Tanpa ini setiap run membalik halaman sampai `limit`
+    hanya untuk membuang hampir semuanya — kuota harian terpakai untuk
+    komentar yang sudah tersimpan.
+    """
+    if cutoff is None or not batch:
+        return False
+    return min(i.published_at for i in batch) < cutoff
+
+
+def fetch_stats(collected: list[RawItem], *, matched: int, exhausted: bool) -> FetchStats:
+    """Apa yang ditawarkan API pada pengambilan ini. Fungsi murni.
+
+    `oldest_offered` dipakai `collect-all` untuk mendeteksi celah: komentar
+    tertua yang terambil lebih baru dari pengambilan sebelumnya berarti ada
+    yang terlewat. Itu hanya benar kalau pengambilan BERHENTI sebelum habis
+    (kena `limit`). Kalau API sudah menyerahkan semuanya, tidak ada yang bisa
+    terlewat — video baru dengan lima komentar bukan celah — jadi nilainya
+    None ("tidak ada bukti celah").
+    """
+    return FetchStats(
+        offered=len(collected),
+        oldest_offered=(
+            None if exhausted else min((i.published_at for i in collected), default=None)
+        ),
+        matched=matched,
+    )

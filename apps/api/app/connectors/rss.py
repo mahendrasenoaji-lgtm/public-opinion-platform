@@ -34,6 +34,7 @@ membuang yang relevan karena kalah urutan dengan berita lain.
 
 from __future__ import annotations
 
+import asyncio
 import html
 import re
 import xml.etree.ElementTree as ET
@@ -61,6 +62,14 @@ _ATOM = "{http://www.w3.org/2005/Atom}"
 
 REQUEST_TIMEOUT = 20.0
 
+#: Satu percobaan ulang, setelah jeda singkat, HANYA untuk gangguan sesaat:
+#: koneksi putus, 5xx, atau XML yang terpotong di tengah. Sebelas run merah
+#: 20 Sep-10 Okt 2026 semuanya jenis ini pada feed Antara dan pulih sendiri di
+#: run berikutnya. 4xx dan halaman HTML TIDAK diulang: itu jawaban penerbit,
+#: dan mengulanginya berarti mendesak pembatasan yang harus dihormati
+#: (connectors/base.py).
+RETRY_DELAY_SECONDS = 2.0
+
 #: User-Agent yang menyebut diri apa adanya. Sengaja BUKAN string peramban:
 #: menyamar sebagai Chrome adalah cara melewati pembatasan penerbit, dan itu
 #: dilarang di paket ini (lihat connectors/base.py).
@@ -72,6 +81,10 @@ USER_AGENT = "AIPublicOpinionPlatform/0.1 (+feed reader; contact via platform ad
 #: didaftarkan, bukan diam-diam tidak pernah cocok dengan apa pun.
 MAX_KEYWORDS = 50
 MAX_KEYWORD_LENGTH = 100
+
+
+class FeedMalformed(ConnectorError):
+    """Feed terbaca tapi XML-nya rusak — sering kali respons yang terpotong."""
 
 
 def compile_keywords(raw: str) -> re.Pattern[str]:
@@ -167,7 +180,7 @@ def parse_feed(payload: bytes) -> list[RawItem]:
     try:
         root = ET.fromstring(payload)  # noqa: S314 — feed publik, bukan input pengguna
     except ET.ParseError as e:
-        raise ConnectorError(f"feed bukan XML yang valid: {e}") from e
+        raise FeedMalformed(f"feed bukan XML yang valid: {e}") from e
 
     items: list[RawItem] = []
 
@@ -259,22 +272,20 @@ class RSSConnector(Connector):
         keywords = config.get("keywords")
         pattern = compile_keywords(str(keywords)) if keywords is not None else None
 
-        try:
-            async with httpx.AsyncClient(
-                timeout=REQUEST_TIMEOUT,
-                follow_redirects=True,
-                headers={"User-Agent": USER_AGENT},
-            ) as client:
-                response = await client.get(url)
-                response.raise_for_status()
-        except httpx.HTTPStatusError as e:
-            raise ConnectorError(
-                f"penerbit menolak permintaan feed ({e.response.status_code})"
-            ) from e
-        except httpx.HTTPError as e:
-            raise ConnectorError(f"feed tidak bisa diambil: {e}") from e
+        async with httpx.AsyncClient(
+            timeout=REQUEST_TIMEOUT,
+            follow_redirects=True,
+            headers={"User-Agent": USER_AGENT},
+        ) as client:
+            try:
+                offered = await _get_feed(client, url)
+            except _Transient:
+                await asyncio.sleep(RETRY_DELAY_SECONDS)
+                try:
+                    offered = await _get_feed(client, url)
+                except _Transient as e:
+                    raise e.final from e
 
-        offered = parse_feed(response.content)
         items = filter_items(offered, pattern=pattern, since=since)
         items.sort(key=lambda i: i.published_at, reverse=True)
         self.last_fetch = FetchStats(
@@ -283,6 +294,33 @@ class RSSConnector(Connector):
             matched=len(items),
         )
         return items[:limit]
+
+
+class _Transient(Exception):
+    """Gangguan yang layak diulang sekali. `final` = galat bila ulangan juga gagal."""
+
+    def __init__(self, final: ConnectorError) -> None:
+        super().__init__(str(final))
+        self.final = final
+
+
+async def _get_feed(client: httpx.AsyncClient, url: str) -> list[RawItem]:
+    """Satu percobaan: ambil lalu urai. Memisahkan yang sesaat dari yang tetap."""
+    try:
+        response = await client.get(url)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        code = e.response.status_code
+        error = ConnectorError(f"penerbit menolak permintaan feed ({code})")
+        if code >= 500:
+            raise _Transient(error) from e
+        raise error from e
+    except httpx.HTTPError as e:
+        raise _Transient(ConnectorError(f"feed tidak bisa diambil: {e}")) from e
+    try:
+        return parse_feed(response.content)
+    except FeedMalformed as e:
+        raise _Transient(e) from e
 
 
 def filter_items(
