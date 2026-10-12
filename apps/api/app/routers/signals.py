@@ -35,6 +35,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import Select, and_, bindparam, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import DBAPIError, ProgrammingError
 
 from app.config import get_settings
 from app.connectors import (
@@ -158,6 +159,44 @@ def _register_for(source: ModelSignalSource) -> sentiment_svc.Register:
     sentimen liputan tidak bergeser — lihat "Dua ragam" di services/sentiment.py.
     """
     return "informal" if source is ModelSignalSource.SOCIAL else "baku"
+
+
+#: SQLSTATE Postgres untuk "kolom tidak ada".
+UNDEFINED_COLUMN = "42703"
+
+_VERSION_COLUMNS = frozenset({"sentiment_model", "sentiment_alt", "sentiment_alt_model"})
+
+_VERSION_COLUMNS_MISSING = (
+    "Versi penilai tidak tercatat: kolom sentiment_model/sentiment_alt belum "
+    "ada di database. Jalankan BAGIAN A db/migrations/2026-10-12-keputusan.sql, "
+    "lalu nilai ulang lewat POST /signals/rescore."
+)
+
+
+def sqlstate_of(error: BaseException) -> str | None:
+    """Kode SQLSTATE dari galat database, kalau ada. Lima karakter, bukan pesan."""
+    orig = getattr(error, "orig", None)
+    for candidate in (orig, getattr(orig, "__cause__", None)):
+        code = getattr(candidate, "sqlstate", None) or getattr(candidate, "pgcode", None)
+        if code:
+            return str(code)
+    return None
+
+
+def _storage_error(error: BaseException) -> str:
+    """Ringkasan galat penyimpanan untuk laporan run: jenis dan kodenya saja.
+
+    Pesan lengkap database bisa memuat isi baris, jadi tidak ikut keluar;
+    ia tetap ada di log server. Kode SQLSTATE cukup untuk membedakan "kolom
+    belum ada" (42703) dari "tidak berhak" (42501) atau "nilai enum tidak
+    dikenal" (22P02) tanpa membuka log.
+    """
+    name = type(error).__name__
+    if isinstance(error, DBAPIError):
+        code = sqlstate_of(error)
+        if code:
+            return f"gagal menyimpan ({name}, SQLSTATE {code})"
+    return f"gagal menyimpan ({name})"
 
 
 def _news_score(text: str) -> Decimal | None:
@@ -616,14 +655,40 @@ async def _store(
         }
         for p in report.prepared
     ]
-    stored = 0
-    for start in range(0, len(rows), STORE_CHUNK):
-        result = await session.execute(
-            pg_insert(Mention)
-            .values(rows[start : start + STORE_CHUNK])
-            .on_conflict_do_nothing(index_elements=["project_id", "connector", "external_id"])
+    async def insert(batch: list[dict[str, object]]) -> int:
+        count = 0
+        for start in range(0, len(batch), STORE_CHUNK):
+            result = await session.execute(
+                pg_insert(Mention)
+                .values(batch[start : start + STORE_CHUNK])
+                .on_conflict_do_nothing(
+                    index_elements=["project_id", "connector", "external_id"]
+                )
+            )
+            count += result.rowcount or 0
+        return count
+
+    # Kolom versi penilai ditambahkan lewat migrasi manual (2026-10-12). Kalau
+    # database belum memilikinya, konten TETAP disimpan tanpa kolom itu:
+    # kehilangan versi penilai bisa diperbaiki dengan menilai ulang, berita
+    # yang jatuh dari feed selama penyimpanan mati tidak bisa diambil lagi.
+    # Savepoint, karena pernyataan yang gagal membatalkan transaksi Postgres.
+    version_recorded = True
+    try:
+        async with session.begin_nested():
+            stored = await insert(rows)
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        logger.error("kolom versi penilai belum ada di database; menyimpan tanpa kolom itu")
+        version_recorded = False
+        stored = await insert(
+            [{k: v for k, v in r.items() if k not in _VERSION_COLUMNS} for r in rows]
         )
-        stored += result.rowcount or 0
+
+    caveats = report.caveats()
+    if not version_recorded:
+        caveats.append(_VERSION_COLUMNS_MISSING)
 
     return IngestResult(
         received=report.received,
@@ -636,7 +701,7 @@ async def _store(
         sentiment_abstained=report.sentiment_abstained,
         sentiment_abstain_rate=report.sentiment_abstain_rate,
         empty_dropped=report.empty_dropped,
-        caveats=report.caveats(),
+        caveats=caveats,
     )
 
 
@@ -1280,7 +1345,7 @@ async def collect_all(
                     connector_key,
                     label,
                     previous,
-                    f"gagal menyimpan ({type(e).__name__})",
+                    _storage_error(e),
                 )
             )
             continue
@@ -1416,6 +1481,13 @@ async def rescore(
     ulang adalah data riset.
     """
     pending = _pending_rescore(project_id)
+    try:
+        async with session.begin_nested():
+            await session.execute(select(Mention.sentiment_model).limit(1))
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        raise HTTPException(status.HTTP_409_CONFLICT, _VERSION_COLUMNS_MISSING) from e
     rows = (
         await session.execute(
             select(
@@ -1590,18 +1662,27 @@ async def summary(
 
     revised: Metric | None = None
     if dominant is SignalSource.MEDIA and not mixed and volume:
-        news_rows = (
-            (
-                await session.execute(
-                    _scoped(select(Mention.sentiment_alt), project_id, since, until).where(
-                        Mention.source == ModelSignalSource.MEDIA,
-                        Mention.sentiment_alt_model == sentiment_svc.NEWS_MODEL_VERSION,
+        news_rows: Sequence[Decimal | None] = []
+        try:
+            async with session.begin_nested():
+                news_rows = (
+                    (
+                        await session.execute(
+                            _scoped(
+                                select(Mention.sentiment_alt), project_id, since, until
+                            ).where(
+                                Mention.source == ModelSignalSource.MEDIA,
+                                Mention.sentiment_alt_model == sentiment_svc.NEWS_MODEL_VERSION,
+                            )
+                        )
                     )
+                    .scalars()
+                    .all()
                 )
-            )
-            .scalars()
-            .all()
-        )
+        except ProgrammingError as e:
+            # Kolom pendamping belum bermigrasi: angka utama tetap terbit.
+            if sqlstate_of(e) != UNDEFINED_COLUMN:
+                raise
         if news_rows:
             news_scored = [float(v) for v in news_rows if v is not None]
             news_enough = len(news_scored) >= MIN_MENTIONS_FOR_AGGREGATE
