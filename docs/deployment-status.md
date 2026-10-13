@@ -102,6 +102,22 @@ Urutannya, supaya tidak terulang:
 5. ~~`docs/progress.md` belum dirombak per komponen untuk PR #33/#34.~~
    **Selesai 13 Okt**: tabel Phase 2 memuat baris per komponen.
 
+**Proyek baru 13 Okt — KDMP 2026 (Koperasi Desa/Kelurahan Merah Putih):**
+
+Dibuat atas permintaan pengguna, lewat UI di sesi browser pengguna. 17 sumber:
+16 feed `rss` (Antara, CNBC Indonesia, Republika, Sindonews, CNN Indonesia,
+CNN Indonesia Ekonomi, Tempo, Liputan6, Katadata, 7 Antara regional) dengan
+kata kunci `koperasi merah putih, koperasi desa merah putih, koperasi
+kelurahan merah putih, kopdes merah putih, kopdeskel merah putih, kdmp`, dan
+satu `youtube_search` (`query = koperasi desa merah putih`). Penarikan
+pertama: 22/22 sumber ok, 5 video ditemukan dan didaftarkan, 4 item baru; 0
+liputan cocok (saat itu tidak ada berita KDMP di feed; "Gedung Merah Putih
+KPK" di Liputan6 memang tidak boleh cocok). `finance.detik.com/rss` tidak
+dipakai: tidak menjawab saat dicek. Modul survei proyek ini kosong sampai ada
+data survei. **Sisa:** token pengumpul + baris ketiga di
+`POP_COLLECTOR_TOKENS` (lihat pelajaran di butir 7); video temuan perlu
+diperiksa manusia.
+
 **Butuh akun/kredensial pengguna:**
 
 6. ~~K7 — feed Katadata pengganti Kontan.~~ **Selesai 13 Okt** (agen lewat
