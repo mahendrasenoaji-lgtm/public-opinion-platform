@@ -102,6 +102,23 @@ Urutannya, supaya tidak terulang:
 5. ~~`docs/progress.md` belum dirombak per komponen untuk PR #33/#34.~~
    **Selesai 13 Okt**: tabel Phase 2 memuat baris per komponen.
 
+**Proyek baru 13 Okt — KDMP 2026 (Koperasi Desa/Kelurahan Merah Putih):**
+
+Dibuat atas permintaan pengguna, lewat UI di sesi browser pengguna. 17 sumber:
+16 feed `rss` (Antara, CNBC Indonesia, Republika, Sindonews, CNN Indonesia,
+CNN Indonesia Ekonomi, Tempo, Liputan6, Katadata, 7 Antara regional) dengan
+kata kunci `koperasi merah putih, koperasi desa merah putih, koperasi
+kelurahan merah putih, kopdes merah putih, kopdeskel merah putih, kdmp`, dan
+satu `youtube_search` (`query = koperasi desa merah putih`). Penarikan
+pertama: 22/22 sumber ok, 5 video ditemukan dan didaftarkan, 4 item baru; 0
+liputan cocok (saat itu tidak ada berita KDMP di feed; "Gedung Merah Putih
+KPK" di Liputan6 memang tidak boleh cocok). `finance.detik.com/rss` tidak
+dipakai: tidak menjawab saat dicek. Modul survei proyek ini kosong sampai ada
+data survei. Token pengumpul diterbitkan pengguna dan ditulis sebagai baris
+ketiga di `POP_COLLECTOR_TOKENS`. Bukti: run 38342525858, **86 sumber ok** (41
+MBG + 23 karhutla + 22 KDMP), 0 gagal. **Sisa:** video temuan perlu diperiksa
+manusia.
+
 **Butuh akun/kredensial pengguna:**
 
 6. ~~K7 — feed Katadata pengganti Kontan.~~ **Selesai 13 Okt** (agen lewat
@@ -109,16 +126,18 @@ Urutannya, supaya tidak terulang:
    `https://katadata.co.id/rss`, kata kunci sama dengan feed MBG lain. Proyek
    MBG kini 41 sumber. Belum pernah ditarik; run terjadwal berikutnya yang
    membuktikannya.
-7. K8 — pengumpulan otomatis proyek KEBAKARAN HUTAN: **feed selesai 13 Okt,
-   jadwal BELUM.** 13 feed `rss` terdaftar (6 nasional: Antara, CNBC
-   Indonesia, Republika, Sindonews, CNN Indonesia, Tempo; 7 Antara regional:
-   Jambi, Kalsel, Kalbar, Kalteng, Kaltim, Sumsel, Riau), kata kunci
-   `karhutla, kebakaran hutan, kabut asap, titik api, hotspot`. "Tarik semua
-   sekarang" sesudahnya: 23/23 sumber berhasil, 46 item baru. **Sisa:** proyek
-   ini belum punya token pengumpul, jadi belum ikut jadwal. Secret
-   `POP_COLLECTOR_TOKENS` tidak bisa dibaca kembali; menambah baris berarti
-   menulis ulang seluruh isinya, sehingga token MBG harus ikut ditulis (yang
-   lama, kalau pengguna menyimpannya, atau yang diterbitkan ulang).
+7. ~~K8 — pengumpulan otomatis proyek KEBAKARAN HUTAN.~~ **Selesai 13 Okt.**
+   13 feed `rss` terdaftar (6 nasional: Antara, CNBC Indonesia, Republika,
+   Sindonews, CNN Indonesia, Tempo; 7 Antara regional: Jambi, Kalsel, Kalbar,
+   Kalteng, Kaltim, Sumsel, Riau), kata kunci `karhutla, kebakaran hutan,
+   kabut asap, titik api, hotspot`. Pengguna menerbitkan token pengumpul
+   proyek ini dan token MBG yang baru (token MBG 15 Sep tidak berlaku lagi),
+   lalu menulis keduanya ke secret `POP_COLLECTOR_TOKENS`. Bukti: run
+   38341165454, 64 sumber ok (41 MBG + 23 karhutla), 0 gagal.
+   **Pelajaran:** secret GitHub tidak bisa dibaca kembali dan menyimpannya
+   MENIMPA seluruh isi. Dua percobaan pertama hanya memuat satu token, dan
+   proyek yang tokennya tidak ikut ditulis diam-diam keluar dari jadwal (run
+   tetap hijau). Sesudah mengubah secret ini, hitung baris sumber di log run.
 8. `X_BEARER_TOKEN` dan `ANTHROPIC_API_KEY` belum diset di Render — Executive
    Brief dan Copilot belum pernah menjawab dengan LLM sungguhan.
 9. Survei gelombang kedua (forecast opini tetap `insufficient_data`); Phase 4
