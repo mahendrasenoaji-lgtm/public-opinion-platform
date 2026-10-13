@@ -92,17 +92,15 @@ Urutannya, supaya tidak terulang:
 
 **Bisa dikerjakan agen tanpa keputusan siapa pun:**
 
-3. **Label kolom keliru di formulir "Tambah sumber".** Untuk konektor
-   `youtube_search`, kolom `query` berlabel "Kueri pencarian X" (label milik
-   konektor X) — lihat pemetaan label di `apps/web/components/SourceManager.tsx`.
-   Tidak memengaruhi fungsi.
-4. **Skrip pengumpul tidak mencetak `caveats` penyimpanan.** Kalau jalur
-   cadangan PR #34 terpakai lagi, dari log run tidak terlihat — dari luar
-   "ok" lewat kolom baru dan "ok" lewat kolom lama tampak sama. Cetak caveat
-   `Versi penilai tidak tercatat` sebagai `::warning::` di
-   `.github/scripts/collect_signals.py`.
-5. **`docs/progress.md`** belum dirombak per komponen untuk PR #33/#34 (hanya
-   baris ringkasan angka yang diperbarui).
+3. ~~Label kolom keliru di formulir "Tambah sumber".~~ **Selesai 13 Okt**:
+   label dan placeholder kini bisa ditimpa per konektor
+   (`CONNECTOR_FIELD_LABELS` di `apps/web/components/SourceManager.tsx`);
+   `youtube_search` punya labelnya sendiri, termasuk tiga kolom opsionalnya.
+4. ~~Skrip pengumpul tidak mencetak `caveats` penyimpanan.~~ **Selesai 13
+   Okt**: caveat `Versi penilai tidak tercatat` dicetak sebagai `::warning::`
+   per sumber (`_storage_fallback_caveats`), dua tes baru.
+5. ~~`docs/progress.md` belum dirombak per komponen untuk PR #33/#34.~~
+   **Selesai 13 Okt**: tabel Phase 2 memuat baris per komponen.
 
 **Butuh akun/kredensial pengguna:**
 
