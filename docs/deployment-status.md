@@ -6,7 +6,69 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — keadaan akhir 12 Oktober 2026 + yang KURANG
+# 🟢 MULAI DARI SINI — keadaan akhir 13 Oktober 2026
+
+**Baca blok ini dulu kalau melanjutkan di komputer lain.** Blok "keadaan akhir
+12 Oktober" tepat di bawah masih berlaku; daftar "Yang KURANG" di sana sudah
+diperbarui di tempat untuk hal yang selesai 13 Oktober.
+
+## Keadaan sekarang (semua di `main`, tidak ada PR terbuka selain PR catatan ini)
+
+| Hal | Keadaan | Bukti |
+|---|---|---|
+| PR #35, #36, #37 | Merged 13 Okt | `main` di `52f8c1c` sebelum PR catatan ini |
+| Label formulir "Tambah sumber", peringatan jalur cadangan di skrip pengumpul | Tayang (PR #36) | CI hijau; 2 tes baru di `test_collect_signals_script.py` |
+| Feed Katadata di proyek MBG (K7) | Aktif, MBG 41 sumber | Run 38340888955: Katadata ok, 25 ditawarkan |
+| Proyek KEBAKARAN HUTAN ikut jadwal (K8) | Aktif, 13 feed + 10 video | Run 38341165454 |
+| Proyek baru **KDMP 2026** | Aktif, 16 feed + 1 `youtube_search` + 5 video temuan | Run 38342525858 |
+| Secret `POP_COLLECTOR_TOKENS` | **Tiga token** (MBG, KEBAKARAN HUTAN, KDMP 2026), ditulis pengguna | Run 38342525858: 86 sumber ok, 0 gagal |
+| Video temuan MBG (butir 2 lama) | Diperiksa agen, tidak ada yang dihapus | Kelimanya tentang MBG; empat di antaranya video pendek "Menu MBG" yang hampir kembar |
+
+## Yang KURANG per 13 Oktober
+
+**Tinggal dikerjakan pengguna:**
+
+1. **Hapus tiga org uji** di Supabase (perintah `DELETE` ada di butir 1 blok 12
+   Oktober di bawah; harus 3 baris). Agen tidak bisa membuka SQL Editor: ditolak
+   pengaman sesi pada 13 Okt.
+2. **Periksa video temuan KDMP 2026** di `/sinyal`. Tiga yang terbaca judulnya
+   relevan (detikcom, CNN Indonesia, KONTAN TV); dua lagi belum diperiksa.
+3. Putuskan apakah empat video pendek "Menu MBG" (tampaknya dari pihak dapur
+   MBG sendiri) dihitung sebagai percakapan publik atau dihapus.
+
+**Ditunda atas permintaan pengguna ("skip dulu") — jangan dikerjakan tanpa diminta:**
+
+- Menghilangkan form `/masuk`. Rancangan yang disiapkan: masuk otomatis sebagai
+  satu akun bersama lewat env `AUTO_LOGIN_EMAIL` + `AUTO_LOGIN_PASSWORD` di
+  Vercel, route `/api/session/auto`, form tetap bisa dibuka lewat
+  `/masuk?otomatis=tidak`. Belum ada kodenya di repo. Risikonya: semua
+  pengunjung memegang hak akun itu; akun demo berperan RESEARCH_DIRECTOR, jadi
+  sebaiknya pakai akun VIEWER. Perubahan ini ditolak pengaman sesi agen dan
+  butuh persetujuan eksplisit pengguna.
+
+**Butuh akun/kredensial pengguna (tidak berubah):** `X_BEARER_TOKEN` dan
+`ANTHROPIC_API_KEY` di Render; survei gelombang kedua; Phase 4.
+
+**Catatan data:** liputan KDMP masih 0 pada 13 Okt karena feed belum memuat
+berita KDMP; modul survei proyek KEBAKARAN HUTAN dan KDMP kosong sampai ada
+data survei.
+
+## Pelajaran 13 Oktober
+
+- Secret GitHub tidak bisa dibaca kembali dan menyimpannya MENIMPA seluruh
+  isi. Tulis semua token sekaligus, lalu hitung baris sumber di log run
+  (`gh workflow run collect-signals.yml`).
+- Sesudah "Tambah sumber", tabel sumber di `/sinyal` kadang hilang sampai
+  halaman dimuat ulang (panggilan daftar sumber gagal senyap saat refresh).
+  Sumbernya tetap tersimpan. Belum diselidiki; kandidat perbaikan kecil.
+- Token dan password tidak diketik agen: pengguna yang menerbitkan dan
+  menempel, agen memverifikasi lewat log run.
+- Angka tes 13 Okt: `test_collect_signals_script.py` 18 lulus, Vitest 30 lulus.
+  Seluruh tes backend tidak dijalankan ulang secara lokal (CI hijau).
+
+---
+
+# Keadaan akhir 12 Oktober 2026 + yang KURANG
 
 **Baca blok ini dulu kalau melanjutkan di komputer lain.** Dua blok 12 Oktober
 di bawahnya adalah rinciannya (PR #32 dan PR #33); blok ini keadaan terakhir
@@ -83,12 +145,8 @@ Urutannya, supaya tidak terulang:
    ```
 
    Harus mengembalikan 3 baris. Hanya menghapus org yang tidak punya proyek.
-2. **Periksa video temuan** di tabel sumber `/sinyal` proyek MBG dan hapus yang
-   di luar tema. Pencarian pertama (run 38223994069) mendaftarkan 5 video;
-   hasilnya urutan peringkat YouTube, antara lain "Kebun sayur di sekolah dari
-   galon bekas dan MBG" (59 komentar) dan dua video pendek "Menu MBG … Pak
-   Prabowo". Kalau terlalu longgar, hapus sumber pencariannya dan buat lagi
-   dengan kata kunci yang lebih sempit.
+2. ~~Periksa video temuan di proyek MBG.~~ **Diperiksa 13 Okt**: kelimanya
+   tentang MBG, tidak ada yang dihapus. Lihat butir 3 blok 13 Oktober.
 
 **Bisa dikerjakan agen tanpa keputusan siapa pun:**
 
