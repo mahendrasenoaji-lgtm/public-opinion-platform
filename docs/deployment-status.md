@@ -114,9 +114,10 @@ pertama: 22/22 sumber ok, 5 video ditemukan dan didaftarkan, 4 item baru; 0
 liputan cocok (saat itu tidak ada berita KDMP di feed; "Gedung Merah Putih
 KPK" di Liputan6 memang tidak boleh cocok). `finance.detik.com/rss` tidak
 dipakai: tidak menjawab saat dicek. Modul survei proyek ini kosong sampai ada
-data survei. **Sisa:** token pengumpul + baris ketiga di
-`POP_COLLECTOR_TOKENS` (lihat pelajaran di butir 7); video temuan perlu
-diperiksa manusia.
+data survei. Token pengumpul diterbitkan pengguna dan ditulis sebagai baris
+ketiga di `POP_COLLECTOR_TOKENS`. Bukti: run 38342525858, **86 sumber ok** (41
+MBG + 23 karhutla + 22 KDMP), 0 gagal. **Sisa:** video temuan perlu diperiksa
+manusia.
 
 **Butuh akun/kredensial pengguna:**
 
