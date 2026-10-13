@@ -92,24 +92,33 @@ Urutannya, supaya tidak terulang:
 
 **Bisa dikerjakan agen tanpa keputusan siapa pun:**
 
-3. **Label kolom keliru di formulir "Tambah sumber".** Untuk konektor
-   `youtube_search`, kolom `query` berlabel "Kueri pencarian X" (label milik
-   konektor X) — lihat pemetaan label di `apps/web/components/SourceManager.tsx`.
-   Tidak memengaruhi fungsi.
-4. **Skrip pengumpul tidak mencetak `caveats` penyimpanan.** Kalau jalur
-   cadangan PR #34 terpakai lagi, dari log run tidak terlihat — dari luar
-   "ok" lewat kolom baru dan "ok" lewat kolom lama tampak sama. Cetak caveat
-   `Versi penilai tidak tercatat` sebagai `::warning::` di
-   `.github/scripts/collect_signals.py`.
-5. **`docs/progress.md`** belum dirombak per komponen untuk PR #33/#34 (hanya
-   baris ringkasan angka yang diperbarui).
+3. ~~Label kolom keliru di formulir "Tambah sumber".~~ **Selesai 13 Okt**:
+   label dan placeholder kini bisa ditimpa per konektor
+   (`CONNECTOR_FIELD_LABELS` di `apps/web/components/SourceManager.tsx`);
+   `youtube_search` punya labelnya sendiri, termasuk tiga kolom opsionalnya.
+4. ~~Skrip pengumpul tidak mencetak `caveats` penyimpanan.~~ **Selesai 13
+   Okt**: caveat `Versi penilai tidak tercatat` dicetak sebagai `::warning::`
+   per sumber (`_storage_fallback_caveats`), dua tes baru.
+5. ~~`docs/progress.md` belum dirombak per komponen untuk PR #33/#34.~~
+   **Selesai 13 Okt**: tabel Phase 2 memuat baris per komponen.
 
 **Butuh akun/kredensial pengguna:**
 
-6. K7 — feed Katadata pengganti Kontan (satu isian di `/sinyal`).
-7. K8 — pengumpulan otomatis proyek KEBAKARAN HUTAN: 13 feed sudah
-   diverifikasi; lalu token pengumpul baru + baris baru di secret
-   `POP_COLLECTOR_TOKENS`. Proyek itu saat ini 0 konten dalam jendela 30 hari.
+6. ~~K7 — feed Katadata pengganti Kontan.~~ **Selesai 13 Okt** (agen lewat
+   Chrome di sesi pengguna): sumber `rss` berlabel `Katadata`,
+   `https://katadata.co.id/rss`, kata kunci sama dengan feed MBG lain. Proyek
+   MBG kini 41 sumber. Belum pernah ditarik; run terjadwal berikutnya yang
+   membuktikannya.
+7. K8 — pengumpulan otomatis proyek KEBAKARAN HUTAN: **feed selesai 13 Okt,
+   jadwal BELUM.** 13 feed `rss` terdaftar (6 nasional: Antara, CNBC
+   Indonesia, Republika, Sindonews, CNN Indonesia, Tempo; 7 Antara regional:
+   Jambi, Kalsel, Kalbar, Kalteng, Kaltim, Sumsel, Riau), kata kunci
+   `karhutla, kebakaran hutan, kabut asap, titik api, hotspot`. "Tarik semua
+   sekarang" sesudahnya: 23/23 sumber berhasil, 46 item baru. **Sisa:** proyek
+   ini belum punya token pengumpul, jadi belum ikut jadwal. Secret
+   `POP_COLLECTOR_TOKENS` tidak bisa dibaca kembali; menambah baris berarti
+   menulis ulang seluruh isinya, sehingga token MBG harus ikut ditulis (yang
+   lama, kalau pengguna menyimpannya, atau yang diterbitkan ulang).
 8. `X_BEARER_TOKEN` dan `ANTHROPIC_API_KEY` belum diset di Render — Executive
    Brief dan Copilot belum pernah menjawab dengan LLM sungguhan.
 9. Survei gelombang kedua (forecast opini tetap `insufficient_data`); Phase 4

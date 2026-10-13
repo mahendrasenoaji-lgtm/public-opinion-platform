@@ -278,6 +278,43 @@ def test_collect_warns_when_token_near_expiry(
     assert "kedaluwarsa" in capsys.readouterr().out
 
 
+def test_collect_warns_when_storage_fell_back_to_old_columns(
+    fake_server: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    row = _collect_response()["results"][0]
+    row["result"] = {
+        "stored": 5,
+        "caveats": [
+            "2 duplikat dibuang.",
+            "Versi penilai tidak tercatat: kolom sentiment_model/sentiment_alt belum ada.",
+        ],
+    }
+    body = _collect_response(results=[row])
+    base = fake_server(
+        {("POST", "/v1/projects/proj-1/signals/collect-all"): (200, body)}
+    ) + "/v1"
+
+    ok, _ = collect_signals.collect(base, _collector_token(), since_days=2)
+
+    out = capsys.readouterr().out
+    assert ok is True
+    assert "::warning::Antara nasional: Versi penilai tidak tercatat" in out
+    # Caveat rutin tidak diangkat menjadi peringatan.
+    assert "::warning::Antara nasional: 2 duplikat" not in out
+
+
+def test_collect_stays_quiet_without_storage_fallback(
+    fake_server: Any, capsys: pytest.CaptureFixture[str]
+) -> None:
+    base = fake_server(
+        {("POST", "/v1/projects/proj-1/signals/collect-all"): (200, _collect_response())}
+    ) + "/v1"
+
+    collect_signals.collect(base, _collector_token(), since_days=2)
+
+    assert "::warning::" not in capsys.readouterr().out
+
+
 # --- main --------------------------------------------------------------
 
 

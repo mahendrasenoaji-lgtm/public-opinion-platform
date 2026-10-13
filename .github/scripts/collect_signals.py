@@ -46,6 +46,10 @@ COLLECT_TIMEOUT_SECONDS = 180
 #: Peringatkan jauh sebelum token kedaluwarsa, bukan pada hari ia berhenti.
 EXPIRY_WARNING_DAYS = 21
 
+#: Awalan caveat API saat kolom versi penilai belum ada (routers/signals.py,
+#: `_VERSION_COLUMNS_MISSING`). Dicocokkan lewat awalan, bukan seluruh kalimat.
+STORAGE_FALLBACK_PREFIX = "Versi penilai tidak tercatat"
+
 USER_AGENT = "pop-scheduled-collector (+github actions)"
 
 
@@ -76,6 +80,15 @@ def _claims(token: str) -> dict:
 
 def _annotate(level: str, message: str) -> None:
     print(f"::{level}::{message}")
+
+
+def _storage_fallback_caveats(row: dict) -> list[str]:
+    """Caveat yang menandai konten tersimpan TANPA versi penilai.
+
+    Caveat lain (duplikat, bahasa, abstain) rutin dan sengaja tidak diangkat.
+    """
+    caveats = (row.get("result") or {}).get("caveats") or []
+    return [c for c in caveats if str(c).startswith(STORAGE_FALLBACK_PREFIX)]
 
 
 def wake(base: str) -> bool:
@@ -165,6 +178,10 @@ def collect(base: str, token: str, since_days: int) -> tuple[bool, list[str]]:
         )
         if not r["ok"]:
             _annotate("error", f"{r['label']}: {r['error']}")
+        # Jalur cadangan penyimpanan (database belum bermigrasi): dari luar
+        # "ok" lewat kolom baru dan "ok" lewat kolom lama tampak sama.
+        for caveat in _storage_fallback_caveats(r):
+            _annotate("warning", f"{r['label']}: {caveat}")
         if r["coverage_gap"]:
             _annotate(
                 "warning",

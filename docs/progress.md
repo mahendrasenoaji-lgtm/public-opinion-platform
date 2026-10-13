@@ -1,7 +1,8 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-10-12 malam: PR #32, #33, #34 tayang dan
+menahannya.** Diperbarui 2026-10-13: tabel Phase 2 kini memuat komponen PR #33/#34 per
+baris. Sebelumnya 2026-10-12 malam: PR #32, #33, #34 tayang dan
 terverifikasi; migrasi kolom versi penilai sudah masuk; yang KURANG ada di
 blok "keadaan akhir 12 Oktober" di kepala `docs/deployment-status.md` (mulai
 dari situ). Sebelumnya hari yang sama (gerbang password situs dilepas; butir 1–7
@@ -55,7 +56,7 @@ yang lulus tanpa database.
 | Endpoint API | **68** (+4 pada 2026-09-15: `POST /projects/{id}/signals/collect-all`, `POST`/`GET`/`DELETE /projects/{id}/signals/collector-token`). Sebelumnya 64 (+3 metrics, 2026-09-11) |
 | Otomasi terjadwal | **1** — `.github/workflows/collect-signals.yml`, tiap 30 menit (2026-09-15) |
 | Halaman dashboard | 18 (9 Phase 1 + 9 Phase 2/3, termasuk `/deret` baru) |
-| Konektor | 6 konten (rss, youtube, x, manual) + **2 deret waktu** (wikipedia_pageviews, openmeteo_air_quality), keduanya tanpa kunci API |
+| Konektor | konten: rss, youtube, x, manual, dan `youtube_search` (penemuan video, sejak PR #33) + **2 deret waktu** (wikipedia_pageviews, openmeteo_air_quality), keduanya tanpa kunci API |
 | `ruff` | Bersih di `app` dan `tests` |
 | `mypy --strict` | Bersih di `app/services`, `app/ai`, `app/connectors` |
 | Frontend | `tsc --noEmit` dan `next build` hijau |
@@ -98,11 +99,17 @@ yang lulus tanpa database.
 | `services/sentiment.py` + set evaluasi | Teruji (31 tes) | macro-F1 0.902 di set evaluasi; lihat catatan leksikon "asal" di bawah |
 | `services/topics.py` — TF-IDF + LSA + HDBSCAN | Teruji (28 tes) | **Bukan embedding** — lihat di bawah |
 | `services/pipeline.py` — perekat ingestion+sentiment | Teruji | |
+| Versi penilai per konten (`sentiment_model`, `sentiment_alt`, `sentiment_alt_model`) — PR #33 | Teruji + **Live production (2026-10-12)** | Migrasi `db/migrations/2026-10-12-keputusan.sql` BAGIAN A masuk 12 Okt. Liputan membawa dua angka: skor utama `lexicon-id-1` dan angka ragam berita sebagai pendamping; deret MEDIA tidak digeser |
+| `POST .../signals/rescore` — nilai ulang konten lama — PR #33 | Teruji + **Live production (2026-10-12)** | MBG: 2.337 diperiksa, 0 komentar berubah, 215 liputan mendapat angka ragam berita. KEBAKARAN HUTAN: 157 diperiksa, 32 komentar berubah (skor lama diarsipkan). Peran RESEARCH_DIRECTOR ke atas |
+| `services/sentiment_eval_rater2.py` — penilai kedua set lapangan — PR #33 | Teruji + tampil di `/sinyal` | 440 label, kesepakatan 92,5%, kappa Cohen 0,823. Penilai kedua juga agen AI: batas atas, bukan ukuran final |
+| Penyimpanan tanpa kolom versi (jalur cadangan) — PR #34 | Teruji (`test_kolom_versi_belum_ada.py`, 3 tes) + **terpakai di production 12 Okt** | Bila kolom versi belum ada (SQLSTATE 42703) konten tetap tersimpan ke kolom lama dengan caveat; `rescore` menolak 409. Sejak 13 Okt skrip pengumpul mengangkat caveat itu sebagai `::warning::` di log run |
+| `SignalSource.SENSOR` — PR #33 | Teruji + enum ada di production | Pemindahan kualitas udara ke `SENSOR` dijalankan 12 Okt: 0 baris, production belum pernah menyimpan `airquality_pm25` |
 | `connectors/rss.py` — media monitoring | Teruji parsing + **Live production dari Render (2026-09-15)** | 14/14 feed ditarik dari dalam Render tanpa 403. Sejak PR #15: `keywords` opsional (kata utuh, di-escape), `external_id` = permalink, halaman HTML dilaporkan "bukan feed" |
 | `POST .../signals/collect-all` — tarik semua sumber aktif | Teruji (21 tes) + **Live production** | Laporan per sumber: `offered`/`matched`/`coverage_gap`; gagal/crash diisolasi per sumber |
 | Token pengumpul `.../signals/collector-token` | Teruji + **Live production** | `type=collector`, satu proyek, dicabut lewat `audit_logs` (tanpa migrasi). Token ini ditolak di `/projects` (401, dicek di production) |
-| `.github/workflows/collect-signals.yml` + `.github/scripts/collect_signals.py` | **Live production** (run manual `workflow_dispatch` sukses 2026-09-15 14:43 UTC) | Skripnya sendiri tidak punya tes otomatis — lihat "yang kurang" |
-| `connectors/youtube.py` — YouTube Data API v3 | Teruji parsing | Butuh `YOUTUBE_API_KEY` |
+| `.github/workflows/collect-signals.yml` + `.github/scripts/collect_signals.py` | **Live production** (run manual `workflow_dispatch` sukses 2026-09-15 14:43 UTC) | Skripnya dites sejak 2026-09-17 (K9, `test_collect_signals_script.py`); +2 tes 13 Okt untuk peringatan jalur cadangan penyimpanan. Run terjadwal 12 Okt 22:34 UTC sukses |
+| `connectors/youtube.py` — YouTube Data API v3 | Teruji parsing + **Live production** | 25 sumber `youtube_api` di proyek MBG (run 38225447213) |
+| `connectors/youtube_search.py` — penemuan video — PR #33 | Teruji + **Live production (2026-10-12)** | Satu sumber di proyek MBG, `query = makan bergizi gratis`, bawaan 5 video / 24 jam / 14 hari; 100 unit kuota per pencarian. Hasilnya urutan peringkat YouTube, bukan sampel — video temuan perlu diperiksa manusia |
 | `connectors/x.py` — X API v2 recent search | Teruji parsing | Butuh `X_BEARER_TOKEN` |
 | `connectors/manual.py` — unggahan/ekspor vendor | Teruji | Jalur yang benar-benar dipakai sekarang |
 | `connectors/metrics.py` — kontrak konektor DERET | Teruji (2026-09-11) | Sejajar dengan `base.py`, bukan turunannya — lihat di bawah |
@@ -653,7 +660,9 @@ Berurutan, dari yang paling murah dan paling menaikkan kepercayaan:
    `pop_app` dan RLS aktif, termasuk idempotensi tarik-ulang dan isolasi
    tenant. Lihat poin 4 di bagian "Yang BELUM diverifikasi" untuk hasilnya.
 
-8. **Putuskan `SignalSource` untuk data lingkungan (model/sensor).** Kualitas udara
+8. ~~**Putuskan `SignalSource` untuk data lingkungan (model/sensor).**~~ —
+   **diputuskan 2026-10-12 (PR #33): `SENSOR`.** Enum sudah ada di production;
+   catatan lama berikut tinggal sebagai latar. Kualitas udara
    sementara memakai `DIGITAL` dengan peringatan di `method`, karena nilai
    enum baru (`SENSOR`) butuh `ALTER TYPE signal_source ADD VALUE` di
    Supabase — kelas migrasi yang pernah menjatuhkan tiga halaman production

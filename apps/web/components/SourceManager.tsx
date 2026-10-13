@@ -51,6 +51,30 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   query: "#pemilu2029 lang:id",
 };
 
+/** Nama field yang sama bisa berarti lain di konektor lain: `query` milik X
+ * adalah kueri pencarian X, `query` milik youtube_search adalah kata kunci
+ * pencarian video. Yang di sini menimpa pemetaan umum di atas. */
+const CONNECTOR_FIELD_LABELS: Record<string, Record<string, string>> = {
+  youtube_search: {
+    query: "Kata kunci pencarian video YouTube",
+    max_videos: "Jumlah video per pencarian (opsional)",
+    interval_hours: "Jarak antarpencarian, jam (opsional)",
+    published_within_days: "Hanya video terbit dalam berapa hari terakhir (opsional)",
+  },
+};
+
+const CONNECTOR_FIELD_PLACEHOLDERS: Record<string, Record<string, string>> = {
+  youtube_search: { query: "makan bergizi gratis", label: "Pencarian MBG" },
+};
+
+function fieldLabel(connector: string, field: string): string {
+  return CONNECTOR_FIELD_LABELS[connector]?.[field] ?? FIELD_LABELS[field] ?? field;
+}
+
+function fieldPlaceholder(connector: string, field: string): string {
+  return CONNECTOR_FIELD_PLACEHOLDERS[connector]?.[field] ?? FIELD_PLACEHOLDERS[field] ?? "";
+}
+
 function fmtDate(iso: string | null): string {
   return iso ? iso.slice(0, 16).replace("T", " ") : "belum pernah";
 }
@@ -249,23 +273,23 @@ function AddSourceForm({
 
       {active.config_fields.map((f) => (
         <div className="field" key={f}>
-          <label htmlFor={`src-${f}`}>{FIELD_LABELS[f] ?? f}</label>
+          <label htmlFor={`src-${f}`}>{fieldLabel(active.key, f)}</label>
           <input
             id={`src-${f}`}
             value={config[f] ?? ""}
             onChange={(e) => setConfig({ ...config, [f]: e.target.value })}
-            placeholder={FIELD_PLACEHOLDERS[f] ?? ""}
+            placeholder={fieldPlaceholder(active.key, f)}
           />
         </div>
       ))}
       {active.optional_fields.map((f) => (
         <div className="field" key={f}>
-          <label htmlFor={`src-${f}`}>{FIELD_LABELS[f] ?? f}</label>
+          <label htmlFor={`src-${f}`}>{fieldLabel(active.key, f)}</label>
           <input
             id={`src-${f}`}
             value={config[f] ?? ""}
             onChange={(e) => setConfig({ ...config, [f]: e.target.value })}
-            placeholder={FIELD_PLACEHOLDERS[f] ?? ""}
+            placeholder={fieldPlaceholder(active.key, f)}
           />
         </div>
       ))}
