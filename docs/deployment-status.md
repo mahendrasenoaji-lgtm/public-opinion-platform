@@ -6,6 +6,48 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 20 Oktober 2026: tiga proyek POLKAM
+
+**Baca blok ini dulu.** Blok 12 Oktober di bawahnya tetap berlaku untuk keadaan platform.
+
+Atas permintaan pengguna (untuk materi kuliah Manajemen Komunikasi Pemerintahan dan draf artikel
+jurnal; materinya ada di repo privat pengguna `manajemen-komunikasi-polkam`), tiga proyek baru dibuat
+lewat UI di sesi Chrome pengguna. Tidak ada perubahan kode.
+
+| Proyek | Sumber | Penarikan pertama 20 Okt (jendela 2 hari) |
+|---|---|---|
+| POLKAM - KEMENDAGRI | 9 RSS + `youtube_search` "kemendagri", "mendagri" | 59 item (SOSIAL 56, MEDIA 3), sosial −0,10 n 37 |
+| POLKAM - KEMENLU | 9 RSS (termasuk Antara dunia, CNN/Republika/Sindonews internasional) + "kementerian luar negeri", "menlu ri" | 30 item (SOSIAL 19, MEDIA 11) |
+| POLKAM - KEMENHAN | 8 RSS + "kementerian pertahanan", "menhan sjafrie" | 299 item (SOSIAL 298, MEDIA 1), sosial +0,19 n 120 — **tercampur** |
+
+Kata kunci RSS memakai nama lembaga/jabatan, bukan nama pejabat (pejabat berganti — data hari itu
+menangkap sertijab Menlu). Feed yang dipakai sama dengan proyek MBG, ditambah
+`antaranews.com/rss/politik.xml`, `antaranews.com/rss/dunia.xml`, `cnnindonesia.com/internasional/rss`,
+`republika.co.id/rss/internasional`, `international.sindonews.com/rss` (semua 200 dari curl 20 Okt).
+
+**Kejadian yang perlu diketahui:** kueri YouTube "menhan" menjaring video tentang Menteri Pertahanan
+**Iran**; ≥54 komentarnya tersimpan di POLKAM - KEMENHAN. Empat sumber video itu dan kueri "menhan"
+dihapus, diganti "menhan sjafrie". Menghapus sumber TIDAK menghapus mention (lihat `delete_source`);
+agen tidak menghapus data. Pelajaran: kueri `youtube_search` berupa singkatan jabatan umum menjaring
+negara lain — tambahkan nama atau "RI".
+
+## Yang KURANG (POLKAM)
+
+1. **Token pengumpul 3 proyek baru belum diterbitkan** → belum ikut jadwal 30 menit. Menulis
+   `POP_COLLECTOR_TOKENS` menimpa seluruh isi dan token lama tidak terbaca → keenam token (MBG,
+   KEBAKARAN HUTAN, KDMP + 3 POLKAM) harus diterbitkan ulang dan ditulis bersama. Tugas pengguna.
+2. **Backfill** komentar lama hanya lewat `workflow_dispatch` dengan `since_days` (UI selalu 2 hari).
+   Mulai 14 hari; ingat batas ~150 detik collect-all untuk batch besar.
+3. Komentar Iran di POLKAM - KEMENHAN: keputusan pengguna (hapus proyek lalu buat ulang, atau
+   dikecualikan saat analisis).
+
+**Cara kerja UI yang terbukti 20 Okt:** pindah proyek = tombol "Aktifkan" di `/proyek`; form "Tambah
+sumber" bisa diisi lewat skrip (setter nilai bawaan + event `input`), tetapi `/sinyal` sering gagal
+render sesudah beberapa penambahan berturut-turut ("Endpoint ini belum tersedia…") — muat ulang
+halaman sebelum tiap penambahan. Tombol Hapus sumber tidak memakai dialog konfirmasi.
+
+---
+
 # 🟢 MULAI DARI SINI — keadaan akhir 12 Oktober 2026 + yang KURANG
 
 **Baca blok ini dulu kalau melanjutkan di komputer lain.** Dua blok 12 Oktober
