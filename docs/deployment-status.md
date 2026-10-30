@@ -6,7 +6,41 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 20 Oktober 2026: tiga proyek POLKAM
+# 🟢 MULAI DARI SINI — 30 Oktober 2026: pengumpulan terjadwal dihentikan
+
+**Baca blok ini dulu.** Blok 20 Oktober dan 12 Oktober di bawahnya tetap berlaku untuk isi proyek
+dan keadaan platform.
+
+Atas permintaan pengguna ("data sudah dapat diolah"), semua jadwal otomatis dimatikan. Tidak ada
+perubahan kode: kedua workflow hanya dinonaktifkan di pengaturan GitHub Actions.
+
+| Workflow | Jadwal sebelumnya | Status 30 Okt |
+|---|---|---|
+| Pengumpulan sinyal terjadwal (`collect-signals.yml`, id 358826840) | `7,37 * * * *` (tiap 30 menit) | `disabled_manually` |
+| Keepalive jadwal Actions (`keepalive.yml`, id 360151831) | `0 3 1,15 * *` | `disabled_manually` |
+| CI | saat push/PR, bukan terjadwal | tetap aktif |
+
+- Run terjadwal terakhir: 40978387240, 2026-10-30 00:14 UTC, sukses. Saat dinonaktifkan tidak ada
+  run yang sedang jalan atau mengantre.
+- Run gagal 27–29 Okt umumnya karena feed RSS Antara memutus koneksi ("Server disconnected without
+  sending a response"). Satu sumber gagal membuat seluruh run berstatus gagal, tapi sumber lain
+  tetap tersimpan. Tidak ditindaklanjuti karena pengumpulan dihentikan.
+- Tidak ada penjadwal lain: `render.yaml` hanya berisi web service `pop-api`, tidak ada cron Vercel.
+- Data yang sudah terkumpul tetap di Supabase. Web (Vercel), API (Render), dan DB tetap hidup.
+
+**Menyalakan lagi** (hanya bila diminta pengguna):
+
+```
+gh workflow enable 358826840 -R mahendrasenoaji-lgtm/public-opinion-platform
+gh workflow enable 360151831 -R mahendrasenoaji-lgtm/public-opinion-platform
+```
+
+Atau lewat tab Actions di GitHub → pilih workflow → "Enable workflow". Keepalive perlu ikut
+dinyalakan supaya GitHub tidak mematikan jadwal pengumpulan setelah 60 hari repo sepi.
+
+---
+
+# 🟢 20 Oktober 2026: tiga proyek POLKAM
 
 **Baca blok ini dulu.** Blok 12 Oktober di bawahnya tetap berlaku untuk keadaan platform.
 
