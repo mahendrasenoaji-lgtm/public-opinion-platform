@@ -185,3 +185,58 @@ export async function revokeToken(projectId: string): Promise<Result<null>> {
     throw e;
   }
 }
+
+export interface IngestItemIn {
+  external_id: string;
+  text: string;
+  published_at: string;
+  url?: string | null;
+  author_handle?: string | null;
+  engagement?: number;
+  conversation_id?: string | null;
+}
+
+export interface FullIngestResult {
+  received: number;
+  stored: number;
+  already_present: number;
+  duplicates_dropped: number;
+  duplicate_rate: number;
+  language_rejected: number;
+  language_unknown: number;
+  sentiment_abstained: number;
+  sentiment_abstain_rate: number;
+  empty_dropped: number;
+  caveats: string[];
+}
+
+/**
+ * Satu potong unggahan data yang sudah dimiliki peneliti (2026-11-05).
+ *
+ * Endpoint `POST /signals/ingest` sudah ada sejak Phase 2 tetapi hanya bisa
+ * dipanggil dengan curl. Kebutuhan pertamanya: komentar YouTube untuk jendela
+ * waktu yang sudah lewat (krisis BBM Bali 11–20 Okt 2026) — `collect-all` selalu
+ * menarik yang terbaru, jadi rentang lampau tidak bisa diambil lewat tombol
+ * "Tarik semua". Data tetap melewati pipeline yang sama (dedup, bahasa,
+ * sentimen). Pemotongan per batch ada di UploadData.tsx, bukan di sini.
+ */
+export async function ingestBatch(
+  projectId: string,
+  connector: string,
+  source: SignalSourceKey,
+  items: IngestItemIn[],
+): Promise<Result<FullIngestResult>> {
+  try {
+    const result = await api<FullIngestResult>(`/projects/${projectId}/signals/ingest`, {
+      method: "POST",
+      body: JSON.stringify({ connector, source, items }),
+    });
+    revalidatePath("/sinyal");
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+export type SignalSourceKey = "SOCIAL" | "MEDIA";

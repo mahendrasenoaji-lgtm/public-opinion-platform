@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { RescoreButton } from "@/components/RescoreButton";
 import { SourceManager } from "@/components/SourceManager";
+import { UploadData } from "@/components/UploadData";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
@@ -575,6 +576,7 @@ export default async function SinyalPage() {
               tokenStatus={tokenStatus}
             />
           )}
+          {canManage && <UploadData projectId={projectId} />}
           {canManageTokens && <RescoreButton projectId={projectId} />}
 
           <h3 className="kicker" style={{ marginTop: 22 }}>Konektor yang tersedia</h3>
