@@ -6,6 +6,34 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 5 November 2026: proyek KELANGKAAN BBM BALI + unggah JSON
+
+**Baca blok ini dulu.** Blok 30 Oktober di bawahnya tetap berlaku (pengumpulan terjadwal mati).
+
+Atas permintaan pengguna: komentar YouTube (tanpa media) tentang kelangkaan BBM di Bali,
+**11–20 Okt 2026 WITA** (awal antrean → 19 Okt Menteri ESDM menyatakan pasokan normal).
+
+| Apa | Keadaan |
+|---|---|
+| PR #43 `sinyal: unggah data JSON` | **MERGED** (izin pengguna) + live. Panel "Unggah data (JSON)" di `/sinyal` → `POST /signals/ingest` lama; tanpa ubah backend. Potong 300 item/aksi (batas 1 MB server action). |
+| Proyek "KELANGKAAN BBM BALI (YouTube 11-20 Okt 2026)" | Dibuat lewat UI. **35.772 konten** unik (dari 36.319; 547 teks kembar dibuang dedup), sentimen −0,24 (n 15.105), 22.704 akun. Tanpa sumber terdaftar dan tanpa token pengumpul (sengaja: data historis). |
+| Data, laporan, skrip | **`proyek/bbm-bali-youtube/`** di repo ini (pilihan pengguna: termasuk teks komentar, nama akun di-hash). Baca `PROGRESS.md` di sana. |
+
+**Kenapa tidak lewat "Tarik semua":** `youtube_api` meminta komentar `order=time` (terbaru dulu),
+100 per video per run, jendela dari UI 2 hari. Rentang lampau tidak pernah terjangkau, berapa kali
+pun diulang. Data diambil skrip terpisah lewat YouTube Data API (kunci dari env Render, tidak
+disimpan di repo) lalu diunggah lewat panel baru.
+
+**Yang perlu diketahui:**
+- Unggah besar memicu 2× `Bad Gateway` dan 1× `Service Unavailable` dari Render; ulang dari titik
+  berhenti aman (`ON CONFLICT DO NOTHING`).
+- Dashboard memakai jendela relatif dari hari ini (bawaan 30 hari) → data Oktober keluar dari
+  tampilan bawaan sekitar 19 Nov 2026. Jendela tanggal absolut belum ada (calon pekerjaan).
+- Analisis "organik vs buzzer" hanya indikator agregat (tidak ada teks kembar dari ≥3 akun; ±3%
+  komentar dari akun yang mengulang teks); tidak ada akun yang dilabeli, sesuai CLAUDE.md §3.
+
+---
+
 # 🟢 MULAI DARI SINI — 30 Oktober 2026: pengumpulan terjadwal dihentikan
 
 **Baca blok ini dulu.** Blok 20 Oktober dan 12 Oktober di bawahnya tetap berlaku untuk isi proyek
