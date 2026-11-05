@@ -17,7 +17,7 @@ Atas permintaan pengguna: komentar YouTube (tanpa media) tentang kelangkaan BBM 
 |---|---|
 | PR #43 `sinyal: unggah data JSON` | **MERGED** (izin pengguna) + live. Panel "Unggah data (JSON)" di `/sinyal` → `POST /signals/ingest` lama; tanpa ubah backend. Potong 300 item/aksi (batas 1 MB server action). |
 | Proyek "KELANGKAAN BBM BALI (YouTube 11-20 Okt 2026)" | Dibuat lewat UI. **35.772 konten** unik (dari 36.319; 547 teks kembar dibuang dedup), sentimen −0,24 (n 15.105), 22.704 akun. Tanpa sumber terdaftar dan tanpa token pengumpul (sengaja: data historis). |
-| Data, laporan, skrip | Repo terpisah **`bbm-bali-youtube`** (privat, di luar repo publik ini — berisi teks komentar). Baca `PROGRESS.md` di sana. |
+| Data, laporan, skrip | **`proyek/bbm-bali-youtube/`** di repo ini (pilihan pengguna: termasuk teks komentar, nama akun di-hash). Baca `PROGRESS.md` di sana. |
 
 **Kenapa tidak lewat "Tarik semua":** `youtube_api` meminta komentar `order=time` (terbaru dulu),
 100 per video per run, jendela dari UI 2 hari. Rentang lampau tidak pernah terjangkau, berapa kali
