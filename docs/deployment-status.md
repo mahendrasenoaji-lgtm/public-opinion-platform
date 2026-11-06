@@ -34,6 +34,32 @@ disimpan di repo) lalu diunggah lewat panel baru.
 
 ---
 
+# 🟢 1 November 2026: data POLKAM ditarik ulang, Kemenhan dibangun ulang
+
+Blok 30 Oktober di bawahnya tetap berlaku: jadwal otomatis MASIH MATI dan tidak
+dinyalakan lagi. Tidak ada perubahan kode.
+
+- Tiga proyek POLKAM ditarik mundur 14 hari sekali jalan (bukan lewat jadwal): token pengumpul diterbitkan
+  di halaman Sinyal, lalu `POST /v1/projects/{id}/signals/collect-all?since_days=14&limit=300` dipanggil dari
+  halaman dashboard; sesudahnya **semua token POLKAM dicabut** ("Tidak ada token aktif"). Secret
+  `POP_COLLECTOR_TOKENS` tidak disentuh, jadi token MBG/KDMP/Karhutla di secret tetap seperti 30 Okt.
+- Hasil: POLKAM - KEMENDAGRI 293 konten, POLKAM - KEMENLU 745, POLKAM - KEMENHAN 116 (dibaca 1 Nov).
+- **Kemenhan:** proyek 20 Okt diganti nama "POLKAM - KEMENHAN (LAMA, tercampur Iran)" — arsip, jangan dipakai.
+  Proyek baru "POLKAM - KEMENHAN" = 8 RSS + 40 sumber `youtube_api` yang judulnya dicek manual, **tanpa
+  `youtube_search`** (pencarian "kementerian pertahanan" sempat mendaftarkan video rTKQJfPLNYM tentang Presiden,
+  78 komentar). Satu proyek percobaan bernama sama yang dibuat 1 Nov sudah dihapus.
+- Temuan teknis (belum ditindaklanjuti):
+  - Tidak ada cara menghapus mention satu per satu (API maupun UI); membersihkan kontaminasi berarti membangun
+    ulang proyek. Endpoint hapus mention per sumber akan sangat membantu.
+  - Tombol "Tarik semua sekarang" selalu `since_days` bawaan (2); tidak ada pilihan mundur lebih jauh dari UI.
+  - Batas `MAX_COLLECT_ALL_ITEMS` 4.000 dibagi rata per sumber → ±80 komentar terbaru per video per tarikan;
+    video ramai terpotong (7 video Kemenlu kena batas).
+  - Formulir "Tambah sumber" di halaman Sinyal sering hilang sesudah ±6 penambahan; perlu muat ulang 1–2 kali.
+  - Kata kunci RSS "menteri luar negeri"/"menteri pertahanan" ikut menangkap menteri negara lain.
+- Rincian angka dan daftar video: repo `manajemen-komunikasi-polkam`, `data/snapshot-2026-11-01-polkam.md`.
+
+---
+
 # 🟢 MULAI DARI SINI — 30 Oktober 2026: pengumpulan terjadwal dihentikan
 
 **Baca blok ini dulu.** Blok 20 Oktober dan 12 Oktober di bawahnya tetap berlaku untuk isi proyek
