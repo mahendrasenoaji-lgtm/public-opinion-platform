@@ -7,7 +7,8 @@ atas permintaan pengguna karena data sudah cukup untuk diolah. Workflow
 Actions (`gh workflow disable`), kodenya tidak diubah. Data yang sudah masuk tetap
 di Supabase; web, API, dan CI tetap hidup. Detail dan cara menyalakan lagi: blok
 30 Oktober di kepala `docs/deployment-status.md`. Sebelumnya 2026-10-13: tabel Phase 2 kini memuat komponen PR #33/#34 per
-baris. Sebelumnya 2026-10-12 malam: PR #32, #33, #34 tayang dan
+baris; tiga proyek (MBG, KEBAKARAN HUTAN, KDMP 2026) ikut pengumpulan
+terjadwal, 86 sumber. Sebelumnya 2026-10-12 malam: PR #32, #33, #34 tayang dan
 terverifikasi; migrasi kolom versi penilai sudah masuk; yang KURANG ada di
 blok "keadaan akhir 12 Oktober" di kepala `docs/deployment-status.md` (mulai
 dari situ). Sebelumnya hari yang sama (gerbang password situs dilepas; butir 1–7
