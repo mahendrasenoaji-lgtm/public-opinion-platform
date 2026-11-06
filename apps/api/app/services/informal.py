@@ -74,8 +74,61 @@ _SLANG_GROUPS: dict[str, str] = {
     "utang": "hutang",
 }
 
+#: Bentuk berimbuhan dari kata leksikon yang SUDAH ada, ditulis tangan satu per
+#: satu (informal-2, 2026-11). Ini bukan stemmer: tiap entri adalah bentuk yang
+#: nyata ditemukan di komentar yang abstain padahal akarnya ada di leksikon
+#: ("kebohongan", "dimarahin", "memuakkan"). Bentuk yang akarnya hanya
+#: kebetulan berupa potongan kata lain SENGAJA tidak ada: "namanya" (aman),
+#: "sebenarnya" (benar), "nikmati" (mati), "demokrasi" (demo), "sedang" (edan).
+#: "penderitaan" (-> menderita) juga tidak ada: 22% kemunculannya bernegasi
+#: ("tidak merasakan penderitaan rakyat"), yaitu kritik, dan pembalikan negasi
+#: akan membacanya sebagai pujian.
+_AFFIX_GROUPS: dict[str, str] = {
+    "bohong": "berbohong membohongi dibohongi membohongin kebohongan pembohongan",
+    "gagal": "kegagalan menggagalkan gagalkan",
+    "bodoh": "kebodohan terbodoh dibodohi bodohi membodohi",
+    "tolol": "ketololan tertolol",
+    "goblok": "tergoblok",
+    "kacau": "kekacauan",
+    "hancur": "kehancuran",
+    "rugi": "kerugian dirugikan merugi",
+    "sulit": "kesulitan dipersulit persulit",
+    "lambat": "memperlambat",
+    "susah": "kesusahan",
+    "sengsara": "kesengsaraan",
+    "marah": "marahi dimarahi dimarahin memarahi marahin kemarahan",
+    "resah": "meresahkan keresahan",
+    "muak": "memuakkan",
+    "jijik": "menjijikan menjijikkan",
+    "sial": "sialan",
+    "jahat": "kejahatan",
+    "bobrok": "kebobrokan",
+    "korupsi": "dikorupsi",
+    "tipu": "tertipu ditipu",
+    "hujat": "dihujat",
+    "rusak": "perusak",
+    "protes": "diprotes",
+    "demo": "didemo",
+    "parah": "terparah",
+    "buruk": "terburuk",
+    "panik": "kepanikan",
+    "nangis": "menangis",
+    "bacot": "ngebacot",
+    "hina": "ngehina",
+    "penjara": "penjarakan",
+    "hapus": "hapuskan",
+    "abai": "abaikan",
+    "tangkap": "ditangkap",
+    "korban": "dikorbankan",
+    "copot": "dicopot mencopot",
+    "salah": "kesalahan menyalahkan nyalahin disalahkan salahkan menyalahin",
+}
+
 SLANG: dict[str, str] = {
-    variant: canon for canon, variants in _SLANG_GROUPS.items() for variant in variants.split()
+    variant: canon
+    for groups in (_SLANG_GROUPS, _AFFIX_GROUPS)
+    for canon, variants in groups.items()
+    for variant in variants.split()
 }
 
 #: Frasa dua kata yang di leksikon ditulis serangkai. Tanpa ini entri seperti

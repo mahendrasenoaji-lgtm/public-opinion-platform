@@ -6,7 +6,111 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — keadaan akhir 13 Oktober 2026
+# 🟢 MULAI DARI SINI — 5 November 2026: proyek KELANGKAAN BBM BALI + unggah JSON
+
+**Baca blok ini dulu.** Blok 30 Oktober di bawahnya tetap berlaku (pengumpulan terjadwal mati).
+
+Atas permintaan pengguna: komentar YouTube (tanpa media) tentang kelangkaan BBM di Bali,
+**11–20 Okt 2026 WITA** (awal antrean → 19 Okt Menteri ESDM menyatakan pasokan normal).
+
+| Apa | Keadaan |
+|---|---|
+| PR #43 `sinyal: unggah data JSON` | **MERGED** (izin pengguna) + live. Panel "Unggah data (JSON)" di `/sinyal` → `POST /signals/ingest` lama; tanpa ubah backend. Potong 300 item/aksi (batas 1 MB server action). |
+| Proyek "KELANGKAAN BBM BALI (YouTube 11-20 Okt 2026)" | Dibuat lewat UI. **35.772 konten** unik (dari 36.319; 547 teks kembar dibuang dedup), sentimen −0,24 (n 15.105), 22.704 akun. Tanpa sumber terdaftar dan tanpa token pengumpul (sengaja: data historis). |
+| Data, laporan, skrip | **`proyek/bbm-bali-youtube/`** di repo ini (pilihan pengguna: termasuk teks komentar, nama akun di-hash). Baca `PROGRESS.md` di sana. |
+
+**Kenapa tidak lewat "Tarik semua":** `youtube_api` meminta komentar `order=time` (terbaru dulu),
+100 per video per run, jendela dari UI 2 hari. Rentang lampau tidak pernah terjangkau, berapa kali
+pun diulang. Data diambil skrip terpisah lewat YouTube Data API (kunci dari env Render, tidak
+disimpan di repo) lalu diunggah lewat panel baru.
+
+**Yang perlu diketahui:**
+- Unggah besar memicu 2× `Bad Gateway` dan 1× `Service Unavailable` dari Render; ulang dari titik
+  berhenti aman (`ON CONFLICT DO NOTHING`).
+- Dashboard memakai jendela relatif dari hari ini (bawaan 30 hari) → data Oktober keluar dari
+  tampilan bawaan sekitar 19 Nov 2026. Jendela tanggal absolut belum ada (calon pekerjaan).
+- Analisis "organik vs buzzer" hanya indikator agregat (tidak ada teks kembar dari ≥3 akun; ±3%
+  komentar dari akun yang mengulang teks); tidak ada akun yang dilabeli, sesuai CLAUDE.md §3.
+
+---
+
+# 🟢 MULAI DARI SINI — 30 Oktober 2026: pengumpulan terjadwal dihentikan
+
+**Baca blok ini dulu.** Blok 20 Oktober dan 12 Oktober di bawahnya tetap berlaku untuk isi proyek
+dan keadaan platform.
+
+Atas permintaan pengguna ("data sudah dapat diolah"), semua jadwal otomatis dimatikan. Tidak ada
+perubahan kode: kedua workflow hanya dinonaktifkan di pengaturan GitHub Actions.
+
+| Workflow | Jadwal sebelumnya | Status 30 Okt |
+|---|---|---|
+| Pengumpulan sinyal terjadwal (`collect-signals.yml`, id 358826840) | `7,37 * * * *` (tiap 30 menit) | `disabled_manually` |
+| Keepalive jadwal Actions (`keepalive.yml`, id 360151831) | `0 3 1,15 * *` | `disabled_manually` |
+| CI | saat push/PR, bukan terjadwal | tetap aktif |
+
+- Run terjadwal terakhir: 40978387240, 2026-10-30 00:14 UTC, sukses. Saat dinonaktifkan tidak ada
+  run yang sedang jalan atau mengantre.
+- Run gagal 27–29 Okt umumnya karena feed RSS Antara memutus koneksi ("Server disconnected without
+  sending a response"). Satu sumber gagal membuat seluruh run berstatus gagal, tapi sumber lain
+  tetap tersimpan. Tidak ditindaklanjuti karena pengumpulan dihentikan.
+- Tidak ada penjadwal lain: `render.yaml` hanya berisi web service `pop-api`, tidak ada cron Vercel.
+- Data yang sudah terkumpul tetap di Supabase. Web (Vercel), API (Render), dan DB tetap hidup.
+
+**Menyalakan lagi** (hanya bila diminta pengguna):
+
+```
+gh workflow enable 358826840 -R mahendrasenoaji-lgtm/public-opinion-platform
+gh workflow enable 360151831 -R mahendrasenoaji-lgtm/public-opinion-platform
+```
+
+Atau lewat tab Actions di GitHub → pilih workflow → "Enable workflow". Keepalive perlu ikut
+dinyalakan supaya GitHub tidak mematikan jadwal pengumpulan setelah 60 hari repo sepi.
+
+---
+
+# 🟢 20 Oktober 2026: tiga proyek POLKAM
+
+**Baca blok ini dulu.** Blok 12 Oktober di bawahnya tetap berlaku untuk keadaan platform.
+
+Atas permintaan pengguna (untuk materi kuliah Manajemen Komunikasi Pemerintahan dan draf artikel
+jurnal; materinya ada di repo privat pengguna `manajemen-komunikasi-polkam`), tiga proyek baru dibuat
+lewat UI di sesi Chrome pengguna. Tidak ada perubahan kode.
+
+| Proyek | Sumber | Penarikan pertama 20 Okt (jendela 2 hari) |
+|---|---|---|
+| POLKAM - KEMENDAGRI | 9 RSS + `youtube_search` "kemendagri", "mendagri" | 59 item (SOSIAL 56, MEDIA 3), sosial −0,10 n 37 |
+| POLKAM - KEMENLU | 9 RSS (termasuk Antara dunia, CNN/Republika/Sindonews internasional) + "kementerian luar negeri", "menlu ri" | 30 item (SOSIAL 19, MEDIA 11) |
+| POLKAM - KEMENHAN | 8 RSS + "kementerian pertahanan", "menhan sjafrie" | 299 item (SOSIAL 298, MEDIA 1), sosial +0,19 n 120 — **tercampur** |
+
+Kata kunci RSS memakai nama lembaga/jabatan, bukan nama pejabat (pejabat berganti — data hari itu
+menangkap sertijab Menlu). Feed yang dipakai sama dengan proyek MBG, ditambah
+`antaranews.com/rss/politik.xml`, `antaranews.com/rss/dunia.xml`, `cnnindonesia.com/internasional/rss`,
+`republika.co.id/rss/internasional`, `international.sindonews.com/rss` (semua 200 dari curl 20 Okt).
+
+**Kejadian yang perlu diketahui:** kueri YouTube "menhan" menjaring video tentang Menteri Pertahanan
+**Iran**; ≥54 komentarnya tersimpan di POLKAM - KEMENHAN. Empat sumber video itu dan kueri "menhan"
+dihapus, diganti "menhan sjafrie". Menghapus sumber TIDAK menghapus mention (lihat `delete_source`);
+agen tidak menghapus data. Pelajaran: kueri `youtube_search` berupa singkatan jabatan umum menjaring
+negara lain — tambahkan nama atau "RI".
+
+## Yang KURANG (POLKAM)
+
+1. **Token pengumpul 3 proyek baru belum diterbitkan** → belum ikut jadwal 30 menit. Menulis
+   `POP_COLLECTOR_TOKENS` menimpa seluruh isi dan token lama tidak terbaca → keenam token (MBG,
+   KEBAKARAN HUTAN, KDMP + 3 POLKAM) harus diterbitkan ulang dan ditulis bersama. Tugas pengguna.
+2. **Backfill** komentar lama hanya lewat `workflow_dispatch` dengan `since_days` (UI selalu 2 hari).
+   Mulai 14 hari; ingat batas ~150 detik collect-all untuk batch besar.
+3. Komentar Iran di POLKAM - KEMENHAN: keputusan pengguna (hapus proyek lalu buat ulang, atau
+   dikecualikan saat analisis).
+
+**Cara kerja UI yang terbukti 20 Okt:** pindah proyek = tombol "Aktifkan" di `/proyek`; form "Tambah
+sumber" bisa diisi lewat skrip (setter nilai bawaan + event `input`), tetapi `/sinyal` sering gagal
+render sesudah beberapa penambahan berturut-turut ("Endpoint ini belum tersedia…") — muat ulang
+halaman sebelum tiap penambahan. Tombol Hapus sumber tidak memakai dialog konfirmasi.
+
+---
+
+# 🟢 13 Oktober 2026: keadaan akhir (blok sejarah; keadaan terbaru ada di blok paling atas)
 
 **Baca blok ini dulu kalau melanjutkan di komputer lain.** Blok "keadaan akhir
 12 Oktober" tepat di bawah masih berlaku; daftar "Yang KURANG" di sana sudah
@@ -68,7 +172,7 @@ data survei.
 
 ---
 
-# Keadaan akhir 12 Oktober 2026 + yang KURANG
+# 🟢 MULAI DARI SINI — keadaan akhir 12 Oktober 2026 + yang KURANG
 
 **Baca blok ini dulu kalau melanjutkan di komputer lain.** Dua blok 12 Oktober
 di bawahnya adalah rinciannya (PR #32 dan PR #33); blok ini keadaan terakhir

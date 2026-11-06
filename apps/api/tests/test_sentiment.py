@@ -247,6 +247,94 @@ class TestRagamInformal:
         assert "informal" not in score("mantap").method
 
 
+class TestInformal2:
+    """Perluasan kamus informal (informal-2): kritik kepada pejabat di kolom komentar.
+
+    Contoh diambil dari komentar YouTube tentang kelangkaan BBM di Bali
+    (proyek/bbm-bali-youtube). Tes ini menjaga dua arah: kata baru tertangkap,
+    dan kata yang SENGAJA tidak dimasukkan tetap abstain.
+    """
+
+    def test_versi_dinaikkan(self) -> None:
+        from app.services.sentiment import INFORMAL_MODEL_VERSION, MODEL_VERSION
+
+        assert INFORMAL_MODEL_VERSION == "lexicon-id-1+informal-2"
+        assert MODEL_VERSION == "lexicon-id-1"  # ragam baku tidak bergeser
+
+    @pytest.mark.parametrize(
+        "teks",
+        [
+            "Gubernur arogan",
+            "pejabat sombong banget",
+            "gubernur koplak",
+            "Omon omon doang",
+            "Sungguh memalukan",
+            "Bahlil mundur saja!!!",
+            "dicopot aja menterinya",
+            "Rasain lo",
+            "Pejabat pencitraan",
+            "menteri terburuk sepanjang sejarah",
+        ],
+    )
+    def test_kata_baru_terbaca_negatif(self, teks: str) -> None:
+        r = score(teks, register="informal")
+        assert not r.abstained, teks
+        assert r.label == "negatif", (teks, r.score, r.matched)
+
+    @pytest.mark.parametrize(
+        ("teks", "akar"),
+        [
+            ("pembohongan publik", "bohong"),
+            ("petugas dimarahin gubernur", "marah"),
+            ("sungguh memuakkan", "muak"),
+            ("ini kekacauan", "kacau"),
+            ("penjarakan saja", "penjara"),
+            ("kesalahan fatal", "salah"),
+        ],
+    )
+    def test_bentuk_berimbuhan_dikenali_lewat_akarnya(self, teks: str, akar: str) -> None:
+        r = score(teks, register="informal")
+        assert akar in [kata for kata, _ in r.matched], (teks, r.matched)
+
+    def test_negasi_tetap_membalik_kata_baru(self) -> None:
+        r = score("pejabatnya tidak arogan", register="informal")
+        assert r.label == "positif", r.matched
+
+    def test_larangan_tidak_membalik_kata_baru(self) -> None:
+        assert score("jangan sombong pak", register="informal").label == "negatif"
+
+    @pytest.mark.parametrize(
+        "teks",
+        [
+            "namanya juga hidup",  # "namanya" bukan "aman" + klitik
+            "sebenarnya bagaimana",  # "sebenarnya" bukan "benar"
+            "kita nikmati saja",  # "nikmati" bukan "mati"
+            "demokrasi di Indonesia",  # "demokrasi" bukan "demo"
+            "jaman dulu",  # "jaman" bukan "aman"
+        ],
+    )
+    def test_kata_yang_hanya_mirip_akar_tidak_dikenali(self, teks: str) -> None:
+        assert score(teks, register="informal").abstained, teks
+
+    @pytest.mark.parametrize(
+        "teks",
+        [
+            "harusnya mengayomi rakyat",  # tuntutan, bukan pujian
+            "tidak usah sok kaget",  # larangan; "sok" tidak di leksikon
+            "BBM langka lagi",  # kata topik, bukan penilaian
+            "pom bensin kosong",
+        ],
+    )
+    def test_kata_yang_sengaja_tidak_ditambahkan_tetap_abstain(self, teks: str) -> None:
+        assert score(teks, register="informal").abstained, teks
+
+    def test_kosakata_baru_tidak_bocor_ke_baku_dan_berita(self) -> None:
+        contoh = ("Gubernur arogan dan sombong", "Menteri diminta mundur", "dicopot dari jabatan")
+        for teks in contoh:
+            assert score(teks).abstained, teks
+            assert score(teks, register="berita").abstained, teks
+
+
 class TestRagamBakuTidakBergeser:
     """Deret sentimen MEDIA harus tetap sinambung dengan lexicon-id-1."""
 
