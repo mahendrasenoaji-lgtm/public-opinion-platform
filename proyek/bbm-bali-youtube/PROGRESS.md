@@ -93,8 +93,31 @@ Jalankan dengan `python3 -I -X utf8 skrip/<nama>.py …` (di Windows, `-X utf8` 
 gagal). `ambil_sampel_abstain.py` menerima: csv komentar, JSON keluaran, indeks awal, indeks akhir.
 Label manual aslinya dibuat dengan membaca teks; CSV adalah sumber label, bukan skrip.
 
-**Belum dilakukan dari pembaruan ini:** `laporan.html`, artifact lama, dan PDF belum diberi catatan "42%
-dari komentar"; kamus informal belum diperluas; belum ada pelabel kedua.
+**Laporan dihitung ulang dengan informal-2 (6 Nov, lanjutan).** Kamus informal diperluas di PR #46
+(cabang `sentimen-perluas-kamus-informal`; hasil ukur: `UKUR_ULANG_INFORMAL2.md` di cabang itu). Laporan
+`laporan_pembaruan_sampel_manual.html` (artifact versi 3, URL sama) kini memakai `lexicon-id-1+informal-2`
+untuk SEMUA angka sentimen: tidak dinilai 17.727 (48,8%), dinilai 18.592, negatif 69,8% dari yang dinilai,
+skor harian −0,26 s.d. −0,34, tidak ada tema berskor positif (terdekat: permintaan maaf/normal −0,03).
+Taksiran ±67% (64–70%) dari sampel manual tetap untuk seluruh komentar. Nada menurut pola akun (informal-2):
+70,2% / 69,4% / 69,1% (sekali / ≥2 komentar 1 video / ≥3 video).
+
+| Apa | Lokasi |
+|---|---|
+| Statistik informal-2 | `stats_informal2.json` (`stats.json` 5 Nov tetap informal-1) |
+| Label informal-2 tiap komentar | `label_informal2_per_komentar.csv` (comment_id, skor, label) |
+| Skrip | `skrip/build_report.py` (narasi kini dibuat dari angka), `skrip/build_report_pembaruan.py` (menyisipkan bagian pembaruan + SNA), `skrip/analyze_bbm.py` (mencatat `model_version`) |
+
+Membangun ulang laporan (butuh kode informal-2: gabungkan PR #46 atau arahkan `POP_API_DIR` ke checkout-nya):
+```bash
+POP_API_DIR=<checkout informal-2>/apps/api python3 -X utf8 skrip/analyze_bbm.py raw_youtube_api.json <keluaran>
+python3 -X utf8 skrip/build_report.py <keluaran>/stats.json <keluaran>/laporan_dasar.html
+python3 -X utf8 skrip/build_report_pembaruan.py <keluaran>/laporan_dasar.html laporan_pembaruan_sampel_manual.html
+```
+CSV/XLSX 5 Nov (`komentar_youtube_bbm_bali_11-20okt2026.*`) sengaja tidak ditimpa: label di dalamnya tetap
+informal-1. Angka di platform (Vercel) juga masih informal-1 sampai PR #46 digabung dan rescore dijalankan.
+
+**Belum dilakukan:** `laporan.html`, artifact lama (WFPjyhn…), dan PDF tetap versi informal-1 tanpa catatan
+"42% dari komentar"; belum ada pelabel kedua; perbaikan `_modifier` (negator sampai kata bermuatan kedua).
 
 ## Keputusan yang diambil
 

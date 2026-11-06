@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 
 # Penilai sentimen diambil dari apps/api di repo yang sama (proyek/bbm-bali-youtube/skrip -> ../../../apps/api).
 sys.path.insert(0, os.environ.get("POP_API_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "apps", "api")))
-from app.services.sentiment import score  # noqa: E402  (penilai yang sama dengan platform)
+from app.services.sentiment import INFORMAL_MODEL_VERSION, score  # noqa: E402  (penilai yang sama dengan platform)
 from openpyxl import Workbook  # noqa: E402
 from openpyxl.styles import Font  # noqa: E402
 
@@ -74,7 +74,7 @@ stats = dict(
     videos_found=len(videos), videos_with_comments=len(per_video), comments=len(rows),
     top_level=sum(r["type"] == "komentar" for r in rows), replies=sum(r["type"] == "balasan" for r in rows),
     outside_window=d["comments_outside_window"], unique_authors=len({r["author_hash"] for r in rows}),
-    labels=dict(labels), days=days, themes=theme_sent, top_videos=top_videos,
+    model_version=INFORMAL_MODEL_VERSION, labels=dict(labels), days=days, themes=theme_sent, top_videos=top_videos,
     top_liked=[{k: r[k] for k in ("waktu_wita", "text", "likes", "sentiment_label", "url", "video_title", "channel", "themes")} for r in top_liked],
     by_day_samples={},
 )
@@ -118,7 +118,7 @@ for line in [
     "Kueri: " + "; ".join(d["queries"]),
     "Komentar: semua komentar dan balasan pada video tersebut, disaring menurut waktu tulis dalam jendela.",
     "Nama akun tidak disimpan; diganti hash (12 karakter) agar tetap bisa menghitung akun unik.",
-    "Sentimen: penilai leksikon ragam informal platform Public Opinion (lexicon-id-1+informal-1). Abstain = tak ada kata penanda.",
+    f"Sentimen: penilai leksikon ragam informal platform Public Opinion ({INFORMAL_MODEL_VERSION}). Abstain = tak ada kata penanda.",
     "Batas: komentar YouTube self-selected, tidak mewakili warga Bali; urutan pencarian ditentukan YouTube; nada ≠ sikap; sarkasme sering salah baca.",
     f"Dikumpulkan: {d['collected_at']} — kuota API ~{d['quota_units']} unit.",
 ]:
