@@ -216,7 +216,41 @@ _INFORMAL_NEGATIVE: dict[str, float] = {
     # lain-lain
     "hujat": 0.6, "ruwet": 0.5, "banci": 0.7, "belagu": 0.6, "malas": 0.5,
     "pemalas": 0.6, "mencuri": 0.7, "pencuri": 0.8, "curi": 0.7,
+    # informal-2 (2026-11): kritik kepada pejabat di kolom komentar. Dipilih dari
+    # komentar yang abstain di luar sampel ukur (bukan dari sampel itu), dan
+    # hanya kata yang maknanya tidak bergantung konteks.
+    # sikap dan karakter
+    "arogan": 0.7, "sombong": 0.7, "angkuh": 0.7, "songong": 0.6, "licik": 0.7,
+    "koplak": 0.7, "oon": 0.7, "dongok": 0.8, "kolot": 0.5,
+    "plongo": 0.5, "bahlul": 0.7, "omon": 0.6, "ngeles": 0.6,
+    "pencitraan": 0.6, "oknum": 0.5, "tai": 0.8,
+    # penilaian atas keadaan dan tindakan
+    "memalukan": 0.8, "aneh": 0.4, "gaduh": 0.6, "lumpuh": 0.7, "ulah": 0.5,
+    "ngamuk": 0.5, "penimbun": 0.6, "salah": 0.5,
+    "capek": 0.4, "cape": 0.4, "lelah": 0.4, "kelelahan": 0.5,
+    # gelak pahit dan tuntutan mundur
+    "rasain": 0.6, "karma": 0.4, "mundur": 0.6, "copot": 0.6, "usir": 0.5,
 }
+
+#: "drama" dan "pusing" juga tidak ada: 21% dan 19% kemunculannya terbalik jadi
+#: positif karena larangan ("gak usah drama", "gak usah pusing"). Kata yang
+#: dipertahankan terbalik 0-14% (sebagian pembalikan yang benar, mis. "tidak
+#: capek"). Kelemahan yang sudah ada dan belum diperbaiki di sini: negator
+#: masih terhitung sampai kata bermuatan KEDUA di jendelanya, sehingga "gk becus
+#: copot" membalik "copot" juga. Perbaikannya ada di `_modifier`, bukan di kamus.
+#:
+#: "sok" juga SENGAJA tidak ada: ia hampir selalu muncul dalam larangan ("gak
+#: usah sok kaget", "bukan sok memerintah"), dan negator di depannya membaliknya
+#: jadi positif. Memperbaikinya butuh aturan larangan untuk "gak/tidak usah",
+#: yang di luar perubahan kamus ini.
+#:
+#: Kata positif yang SENGAJA tidak ditambahkan di informal-2: "empati",
+#: "manusiawi", "bijak", "pantas", "mengayomi". Di komentar BBM Bali hanya
+#: 28-66% kemunculannya bernegasi ("tidak punya empati"); sisanya dipakai dalam
+#: kalimat tuntutan ("harusnya mengayomi rakyat") yang justru kritik, sehingga
+#: sebagai kata positif ia akan menggeser kritik menjadi pujian. Kata topik
+#: ("langka", "kosong", "antri") juga tidak ditambahkan: itu penanda isu,
+#: bukan penilaian, dan kamus ini dipakai lintas proyek.
 
 INFORMAL_LEXICON: dict[str, float] = {
     **LEXICON,
@@ -251,7 +285,7 @@ EMOTION_LEXICON: dict[str, tuple[str, ...]] = {
 MODEL_VERSION = "lexicon-id-1"
 #: Versi ragam informal. Dinaikkan setiap kali `_INFORMAL_*`, `EMOJI_LEXICON`,
 #: atau `services/informal.py` berubah dengan cara yang menggeser skor.
-INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-1"
+INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-2"
 
 #: Semua bentuk yang perlu dikenali normalisasi: kata bermuatan, pengubah,
 #: penghubung klausa, dan kata penyusun frasa serangkai.
