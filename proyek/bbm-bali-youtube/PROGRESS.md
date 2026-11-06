@@ -8,14 +8,24 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 
 ## 🟢 Mulai dari sini
 
-1. Komputer lain: `cd ~/Documents/public-opinion-platform && git pull` → buka folder ini.
-2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push (lewat PR, seperti bagian lain repo).
-3. Status: **SELESAI** untuk laporan 5 Nov. Pembaruan 6 Nov (sampel manual + SNA) ada di PR cabang
-   `bbm-bali-sampel-manual`; setelah PR di-merge, tidak ada pekerjaan yang menggantung. Pilihan
-   lanjutan ada di bagian "Kalau mau dilanjutkan".
-4. Membaca pembaruan 6 Nov: lihat bagian "Pembaruan 6 November 2026" di bawah. Laporan yang masih
-   memuat "63% negatif" saja (`laporan.html`, artifact lama, PDF) sengaja tidak diubah; versi yang
-   benar ada di `laporan_pembaruan_sampel_manual.html`.
+1. Komputer lain: clone/`git pull` repo `mahendrasenoaji-lgtm/public-opinion-platform`, lalu
+   `git fetch && git checkout bbm-bali-sampel-manual` (PR #45) dan buka folder ini. Kode penilai
+   `informal-2` ada di cabang terpisah `sentimen-perluas-kamus-informal` (PR #46).
+2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push lewat PR, seperti bagian lain repo.
+   `gh pr merge` ke `main` ditolak classifier auto mode; siapkan PR sampai CI hijau, lalu **merge sendiri**.
+3. **Status 6 Nov 2026 (akhir sesi):** dua PR terbuka, keduanya menunggu Anda.
+   - **PR #45** `bbm-bali-sampel-manual`: sampel manual 400 + SNA + laporan yang dihitung ulang dengan
+     informal-2 + skrip + catatan ini. Hanya berkas di `proyek/`.
+   - **PR #46** `sentimen-perluas-kamus-informal`: kode `informal-2` di `apps/api` + tes (569 lulus).
+     **Setelah merge #46**, mention SOCIAL semua proyek berstatus "menunggu rescore"; jalankan
+     `POST /projects/{id}/signals/rescore` per proyek (MBG, KEBAKARAN HUTAN, KDMP 2026, BBM Bali).
+     Itu aksi database production yang tidak dijalankan agen.
+   - Urutan merge bebas, tetapi laporan di #45 mengutip hasil #46 dan membangun ulangnya butuh kode #46.
+4. Laporan yang benar: `laporan_pembaruan_sampel_manual.html` (artifact
+   https://claude.ai/artifact/E7TiPtANVW32KoeLQygC7v, versi 3, privat; bagikan lewat Share). Laporan 5 Nov
+   (`laporan.html`, artifact `WFPjyhn…`, PDF) sengaja tidak diubah dan memuat "63% negatif" versi informal-1.
+5. Tampilan artifact versi 3 belum dilihat di browser oleh agen; periksa grafik harian (sumbu skor
+   −0,5) dan tabel tema.
 
 ## Permintaan pengguna (urut)
 
@@ -37,6 +47,12 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    terakhir?" → CSV disimpan; SNA jadi bagian terakhir laporan baru.
 9. (6 Nov) "Commit dan push", lalu "buatkan PR-nya … simpan percakapan dan progressnya di github" → PR
    cabang `bbm-bali-sampel-manual`, bagian ini.
+10. (6 Nov) "Perluas kamus informal dan ukur ulang abstain" → PR #46, `informal-2`; hasil di bawah dan di
+    `UKUR_ULANG_INFORMAL2.md` (cabang #46).
+11. (6 Nov) "Perbarui laporan dengan angka informal-2. Update ke artifacts" → artifact yang sama, versi 3;
+    seluruh angka sentimen dihitung ulang (bukan hanya kepala halaman).
+12. (6 Nov) "Aku akan meneruskan di komputer lain, simpan semua progress dan percakapan nya di github" →
+    blok "Mulai dari sini" di atas dan bagian "Pelajaran dari sesi 6 Nov" di bawah.
 
 ## Pembaruan 6 November 2026
 
@@ -118,6 +134,32 @@ informal-1. Angka di platform (Vercel) juga masih informal-1 sampai PR #46 digab
 
 **Belum dilakukan:** `laporan.html`, artifact lama (WFPjyhn…), dan PDF tetap versi informal-1 tanpa catatan
 "42% dari komentar"; belum ada pelabel kedua; perbaikan `_modifier` (negator sampai kata bermuatan kedua).
+
+## Pelajaran dari sesi 6 Nov (supaya tidak diulang)
+
+- **Abstain bukan netral.** Jangan mengisi komentar yang tidak dinilai dengan tebakan. SNA diuji dan
+  gagal untuk itu (kesamaan induk–balasan 49% = kebetulan; konsistensi akun 60% vs kebetulan 57%).
+  Cara jujur: sampel manual berinterval kepercayaan (Wilson), atau kamus yang diukur.
+- **Cek "porsi negatif di komentar yang sudah dinilai" tidak membuktikan kata baru**: hampir semua kandidat
+  60–70%, sama dengan angka dasar. Pilih kata dari maknanya, uji pada sampel yang dilabeli tanpa melihat
+  skor alat.
+- **Sampel buta menangkap cacat nyata**: "sok" dan "penderitaan" terbalik jadi positif oleh negasi;
+  "drama" dan "pusing" juga (larangan "gak usah …"). Semuanya dibuang. Kata positif prescriptive
+  (empati, manusiawi, bijak, pantas, mengayomi) sengaja tidak ditambahkan.
+- **Kelemahan lama belum diperbaiki** (ada di `_modifier`, `sentiment.py`): negator masih terhitung sampai
+  kata bermuatan kedua di jendela 3 kata, jadi "gk becus copot" membalik "copot". Layak PR sendiri + tes.
+- **Kebocoran data uji**: sampel manual 400 dibaca penyusun saat memilih kata, jadi kecocokan 70/73 di sana
+  optimistis. Yang bisa dipegang: sampel buta 100 (`sampel_buta_100_informal2.csv`, presisi negatif 94,4%,
+  87,5–97,6%) dan evaluasi lapangan repo (F1 0,612 → 0,618).
+- Satu pelabel (Claude), tanpa penilai kedua. Langkah lanjut terbaik: minta orang lain melabeli ulang
+  50–100 baris `sampel_manual_400_label.csv` dan hitung kesepakatan (kappa).
+- Windows: jalankan Python dengan `-X utf8` (cetak/baca JSON gagal tanpa itu); `-I` mengabaikan
+  `PYTHONIOENCODING`. Venv tes: `apps/api/.venv-test/Scripts/python.exe`. `networkx` tidak terpasang
+  (SNA ditulis dengan Python murni). Heredoc panjang di Git Bash rawan gagal; tulis berkas lewat tool Write.
+- Berkas sementara di folder scratchpad sesi tidak ikut tersimpan; semua yang perlu sudah di repo:
+  label sampel (CSV), skrip ambil sampel (`skrip/ambil_sampel_abstain.py`, `skrip/ambil_sampel_buta_informal2.py`),
+  hitung (`skrip/hitung_sampel.py`), SNA (`skrip/sna_jaringan.py`). Catatan: `skrip/ukur_ulang_informal2.py`,
+  `UKUR_ULANG_INFORMAL2.md`, dan `sampel_buta_100_informal2.csv` ada di cabang PR #46, bukan #45.
 
 ## Keputusan yang diambil
 
