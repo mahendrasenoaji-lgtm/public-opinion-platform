@@ -23,6 +23,8 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
      `laporan_pembaruan_sampel_manual.html` di repo = isi artifact; `skrip/build_report_pembaruan.py`
      dari `stats_informal2.json` menghasilkan HTML yang identik.
    - Laporan 5 Nov (`laporan.html`, artifact `WFPjyhn…`, PDF) sengaja tidak diubah (versi informal-1).
+   - Deck PowerPoint 12 slide: `presentasi_bbm_bali_youtube.pptx` (angka = laporan versi 4, grafik asli
+     PowerPoint, catatan pembicara tiap slide; dicek lewat ekspor PDF PowerPoint). Pembuat: `skrip/build_pptx.js`.
 4. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
    KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
    Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
@@ -58,6 +60,7 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
     blok "Mulai dari sini" di atas dan bagian "Pelajaran dari sesi 6 Nov" di bawah.
 13. (6 Nov, sesi berikut) "merge #45 dan #46 … BBM Bali selesaikan sampai tuntas. kamus sudah diperbaiki?" →
     #46 lalu #45 digabung; rescore BBM Bali di platform sampai sisa 0; artifact versi 4; catatan ini.
+14. (6 Nov) "buatkan pptx nya untuk bbm bali" → `presentasi_bbm_bali_youtube.pptx` + `skrip/build_pptx.js`.
 
 ## Pembaruan 6 November 2026
 
