@@ -10,8 +10,12 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 
 1. Komputer lain: `cd ~/Documents/public-opinion-platform && git pull` → buka folder ini.
 2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push (lewat PR, seperti bagian lain repo).
-3. Status: **SELESAI.** Tidak ada pekerjaan yang menggantung. Pilihan lanjutan ada di bagian
-   "Kalau mau dilanjutkan".
+3. Status: **SELESAI** untuk laporan 5 Nov. Pembaruan 6 Nov (sampel manual + SNA) ada di PR cabang
+   `bbm-bali-sampel-manual`; setelah PR di-merge, tidak ada pekerjaan yang menggantung. Pilihan
+   lanjutan ada di bagian "Kalau mau dilanjutkan".
+4. Membaca pembaruan 6 Nov: lihat bagian "Pembaruan 6 November 2026" di bawah. Laporan yang masih
+   memuat "63% negatif" saja (`laporan.html`, artifact lama, PDF) sengaja tidak diubah; versi yang
+   benar ada di `laporan_pembaruan_sampel_manual.html`.
 
 ## Permintaan pengguna (urut)
 
@@ -22,6 +26,75 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    akun organik atau buzzer?"
 3. "Simpan percakapan dan progress di repo supaya dapat saya kerjakan di komputer lain." (file ini)
 4. "Jadikan satu dengan public opinion seperti proyek yang lain" → dipilih: semua file ke repo publik ini.
+
+5. (6 Nov) "Cek repo public opinion, lalu baca hasil di artifacts mengenai kelangkaan BBM di Bali.
+   Dari 36.319 komentar dalam jendela dan 63% negatif, dari 15.299 komentar yang bisa dinilai. Yang
+   tidak dinilai kenapa?" → jawaban: lihat "Pembaruan 6 November 2026".
+6. (6 Nov) "Apakah bisa dinilai menggunakan SNA data yang sudah ada?" → diuji, tidak bisa untuk menilai
+   nada (lihat di bawah). Lalu: "mulai langkah 1, nilai sampel manual" → 400 komentar dilabeli.
+7. (6 Nov) "Buatkan file baru saja supaya tidak menimpa yang lama" → artifact + HTML baru.
+8. (6 Nov) "Simpan 400 baris berlabel ke csv di proyek. Jika analisa SNA, apakah bisa di halaman
+   terakhir?" → CSV disimpan; SNA jadi bagian terakhir laporan baru.
+9. (6 Nov) "Commit dan push", lalu "buatkan PR-nya … simpan percakapan dan progressnya di github" → PR
+   cabang `bbm-bali-sampel-manual`, bagian ini.
+
+## Pembaruan 6 November 2026
+
+**Kenapa 58% komentar tidak dinilai.** Penilai `lexicon-id-1+informal-1` (`apps/api/app/services/
+sentiment.py`, fungsi `score()`) mengembalikan abstain (`None`) bila tidak ada satu pun kata kamus atau
+emoji yang cocok. Abstain sengaja bukan netral. Makin pendek komentar, makin sering abstain:
+0 kata 78%, 1–2 kata 71%, 3–5 kata 74%, 6–10 kata 66%, 11–20 kata 52%, ≥21 kata 32%. Balasan lebih
+sering abstain (64%) daripada komentar utama (57%). Contoh yang lolos: "GUBENUR SOMBONG … DIBAYAR
+DARI DUIT RAKYAT", "GUBENUR MEMALUKAN", "pensiun mbah…". Maka **63% negatif hanya berlaku untuk 42%
+komentar yang memuat kata kamus**.
+
+**Sampel manual (langkah 1).** 400 komentar acak dari 21.020 yang abstain (seed 20261106), dibaca dan
+dilabeli satu pembaca (Claude, tanpa penilai kedua; belum ada pengecekan kesepakatan):
+
+| Label | Jumlah | Porsi | Rentang 95% |
+|---|---|---|---|
+| negatif | 279 | 69,8% | 65–74% |
+| netral/informatif | 58 | 14,5% | 11–18% |
+| tidak jelas (emoji/tawa saja, bahasa daerah tak pasti, obrolan antar-pengguna) | 58 | 14,5% | 11–18% |
+| positif | 5 | 1,2% | 0,5–2,9% |
+
+Dari 342 yang terbaca: 81,6% negatif (77–85%). Perkiraan negatif di seluruh 36.319 komentar ≈ **67%
+(64–70%)**, dengan komentar "tidak jelas" dihitung bukan negatif. Positif nyaris nihil di kelompok ini
+(pujian untuk petugas/pemilik SPBU dan Gubernur Jabar); sebaliknya 29% dari yang dinilai alat berlabel
+positif, sebagian sarkasme → 63% dari alat kemungkinan terlalu rendah, bukan terlalu tinggi.
+Aturan label yang memengaruhi hasil: dugaan/tuduhan tanpa kata evaluatif ("pasti ada oknum") dihitung
+negatif; sindiran yang jelas arahnya dihitung negatif. Aturan lebih ketat → negatif turun, netral naik.
+
+**SNA tidak bisa mengisi sentimen yang kosong.** Dari 962 pasangan induk–balasan yang sama-sama
+dinilai, hanya 49% searah (peluang kebetulan ≈49%). Dari 1.955 akun dengan ≥2 komentar positif/negatif,
+60% konsisten (kebetulan ≈57%). Prior per video (51–80% negatif, median 64%) hanya mengulang rata-rata.
+Maka jaringan dipakai untuk **struktur**, bukan imputasi.
+
+**Hasil SNA** (agregat, tanpa nama akun): 78,9% akun hanya di 1 video; 4.810 akun (21%) di ≥2 video
+menulis 46% komentar; 105 akun di ≥10 video. Tumpang-tindih pengomentar antar video rendah (Jaccard
+tertinggi 0,07; tidak ada gugus video). Jaringan balasan: 5.062 balasan, 4.275 pasangan akun unik,
+4.561 akun, 10 akun teratas hanya menerima 8,3% balasan, 597 gugus (terbesar 3.047 akun), 330 balasan ke
+komentar sendiri. Nada (alat, hanya yang dinilai): 63,7% negatif untuk akun sekali, 62,3% untuk akun
+≥2 komentar di 1 video, 62,7% untuk akun di ≥3 video → pengomentar rajin tidak lebih negatif. Batas:
+YouTube meratakan balasan atas balasan ke komentar induk, jadi timbal balik antarakun tak terukur (0).
+
+**Berkas baru (6 Nov)**
+
+| Apa | Lokasi |
+|---|---|
+| Laporan pembaruan (HTML) | `laporan_pembaruan_sampel_manual.html` |
+| Artifact pembaruan (privat) | https://claude.ai/artifact/E7TiPtANVW32KoeLQygC7v (versi 2) |
+| 400 komentar berlabel | `sampel_manual_400_label.csv` (kolom label_manual, label_alat, teks, tautan) |
+| Skrip ambil sampel | `skrip/ambil_sampel_abstain.py` (seed 20261106; menulis JSON sampel) |
+| Skrip hitung porsi + Wilson | `skrip/hitung_sampel.py <csv>` |
+| Skrip SNA | `skrip/sna_jaringan.py <komentar csv>` (Python murni, tanpa networkx) |
+
+Jalankan dengan `python3 -I -X utf8 skrip/<nama>.py …` (di Windows, `-X utf8` perlu supaya cetak tidak
+gagal). `ambil_sampel_abstain.py` menerima: csv komentar, JSON keluaran, indeks awal, indeks akhir.
+Label manual aslinya dibuat dengan membaca teks; CSV adalah sumber label, bukan skrip.
+
+**Belum dilakukan dari pembaruan ini:** `laporan.html`, artifact lama, dan PDF belum diberi catatan "42%
+dari komentar"; kamus informal belum diperluas; belum ada pelabel kedua.
 
 ## Keputusan yang diambil
 
@@ -99,5 +172,9 @@ di laporan dan di atas.
 1. **Pemeriksaan akun lebih dalam:** tarik ulang `authorChannelId` untuk ±150 akun paling aktif, lalu
    `channels.list` (tanggal kanal dibuat, jumlah video/subscriber). Kuota kecil. Tetap tanpa
    menyebut akun di laporan.
-2. Pelabelan manual sampel komentar BBM untuk mengukur akurasi sentimen di isu ini.
+2. ~~Pelabelan manual sampel~~ → dikerjakan 6 Nov (400 komentar, satu pelabel). Lanjutannya:
+   minta orang lain melabeli ulang 50–100 baris dari `sampel_manual_400_label.csv` untuk menghitung
+   kesepakatan (kappa), lalu perluas kamus informal (kata seperti "memalukan", "arogan", "copot",
+   "mundur", "bahlul", ejaan "gubenur") dan ukur ulang abstain; pakai sampel ini sebagai set uji.
+   Perubahan `sentiment.py` butuh tes + PR terpisah (aturan CLAUDE.md repo).
 3. Perluas jendela (mis. sampai 31 Okt) untuk melihat ekor percakapan sesudah pernyataan "normal".
