@@ -1,0 +1,356 @@
+<title>BBM Bali Sampel Manual</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: satu kolom laporan, papan angka ala papan harga SPBU di atas, linimasa harian sebagai tulang punggung */
+:root {
+  --bg: #f6f6f3; --surface: #ffffff; --ink: #1d2124; --muted: #5d656b; --line: #dcdfd9;
+  --social: #c4501b; --social-soft: #f6d9c9; --neg: #8f2d1a; --accent: #0f6b5c;
+  --display: "Archivo Narrow", "Arial Narrow", system-ui, sans-serif;
+  --body: "Source Sans 3", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #15181a; --surface: #1d2124; --ink: #e8eae6; --muted: #a0a8ad; --line: #30363a;
+  --social: #ff8a55; --social-soft: #4a2a1b; --neg: #ff9b84; --accent: #5fc9b4; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #15181a; --surface: #1d2124; --ink: #e8eae6; --muted: #a0a8ad; --line: #30363a;
+  --social: #ff8a55; --social-soft: #4a2a1b; --neg: #ff9b84; --accent: #5fc9b4; color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 17px/1.55 var(--body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 40px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 44px; }
+h1, h2 { font-family: var(--display); font-weight: 700; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2rem, 6vw, 3.1rem); line-height: 1.05; }
+h2 { font-size: 1.6rem; }
+.eyebrow { font: 600 0.78rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--social); }
+.lede { max-width: 65ch; color: var(--muted); margin: 0; }
+header { display: grid; gap: 14px; }
+a { color: var(--accent); }
+a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.board { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }
+.board div { background: var(--surface); padding: 14px 16px; display: grid; gap: 4px; }
+.board b { font: 600 1.7rem/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.board span { font-size: 0.86rem; color: var(--muted); }
+section { display: grid; gap: 16px; min-width: 0; }
+section > p { margin: 0; max-width: 65ch; }
+.chart { background: var(--surface); border: 1px solid var(--line); padding: 12px; overflow-x: auto; }
+.chart svg { min-width: 560px; width: 100%; height: auto; display: block; }
+.grid { stroke: var(--line); stroke-width: 1; }
+.ax { fill: var(--muted); font: 11px var(--mono); }
+.sx { fill: var(--ink); }
+.val { fill: var(--ink); font: 600 11px var(--mono); }
+.bar { fill: var(--social-soft); }
+.barneg { fill: var(--social); }
+.line { fill: none; stroke: var(--ink); stroke-width: 1.5; }
+.dot { fill: var(--ink); }
+.legend { display: flex; flex-wrap: wrap; gap: 18px; font-size: 0.86rem; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; vertical-align: -1px; margin-right: 6px; }
+ol.tl { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; border-left: 2px solid var(--line); }
+.day { padding: 0 0 26px 20px; position: relative; display: grid; gap: 8px; }
+.day::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: var(--social); }
+.dhead { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.ddate { font: 700 1.2rem var(--display); }
+.dn, .dm { font: 0.85rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+.ev { margin: 0; font-weight: 600; }
+.qs, .liked { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+q { quotes: "“" "”"; display: block; }
+.meta { display: block; font-size: 0.82rem; color: var(--muted); }
+.none { margin: 0; color: var(--muted); font-style: italic; }
+.tbl-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th { text-align: left; font: 600 0.75rem var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--ink); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.barcell { width: 30%; min-width: 90px; }
+.barcell span { display: block; height: 10px; background: var(--social); margin-top: 6px; }
+.note { background: var(--surface); border: 1px solid var(--line); padding: 16px 18px; display: grid; gap: 8px; }
+.upd { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); padding: 18px 20px; display: grid; gap: 14px; }
+.upd .eyebrow { color: var(--accent); }
+.stack { display: flex; height: 22px; border: 1px solid var(--line); overflow: hidden; }
+.stack span { display: block; height: 100%; min-width: 2px; }
+.s-neg { background: var(--social); } .s-net { background: var(--muted); } .s-pos { background: var(--accent); } .s-unk { background: var(--social-soft); }
+.upd .legend i { border: 1px solid var(--line); }
+.upd ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+h3 { font-family: var(--display); font-size: 1.15rem; margin: 6px 0 0; text-wrap: balance; }
+.note ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+code { font-family: var(--mono); font-size: 0.88em; }
+</style>
+<div class="wrap">
+<header>
+  <div class="eyebrow">Komentar YouTube · 11–20 Oktober 2026</div>
+  <h1>Kelangkaan BBM di Bali, menurut kolom komentar YouTube</h1>
+  <p class="lede">36.319 komentar dan balasan yang ditulis selama sepuluh hari, dari antrean pertama di SPBU sampai pemerintah menyatakan pasokan normal. Sumbernya hanya YouTube; pemberitaan media tidak dihitung. Setiap kutipan bisa dibuka langsung di YouTube lewat tautannya.</p>
+</header>
+
+<div class="board" aria-label="Ringkasan angka">
+  <div><b>36.319</b><span>komentar dalam jendela</span></div>
+  <div><b>458</b><span>video yang dikomentari (dari 527)</span></div>
+  <div><b>22.803</b><span>akun berbeda</span></div>
+  <div><b>70%</b><span>negatif, dari 18.592 komentar yang bisa dinilai (51% dari semua)</span></div>
+  <div><b>±67%</b><span>perkiraan negatif di seluruh komentar (rentang 64–70%), dari sampel manual 400 komentar</span></div>
+</div>
+
+<section class="upd" aria-labelledby="upd-h">
+  <div class="eyebrow">Pembaruan 6 November 2026</div>
+  <h2 id="upd-h">Komentar yang tidak dinilai alat: sampel manual dan kamus yang diperluas</h2>
+  <p>Versi pertama laporan ini memakai penilai <code>lexicon-id-1+informal-1</code>, yang tidak menilai 21.020 dari 36.319 komentar (58%) karena tidak menemukan satu pun kata kamusnya. Makin pendek komentarnya, makin sering ia menyerah: 71–78% untuk komentar sampai lima kata, 32% untuk komentar 21 kata atau lebih. Angka 63% negatif dari versi itu hanya berlaku untuk 42% komentar yang memuat kata kamus. Seluruh angka sentimen di halaman ini (papan angka, grafik harian, tabel tema) sekarang memakai penilai yang diperluas, <code>lexicon-id-1+informal-2</code>.</p>
+
+  <h3>Sampel manual: apa isi komentar yang tidak dinilai</h3>
+  <p>400 komentar yang tidak dinilai <code>informal-1</code> diambil acak (seed 20261106), dibaca satu per satu, dan diberi label nada.</p>
+  <div class="stack" role="img" aria-label="Dari 400 komentar sampel: negatif 69,8%, netral atau informatif 14,5%, tidak jelas 14,5%, positif 1,2%">
+    <span class="s-neg" style="width:69.8%"></span><span class="s-net" style="width:14.5%"></span><span class="s-unk" style="width:14.5%"></span><span class="s-pos" style="width:1.2%"></span>
+  </div>
+  <div class="legend"><span><i class="s-neg"></i>negatif 279 (69,8%)</span><span><i class="s-net"></i>netral atau informatif 58 (14,5%)</span><span><i class="s-unk"></i>tidak jelas 58 (14,5%)</span><span><i class="s-pos"></i>positif 5 (1,2%)</span></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Ukuran</th><th class="num">Hasil</th><th class="num">Rentang 95%</th></tr></thead>
+    <tbody>
+      <tr><td>Negatif, dari 400 komentar sampel</td><td class="num">69,8%</td><td class="num">65–74%</td></tr>
+      <tr><td>Negatif, dari 342 komentar yang nadanya terbaca</td><td class="num">81,6%</td><td class="num">77–85%</td></tr>
+      <tr><td>Positif, dari 400 komentar sampel</td><td class="num">1,2%</td><td class="num">0,5–2,9%</td></tr>
+      <tr><td>Negatif di seluruh 36.319 komentar (komentar “tidak jelas” dihitung bukan negatif)</td><td class="num">±67%</td><td class="num">64–70%</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Kamus informal diperluas: informal-2</h3>
+  <p>Kata yang lolos dari alat berupa kritik tanpa kata sentimen baku: “arogan”, “memalukan”, “mundur”, “copot”, “omon-omon”, juga bentuk berimbuhan seperti “kebohongan” atau “dimarahin”. Kamus informal ditambah 33 kata kritik kepada pejabat dan sejumlah bentuk berimbuhan. Kata dipilih dari komentar di luar sampel manual dan dari maknanya; kata positif yang di komentar ini sering dipakai dalam tuntutan (“harusnya mengayomi rakyat”) sengaja tidak ditambahkan.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Ukuran (36.319 komentar)</th><th class="num">informal-1</th><th class="num">informal-2</th></tr></thead>
+    <tbody>
+      <tr><td>Komentar tidak dinilai</td><td class="num">21.020 (57,9%)</td><td class="num">17.727 (48,8%)</td></tr>
+      <tr><td>Komentar dinilai</td><td class="num">15.299</td><td class="num">18.592</td></tr>
+      <tr><td>Negatif di antara yang dinilai</td><td class="num">63,3%</td><td class="num">69,8%</td></tr>
+      <tr><td>Komentar yang dulu dinilai lalu kini tidak dinilai</td><td class="num">–</td><td class="num">0</td></tr>
+      <tr><td>Label tetap sama pada komentar yang dulu sudah dinilai</td><td class="num">–</td><td class="num">94,9%</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li><b>Presisi pada komentar yang baru dinilai:</b> 100 komentar acak yang dulu tidak dinilai dan kini dinilai dilabeli tanpa melihat skor alat. Dari yang alat beri label negatif, 94,4% memang negatif (rentang 87,5–97,6%).</li>
+    <li><b>Masih banyak yang terlewat:</b> 75% komentar negatif di sampel manual (208 dari 279) tetap tidak dinilai. Kamus tidak bisa menutup kritik tanpa kata sentimen, bahasa daerah, atau sindiran. Karena itu perkiraan ±67% dari sampel manual tetap menjadi ukuran terbaik untuk seluruh komentar, dan 70% adalah porsi negatif di antara komentar yang dinilai alat.</li>
+    <li><b>Sindiran:</b> komentar positif hampir tidak ada di kelompok yang tidak dinilai (5 dari 400, semuanya pujian untuk petugas SPBU, pemilik SPBU, atau Gubernur Jawa Barat). Sebaliknya sekitar 22% komentar yang dinilai alat berlabel positif, sebagian jelas sindiran seperti “hebat nih Gubenur”.</li>
+    <li><b>Jaringan tidak bisa mengisi kekosongan ini:</b> dari 962 pasangan komentar induk dan balasan yang sama-sama dinilai, hanya 49% searah, sama dengan peluang kebetulan (±49%). Hasil analisis jaringan ada di bagian terakhir halaman.</li>
+  </ul>
+  <p class="meta">Batasan: pelabel tunggal (satu pembaca, tanpa penilai kedua), jadi ini taksiran kasar dan bukan ukuran akurasi. Dugaan atau tuduhan tanpa kata evaluatif (“pasti ada oknum yang bermain”) dihitung negatif; dengan aturan yang lebih ketat porsi negatif turun dan netral naik. Sampel manual hanya mewakili komentar yang tidak dinilai <code>informal-1</code>. Perubahan kamus masuk ke platform Public Opinion lewat PR #46 (digabung 6 November 2026), dan seluruh komentar proyek ini di platform sudah dinilai ulang dengan <code>informal-2</code> pada hari yang sama. Platform menghitung 35.772 komentar karena duplikat dibuang; 18.358 di antaranya dinilai (51%), sejalan dengan angka di halaman ini.</p>
+</section>
+
+<section>
+  <h2>Percakapan memuncak pada 15 Oktober</h2>
+  <p>Sepertiga komentar (33%) ditulis pada Kamis 15 Oktober, hari ketika video Gubernur Koster diprotes petugas SPBU beredar. Sejak itu volume turun setiap hari. Rata-rata skor sentimen (hanya komentar yang dinilai alat) bertahan negatif di kisaran −0,26 sampai −0,34 pada hari-hari dengan ratusan komentar atau lebih, termasuk setelah pemerintah menyatakan pasokan normal.</p>
+  <div class="chart"><svg viewBox="0 0 760 300" role="img" aria-label="Volume komentar harian dan rata-rata skor sentimen, 11–20 Oktober 2026">
+<line x1="56" x2="704" y1="254.0" y2="254.0" class="grid"/>
+<text x="48" y="258.0" class="ax" text-anchor="end">0</text>
+<line x1="56" x2="704" y1="196.5" y2="196.5" class="grid"/>
+<text x="48" y="200.5" class="ax" text-anchor="end">3.000</text>
+<line x1="56" x2="704" y1="139.0" y2="139.0" class="grid"/>
+<text x="48" y="143.0" class="ax" text-anchor="end">6.000</text>
+<line x1="56" x2="704" y1="81.5" y2="81.5" class="grid"/>
+<text x="48" y="85.5" class="ax" text-anchor="end">9.000</text>
+<line x1="56" x2="704" y1="24.0" y2="24.0" class="grid"/>
+<text x="48" y="28.0" class="ax" text-anchor="end">12.000</text>
+<text x="712" y="28.0" class="ax sx">0</text>
+<text x="712" y="74.0" class="ax sx">−0,1</text>
+<text x="712" y="120.0" class="ax sx">−0,2</text>
+<text x="712" y="166.0" class="ax sx">−0,3</text>
+<text x="712" y="212.0" class="ax sx">−0,4</text>
+<text x="712" y="258.0" class="ax sx">−0,5</text>
+<rect x="62.0" y="254.0" width="52.8" height="0.0" class="bar"><title>Min 11 Okt: 0 komentar</title></rect>
+<rect x="62.0" y="254.0" width="52.8" height="0.0" class="barneg"><title>0 dinilai negatif</title></rect>
+<text x="88.4" y="272.0" class="ax" text-anchor="middle">Min 11</text>
+<rect x="126.8" y="253.4" width="52.8" height="0.6" class="bar"><title>Sen 12 Okt: 31 komentar</title></rect>
+<rect x="126.8" y="253.8" width="52.8" height="0.2" class="barneg"><title>9 dinilai negatif</title></rect>
+<text x="153.2" y="247.4" class="val" text-anchor="middle">31</text>
+<text x="153.2" y="272.0" class="ax" text-anchor="middle">Sen 12</text>
+<rect x="191.6" y="218.5" width="52.8" height="35.5" class="bar"><title>Sel 13 Okt: 1851 komentar</title></rect>
+<rect x="191.6" y="244.1" width="52.8" height="9.9" class="barneg"><title>515 dinilai negatif</title></rect>
+<text x="218.0" y="212.5" class="val" text-anchor="middle">1.851</text>
+<text x="218.0" y="272.0" class="ax" text-anchor="middle">Sel 13</text>
+<rect x="256.4" y="179.6" width="52.8" height="74.4" class="bar"><title>Rab 14 Okt: 3881 komentar</title></rect>
+<rect x="256.4" y="229.0" width="52.8" height="25.0" class="barneg"><title>1306 dinilai negatif</title></rect>
+<text x="282.8" y="173.6" class="val" text-anchor="middle">3.881</text>
+<text x="282.8" y="272.0" class="ax" text-anchor="middle">Rab 14</text>
+<rect x="321.2" y="25.6" width="52.8" height="228.4" class="bar"><title>Kam 15 Okt: 11916 komentar</title></rect>
+<rect x="321.2" y="173.1" width="52.8" height="80.9" class="barneg"><title>4221 dinilai negatif</title></rect>
+<text x="347.6" y="19.6" class="val" text-anchor="middle">11.916</text>
+<text x="347.6" y="272.0" class="ax" text-anchor="middle">Kam 15</text>
+<rect x="386.0" y="71.9" width="52.8" height="182.1" class="bar"><title>Jum 16 Okt: 9502 komentar</title></rect>
+<rect x="386.0" y="188.7" width="52.8" height="65.3" class="barneg"><title>3407 dinilai negatif</title></rect>
+<text x="412.4" y="65.9" class="val" text-anchor="middle">9.502</text>
+<text x="412.4" y="272.0" class="ax" text-anchor="middle">Jum 16</text>
+<rect x="450.8" y="148.6" width="52.8" height="105.4" class="bar"><title>Sab 17 Okt: 5498 komentar</title></rect>
+<rect x="450.8" y="213.1" width="52.8" height="40.9" class="barneg"><title>2132 dinilai negatif</title></rect>
+<text x="477.2" y="142.6" class="val" text-anchor="middle">5.498</text>
+<text x="477.2" y="272.0" class="ax" text-anchor="middle">Sab 17</text>
+<rect x="515.6" y="208.3" width="52.8" height="45.7" class="bar"><title>Min 18 Okt: 2383 komentar</title></rect>
+<rect x="515.6" y="236.1" width="52.8" height="17.9" class="barneg"><title>936 dinilai negatif</title></rect>
+<text x="542.0" y="202.3" class="val" text-anchor="middle">2.383</text>
+<text x="542.0" y="272.0" class="ax" text-anchor="middle">Min 18</text>
+<rect x="580.4" y="236.5" width="52.8" height="17.5" class="bar"><title>Sen 19 Okt: 915 komentar</title></rect>
+<rect x="580.4" y="247.4" width="52.8" height="6.6" class="barneg"><title>345 dinilai negatif</title></rect>
+<text x="606.8" y="230.5" class="val" text-anchor="middle">915</text>
+<text x="606.8" y="272.0" class="ax" text-anchor="middle">Sen 19</text>
+<rect x="645.2" y="247.4" width="52.8" height="6.6" class="bar"><title>Sel 20 Okt: 342 komentar</title></rect>
+<rect x="645.2" y="251.8" width="52.8" height="2.2" class="barneg"><title>115 dinilai negatif</title></rect>
+<text x="671.6" y="241.4" class="val" text-anchor="middle">342</text>
+<text x="671.6" y="272.0" class="ax" text-anchor="middle">Sel 20</text>
+<polyline class="line" points="153.2,216.7 218.0,145.0 282.8,157.9 347.6,168.4 412.4,162.9 477.2,174.0 542.0,182.2 606.8,175.8 671.6,162.0"/>
+<circle cx="153.2" cy="216.7" r="3.5" class="dot"><title>rata-rata skor -0.419</title></circle>
+<circle cx="218.0" cy="145.0" r="3.5" class="dot"><title>rata-rata skor -0.263</title></circle>
+<circle cx="282.8" cy="157.9" r="3.5" class="dot"><title>rata-rata skor -0.291</title></circle>
+<circle cx="347.6" cy="168.4" r="3.5" class="dot"><title>rata-rata skor -0.314</title></circle>
+<circle cx="412.4" cy="162.9" r="3.5" class="dot"><title>rata-rata skor -0.302</title></circle>
+<circle cx="477.2" cy="174.0" r="3.5" class="dot"><title>rata-rata skor -0.326</title></circle>
+<circle cx="542.0" cy="182.2" r="3.5" class="dot"><title>rata-rata skor -0.344</title></circle>
+<circle cx="606.8" cy="175.8" r="3.5" class="dot"><title>rata-rata skor -0.330</title></circle>
+<circle cx="671.6" cy="162.0" r="3.5" class="dot"><title>rata-rata skor -0.300</title></circle>
+<text x="56" y="294" class="ax">Komentar per hari (WITA)</text>
+<text x="752" y="294" class="ax sx" text-anchor="end">Rata-rata skor</text>
+</svg></div>
+  <div class="legend"><span><i style="background:var(--social-soft)"></i>semua komentar</span><span><i style="background:var(--social)"></i>dinilai negatif</span><span><i style="background:var(--ink);height:3px;vertical-align:3px"></i>rata-rata skor (sumbu kanan, hanya komentar yang bisa dinilai)</span></div>
+</section>
+
+<section>
+  <h2>Hari demi hari</h2>
+  <p>Peristiwa diambil dari judul video berita pada hari itu, hanya sebagai penanda waktu. Kutipan adalah komentar dengan suka terbanyak pada hari itu.</p>
+  <ol class="tl"><li class="day">
+  <div class="dhead"><span class="ddate">Min 11 Okt</span><span class="dn">0 komentar</span></div>
+  
+  <p class='none'>Belum ada video tentang krisis yang terbit hari ini, jadi belum ada komentar.</p>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Sen 12 Okt</span><span class="dn">31 komentar</span><span class="dm">skor -0,42</span></div>
+  <p class="ev">Antrean mulai dilaporkan; Gubernur Koster memanggil Pertamina</p>
+  <ul class='qs'><li><q>Naskleeenhh onyangann pejabattt pulessss giliran ngalih suara mare tekeee poloneee</q> <span class="meta">19 suka · TRIBUN BALI · <a href="https://www.youtube.com/watch?v=y112-VPdPKQ&amp;lc=Ugw_i16_hV3GelXpAul4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Serius dong pak jangan kebanyakan minum kopi campur arak biar gak lengeh&quot;han nanti,kami perlu bukti bukan omongan saja rugi dong bayar pajak gede&quot; Buat gaji bapak tapi kerjanya kek gini 😂</q> <span class="meta">16 suka · TRIBUN BALI · <a href="https://www.youtube.com/watch?v=y112-VPdPKQ&amp;lc=UgxyUQ5arh0W2f9rEOR4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Hari ini bbm sudah payah..</q> <span class="meta">7 suka · TRIBUN BALI · <a href="https://www.youtube.com/watch?v=y112-VPdPKQ&amp;lc=UgzsfCOVg83c4jPlcot4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Ape gen gae ULI seminggu sebelumnya Yan . Lesbian arak aja kopi sing</q> <span class="meta">7 suka · TRIBUN BALI · <a href="https://www.youtube.com/watch?v=y112-VPdPKQ&amp;lc=Ugxu_hX00MTRjmFyYpd4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Sel 13 Okt</span><span class="dn">1.851 komentar</span><span class="dm">skor -0,26</span></div>
+  <p class="ev">Pertamina menyebut kendala bongkar muat kapal; disepakati 92 SPBU buka 24 jam</p>
+  <ul class='qs'><li><q>Kemungkinan antrian itu dikarenakan mereka tidak memberikan tip ke operator SPBU nya</q> <span class="meta">158 suka · Masken · <a href="https://www.youtube.com/watch?v=mmJ2TC0Bm1k&amp;lc=UgxsVVnSVxUYGFL7zeF4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>BBM ga usah ke bali... Kalian import aja dari bule bule... Kan itu kebangganmu bro</q> <span class="meta">108 suka · Masken · <a href="https://www.youtube.com/watch?v=mmJ2TC0Bm1k&amp;lc=UgytuPCupTpQwRKlpV94AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Coba ngasih Tip kaya orang Bule,...pasti tidak ngantri,...😂 Yg ngantri pasti Miskin,...yg Miskin jangan di Bali,.. Bali mau bersih bersih orang miskin</q> <span class="meta">70 suka · Masken · <a href="https://www.youtube.com/watch?v=mmJ2TC0Bm1k&amp;lc=UgxIh10tMKGBOIoz72h4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Minyak dari Indramayu harus ngasih tip agar ber etika</q> <span class="meta">70 suka · Masken · <a href="https://www.youtube.com/watch?v=mmJ2TC0Bm1k&amp;lc=UgyTBhiK6sIGafSsvcB4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Rab 14 Okt</span><span class="dn">3.881 komentar</span><span class="dm">skor -0,29</span></div>
+  <p class="ev">Antrean sampai 3 km, warga pingsan; Dirut Pertamina minta maaf; Presiden menggelar rapat terbatas</p>
+  <ul class='qs'><li><q>Ohhh ini mungkin yg di maksud DPD Bali Arya Wedhakarna, Bali lagi bersih&quot;.. 
+Bersih&quot; BBM 😂😂😂😂😂😂😂🎉🎉</q> <span class="meta">76 suka · Official iNews · <a href="https://www.youtube.com/watch?v=sucLThIVbpM&amp;lc=Ugw_pyBYMNN0AJKCr2l4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>berikan kesempatan spbu swasta.. agar bisa saling melengkapi</q> <span class="meta">72 suka · Official iNews · <a href="https://www.youtube.com/watch?v=sucLThIVbpM&amp;lc=UgxLRKGq_UjaMnk_iC14AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Hebat prabowo gibran...tlah suksrs menyengsarakan rakyatnya</q> <span class="meta">69 suka · Official iNews · <a href="https://www.youtube.com/watch?v=sucLThIVbpM&amp;lc=UgyBl6S34_7f_zuU_894AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Gila bayangin, sekelas Bali loh ini, gmaa Yang lebih pelosokan</q> <span class="meta">52 suka · Official iNews · <a href="https://www.youtube.com/watch?v=sucLThIVbpM&amp;lc=Ugx4MFMbecX14hcss3h4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Kam 15 Okt</span><span class="dn">11.916 komentar</span><span class="dm">skor -0,31</span></div>
+  <p class="ev">Video Gubernur Koster diprotes petugas SPBU beredar; sekolah daring dan WFH di beberapa daerah</p>
+  <ul class='qs'><li><q>Ada suara jeritan rakyat &quot;DIAM KAMU&quot;  hebat nih Gubenur</q> <span class="meta">1.148 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgwKSfCQdlQwPjfTU9p4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>itulah WAJAH ASLI PEJABAT KITA,,,MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN...YANG MAUNYA HIDUP ENAK .....OGAH TERIMA KRITIKAN...</q> <span class="meta">849 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugy4DQa--4udqB0qPtl4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>No respect, petugas spbu juga manusia bukan robot..</q> <span class="meta">687 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgzHVD-v9ByAxyU5Bu94AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>harusnya ditenangkan! bukan malah dibentak suruh diam!</q> <span class="meta">673 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugx40hSdpH3FZcc-M4p4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Jum 16 Okt</span><span class="dn">9.502 komentar</span><span class="dm">skor -0,30</span></div>
+  <p class="ev">Ganjil-genap pembelian BBM diumumkan untuk 17–19 Okt</p>
+  <ul class='qs'><li><q>GA PANTAS SEORANG GUBERNUR BERSIKAP SEPERTI ITU PADA RAKYAT BIASA..</q> <span class="meta">147 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugx8LiotShM0viTTllZ4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Gubernur Bali suruh jadi operator SPBU itu coba dah,biar tau rasanya</q> <span class="meta">143 suka · Tribunnews · <a href="https://www.youtube.com/watch?v=Aa_7_rscyqI&amp;lc=UgxZdgMGp9bK3VhdaUl4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Pecat Bahlil.... memang dari dulu seperti itu, bikin kacau</q> <span class="meta">139 suka · GunRomli · <a href="https://www.youtube.com/watch?v=8CzsgJuGDXY&amp;lc=UgxfYQaLUUVXwEpAyex4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Gubernurnya yang harus minta maaf ke karyawan SPBU karena seenaknya aja memarahin orang yang sudah lelah bekerja.</q> <span class="meta">132 suka · Tribunnews · <a href="https://www.youtube.com/watch?v=Aa_7_rscyqI&amp;lc=UgyVobI6ZuoN6Be6oDZ4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Sab 17 Okt</span><span class="dn">5.498 komentar</span><span class="dm">skor -0,33</span></div>
+  <p class="ev">Ganjil-genap mulai berlaku</p>
+  <ul class='qs'><li><q>Di bayar rakyat loh kurang ajar sama rakyat miskin 😭😭😭😭😭😭</q> <span class="meta">147 suka · REY TV · <a href="https://www.youtube.com/watch?v=8RLqbU17Ink&amp;lc=UgxjpOvmkMaGou1iJ4R4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Nah ini ibu yg peduli. Yg diatas coba dong teladani sikap empati ibu ini. Perhatikan rakyatnya.</q> <span class="meta">117 suka · Tribunnews · <a href="https://www.youtube.com/watch?v=DyaBi9z1oso&amp;lc=UgzKH4X9Gn3i3bxgYzh4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Pemerintah sekarang sudah ga becus.bisanya korupsi.</q> <span class="meta">85 suka · REY TV · <a href="https://www.youtube.com/watch?v=8RLqbU17Ink&amp;lc=UgwnZDEG2Jop1bAz2YR4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Min 18 Okt</span><span class="dn">2.383 komentar</span><span class="dm">skor -0,34</span></div>
+  
+  <ul class='qs'><li><q>Rakyat berjoget untuk hibur kesusahannya, pejabat berjoget dalam kemewahannya</q> <span class="meta">68 suka · Warta Kota Production · <a href="https://www.youtube.com/watch?v=LkQR2AqXXrc&amp;lc=UgyUmIeWJxSua7HpXd54AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>kemana sibahlul  kok kayanya gak bertanggung jawab, pak presiden sudah gak layak lagi dia jadi mentri</q> <span class="meta">35 suka · SINDOnews · <a href="https://www.youtube.com/watch?v=xFL34GjMKjY&amp;lc=UgyIvEPBpLfI72GlIUJ4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Hebat kalian...gw salut sm esabaran kalian yg milih joget / nysnyi bareng drpd emosi</q> <span class="meta">30 suka · Warta Kota Production · <a href="https://www.youtube.com/watch?v=LkQR2AqXXrc&amp;lc=UgxUxlfLUOVem7Leag14AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Jauh Lebih mantap Aura pemimpin si pemilik SPBU.. Dari pada gub baliho</q> <span class="meta">28 suka · SINDOnews · <a href="https://www.youtube.com/watch?v=6dmAJpIfPYc&amp;lc=UgwIKmDRSwLKQ1kMfIV4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Sen 19 Okt</span><span class="dn">915 komentar</span><span class="dm">skor -0,33</span></div>
+  <p class="ev">Menteri ESDM Bahlil: distribusi normal, cadangan dinaikkan ke 15 hari; ganjil-genap diperpanjang</p>
+  <ul class='qs'><li><q>Nah kan PD diam dan nutup mata yg d atas.....mana suaranya jgn cuma pajak2 aj yg kencang</q> <span class="meta">17 suka · SINDOnews · <a href="https://www.youtube.com/watch?v=xFL34GjMKjY&amp;lc=UgzHSiJh55epnTEB6tR4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Masalahnya di distribusi bukan di SPBU yang harus bekerja 24 jam. Artinya distribusikan BBM ke semua SPBU di Bali dan jangan ada keterlambatan.</q> <span class="meta">8 suka · SINDOnews · <a href="https://www.youtube.com/watch?v=xFL34GjMKjY&amp;lc=UgzJO0iOmUgGTR5I0Wx4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>TDK PERLU KPK PERTIMBANGKAN, LANGSUNG SERET</q> <span class="meta">8 suka · SINDOnews · <a href="https://www.youtube.com/watch?v=xFL34GjMKjY&amp;lc=UgyjUkGH18UHapY0kch4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Menteri yang jujur di copot sedangkan menteri yang kerjanya buruk dipertahankan. Wowo sakit jiwa</q> <span class="meta">8 suka · KOMPASTV JEMBER · <a href="https://www.youtube.com/watch?v=j3B6d6ULbKw&amp;lc=UgxggfiKEhgkWGDbAB94AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li><li class="day">
+  <div class="dhead"><span class="ddate">Sel 20 Okt</span><span class="dn">342 komentar</span><span class="dm">skor -0,30</span></div>
+  
+  <ul class='qs'><li><q>Nggak percaya sama sekali kalau orang ini yg omong... eh iya, ini beneran orang???¿</q> <span class="meta">16 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=lal0AE7PGQc&amp;lc=UgyR8GiZEUqs5cM1HBl4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Kejadian dlh baru klarifikasi. Itulah pejabat konoha</q> <span class="meta">14 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=lal0AE7PGQc&amp;lc=UgwLIRhF14NsBLV0eNl4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Mukanya kelihatan capek banget ...capek harus berbohong terus ke rakyat 😂😂😂</q> <span class="meta">9 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=lal0AE7PGQc&amp;lc=UgwlS550HeJ3zpoJNQd4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Problemnya karena kau menteri nya😅</q> <span class="meta">8 suka · Liputan6 · <a href="https://www.youtube.com/watch?v=lal0AE7PGQc&amp;lc=UgxT3qoUtC0-aMfT5rV4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</li></ol>
+</section>
+
+<section>
+  <h2>Siapa yang disorot</h2>
+  <p>Tema ditandai dari kata kunci di teks komentar. Satu komentar bisa masuk lebih dari satu tema, dan sebagian besar komentar tidak masuk tema mana pun. Komentar yang menyebut pemerintah daerah lebih banyak daripada yang menyebut Pertamina. Tidak ada tema yang skor rata-ratanya positif; yang paling dekat ke netral adalah “Permintaan maaf / sudah normal” (−0,03).</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Tema</th><th class="num">Komentar</th><th></th><th class="num">Skor rata-rata</th></tr></thead>
+    <tbody><tr><td>Pemerintah daerah (Koster/Pemprov)</td><td class="num">6.194</td><td class="barcell"><span style="width:100.0%"></span></td><td class="num">-0,38</td></tr><tr><td>Antrean &amp; dampak harian</td><td class="num">5.446</td><td class="barcell"><span style="width:87.9%"></span></td><td class="num">-0,26</td></tr><tr><td>Pemerintah pusat (Bahlil/ESDM/Presiden)</td><td class="num">4.222</td><td class="barcell"><span style="width:68.2%"></span></td><td class="num">-0,35</td></tr><tr><td>Pertamina / distribusi</td><td class="num">2.711</td><td class="barcell"><span style="width:43.8%"></span></td><td class="num">-0,26</td></tr><tr><td>Pariwisata &amp; ekonomi</td><td class="num">1.152</td><td class="barcell"><span style="width:18.6%"></span></td><td class="num">-0,31</td></tr><tr><td>Pengecer / harga / penimbunan</td><td class="num">1.048</td><td class="barcell"><span style="width:16.9%"></span></td><td class="num">-0,31</td></tr><tr><td>Permintaan maaf / sudah normal</td><td class="num">921</td><td class="barcell"><span style="width:14.9%"></span></td><td class="num">-0,03</td></tr><tr><td>Pertamax / jenis BBM lain</td><td class="num">568</td><td class="barcell"><span style="width:9.2%"></span></td><td class="num">-0,31</td></tr><tr><td>Curiga/teori konspirasi</td><td class="num">383</td><td class="barcell"><span style="width:6.2%"></span></td><td class="num">-0,36</td></tr><tr><td>Ganjil-genap / pembatasan</td><td class="num">268</td><td class="barcell"><span style="width:4.3%"></span></td><td class="num">-0,33</td></tr><tr><td>Sekolah/WFH daring</td><td class="num">216</td><td class="barcell"><span style="width:3.5%"></span></td><td class="num">-0,35</td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Video dengan komentar terbanyak</h2>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Video</th><th class="num">Komentar 11–20 Okt</th></tr></thead>
+    <tbody><tr><td><a href="https://www.youtube.com/watch?v=X1DUz9FT-WY" target="_blank" rel="noopener">Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6</a><div class="meta">Liputan6 · terbit 2026-10-15 · 1.204.865 tayangan</div></td><td class="num">3.636</td></tr><tr><td><a href="https://www.youtube.com/watch?v=FZtpOJTGASA" target="_blank" rel="noopener">Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang</a><div class="meta">tvOneNews  · terbit 2026-10-15 · 275.077 tayangan</div></td><td class="num">1.331</td></tr><tr><td><a href="https://www.youtube.com/watch?v=8RLqbU17Ink" target="_blank" rel="noopener">GUBERNUR BALI DI N0NAKT!FKAN PRABOWO BUNTUT US!R PEGAWAI SPBU, WARGA BALI NG4MUK DATANGI GUBERNUR? </a><div class="meta">REY TV · terbit 2026-10-17 · 270.153 tayangan</div></td><td class="num">1.317</td></tr><tr><td><a href="https://www.youtube.com/watch?v=Aa_7_rscyqI" target="_blank" rel="noopener">Buntut Pegawai SPBU Semprot Gubernur Koster, Pertamina Buka Suara dan Minta Bantuan Prajurit TNI</a><div class="meta">Tribunnews · terbit 2026-10-15 · 601.477 tayangan</div></td><td class="num">1.109</td></tr><tr><td><a href="https://www.youtube.com/watch?v=2gaAOHwDiMY" target="_blank" rel="noopener">Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka</a><div class="meta">Tribunnews · terbit 2026-10-15 · 199.603 tayangan</div></td><td class="num">835</td></tr><tr><td><a href="https://www.youtube.com/watch?v=sucLThIVbpM" target="_blank" rel="noopener">KRISIS BBM DI BALI! Antrean SPBU Mengular 3 KM, Warga Pingsan Dievakuasi Polisi | iNews Terkini</a><div class="meta">Official iNews · terbit 2026-10-14 · 145.523 tayangan</div></td><td class="num">735</td></tr><tr><td><a href="https://www.youtube.com/watch?v=mmJ2TC0Bm1k" target="_blank" rel="noopener">BALI KRISIS BBM ARYA WEDAKARNA TURUN TANGAN⁉️ #beritaterkini #trending #fyp #shortsvideo #shorts</a><div class="meta">Masken · terbit 2026-10-13 · 109.614 tayangan</div></td><td class="num">728</td></tr><tr><td><a href="https://www.youtube.com/watch?v=LExDN2aDBRw" target="_blank" rel="noopener">Viral Pegawai SPBU Marahi Gubernur Bali Malah Ikut Emosi, Hei Urusin Pegawai Kamu</a><div class="meta">Tribun Sumsel · terbit 2026-10-15 · 127.479 tayangan</div></td><td class="num">701</td></tr><tr><td><a href="https://www.youtube.com/watch?v=8CzsgJuGDXY" target="_blank" rel="noopener">Bahlil Bersembunyi, Koster yg Dihakimi: Siapa Sebenarnya Biang Antrean BBM di Bali?</a><div class="meta">GunRomli · terbit 2026-10-16 · 265.469 tayangan</div></td><td class="num">658</td></tr><tr><td><a href="https://www.youtube.com/watch?v=dn0i8BG_WYM" target="_blank" rel="noopener">GUBERNUR BALI Bentak Pegawai SPBU Imbas BBM Langka : Diam Kamu</a><div class="meta">Tribun MedanTV · terbit 2026-10-15 · 39.282 tayangan</div></td><td class="num">593</td></tr><tr><td><a href="https://www.youtube.com/watch?v=9chPmBjHsoI" target="_blank" rel="noopener">Atasi Kelangkaan BBM di Bali, Presiden Prabowo Subianto Gelar Ratas Bersama Menteri ESDM &amp; Pertamina</a><div class="meta">GARUDA TV · terbit 2026-10-14 · 103.468 tayangan</div></td><td class="num">510</td></tr><tr><td><a href="https://www.youtube.com/watch?v=DyaBi9z1oso" target="_blank" rel="noopener">Pemilik SPBU di Bali Menangis di Depan Wayan Koster &amp; CEO Pertamina, Minta Percepat Pengiriman BBM</a><div class="meta">Tribunnews · terbit 2026-10-17 · 258.318 tayangan</div></td><td class="num">474</td></tr></tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Komentar yang paling banyak disukai</h2>
+  <p>Perhatikan label sentimennya. Komentar teratas, “hebat nih Gubenur”, dinilai positif oleh leksikon padahal jelas sindiran. Karena itu angka sentimen di halaman ini adalah perkiraan nada kasar, bukan ukuran sikap.</p>
+  <ul class="liked"><li><q>Ada suara jeritan rakyat &quot;DIAM KAMU&quot;  hebat nih Gubenur</q><span class="meta">1.148 suka · 2026-10-15 14:46 WITA · label: positif · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgwKSfCQdlQwPjfTU9p4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>itulah WAJAH ASLI PEJABAT KITA,,,MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN...YANG MAUNYA HIDUP ENAK .....OGAH TERIMA KRITIKAN...</q><span class="meta">849 suka · 2026-10-15 14:39 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugy4DQa--4udqB0qPtl4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>No respect, petugas spbu juga manusia bukan robot..</q><span class="meta">687 suka · 2026-10-15 14:48 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgzHVD-v9ByAxyU5Bu94AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>harusnya ditenangkan! bukan malah dibentak suruh diam!</q><span class="meta">673 suka · 2026-10-15 15:03 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugx40hSdpH3FZcc-M4p4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Hampir semua pejabat merasa lebih mulia dan tidak layak di salahkan</q><span class="meta">515 suka · 2026-10-15 14:45 WITA · label: netral · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgzXYwfqyHXkcleLjUx4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>jika nggak becus ngurus, mundur itu lebih elegan....</q><span class="meta">439 suka · 2026-10-15 15:03 WITA · label: negatif · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgykfQsPLemNiap9kYB4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Gak gubernur nya gak agt DPD nya sama2 &quot;diam kamu&quot;</q><span class="meta">378 suka · 2026-10-15 14:48 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugwvvrp9a2T_LeRREN54AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>owh ini gubernur yang suka bilang DIAM KAMU 
+gubernur gak bermutu 👎</q><span class="meta">327 suka · 2026-10-15 20:19 WITA · label: netral · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugyny8MbXsaPW3FIF3x4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Kpk periksa gubernur bali</q><span class="meta">315 suka · 2026-10-15 14:02 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=FZtpOJTGASA&amp;lc=Ugy7wdIxmEv3O4SXHtF4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Nggak gubernur nggak DPR &amp; DPD sama aja tindas teruss rakyat kecill</q><span class="meta">312 suka · 2026-10-15 17:53 WITA · label: abstain · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=UgwRkudfvTNTeXuScNJ4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Lebih baik gurbenur ini di lengserkan saja daripada buat gaduh</q><span class="meta">311 suka · 2026-10-15 16:05 WITA · label: negatif · <a href="https://www.youtube.com/watch?v=X1DUz9FT-WY&amp;lc=Ugy6sUkoszRqCs1NmBd4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li><li><q>Hebaaat.... Anda sebagai rakyat yang berani</q><span class="meta">288 suka · 2026-10-15 14:24 WITA · label: positif · <a href="https://www.youtube.com/watch?v=FZtpOJTGASA&amp;lc=Ugy3qoCRo_K-O9VBswN4AaABAg" target="_blank" rel="noopener">lihat komentar</a></span></li></ul>
+</section>
+
+<section>
+  <h2>Akun organik atau buzzer?</h2>
+  <p>Dari komentar saja, satu akun tidak bisa dipastikan buzzer atau bukan. YouTube tidak membuka siapa yang membayar atau mengatur sebuah akun. Yang bisa diukur adalah pola yang biasanya muncul pada kampanye terkoordinasi, dihitung untuk seluruh data tanpa menunjuk akun tertentu.</p>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Pola yang diperiksa</th><th class="num">Hasil</th><th>Bacaan</th></tr></thead>
+    <tbody>
+      <tr><td>Akun yang hanya berkomentar sekali</td><td class="num">16.912 akun (74%)</td><td>Sebagian besar pengomentar datang sekali, pola khas percakapan organik.</td></tr>
+      <tr><td>Porsi komentar dari 20 akun paling aktif</td><td class="num">1,8%</td><td>Tidak ada segelintir akun yang mendominasi. 1% akun teraktif menulis 9% komentar.</td></tr>
+      <tr><td>Teks sama persis (≥30 huruf) dari 3 akun atau lebih</td><td class="num">0</td><td>Tanda paling umum kampanye salin-tempel tidak ditemukan.</td></tr>
+      <tr><td>Teks sama persis (≥40 huruf) dari 2 akun</td><td class="num">3 teks</td><td>Ketiganya pesan menenangkan, mis. “jangan sampai terprovokasi isu negatif ya guys ingat stok bbm aman”. Jumlahnya terlalu kecil untuk disebut kampanye.</td></tr>
+      <tr><td>Akun yang mengulang teks yang sama ≥3 kali</td><td class="num">104 akun · 1.001 komentar</td><td>Ada yang menyebar satu narasi berulang, mis. satu akun menulis “pengurangan jatah bergilir… terstruktur dan terencana” puluhan kali di 8 video.</td></tr>
+      <tr><td>Akun dengan ≥10 komentar dalam satu jam</td><td class="num">32 akun</td><td>Bisa berarti akun yang sedang berdebat di utas balasan, bisa juga akun yang menyebar pesan. Perlu dibaca manual.</td></tr>
+      <tr><td>Akun yang muncul di ≥20 video berbeda</td><td class="num">19 akun</td><td>Pengomentar sangat aktif lintas video; aktif tidak sama dengan dibayar.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Kesimpulan: percakapan ini tampak didominasi komentar organik. Ada sekelompok kecil akun yang sangat aktif dan mengulang pesan (sekitar 3% komentar). Itu layak ditinjau manual, tetapi belum cukup untuk menyebut mereka buzzer. Pemeriksaan yang lebih kuat butuh data profil kanal (tanggal dibuat, jumlah video, pola nama), yang tidak ikut disimpan di data ini.</p>
+</section>
+
+<section class="note">
+  <h2>Cara data diambil dan batasnya</h2>
+  <ul>
+    <li>YouTube Data API v3 resmi. 12 kata kunci pencarian (mis. <code>bbm langka bali</code>, <code>antrean spbu bali</code>, <code>ganjil genap spbu bali</code>, <code>bahlil bbm bali</code>). Video yang diambil hanya yang terbit 11–20 Okt dan judul atau deskripsinya menyebut Bali dan BBM/SPBU/Pertamina.</li>
+    <li>Diambil semua komentar dan balasan pada video itu, lalu disaring menurut waktu tulis: 11 Okt 00:00 sampai 20 Okt 23:59 WITA. 425 komentar yang ditulis sesudah 20 Okt dibuang.</li>
+    <li>Tidak ada komentar pada 11 Okt karena video pertama tentang krisis baru terbit 12 Okt. Penurunan menjelang 20 Okt sebagian karena video yang terbit sesudah 20 Okt tidak ikut diambil.</li>
+    <li>Nama akun tidak disimpan. Diganti kode acak supaya jumlah akun berbeda tetap bisa dihitung.</li>
+    <li>Sentimen dinilai dengan penilai leksikon ragam informal milik platform Public Opinion (<code>lexicon-id-1+informal-2</code>). 49% komentar tidak bisa dinilai. Sarkasme sering terbaca positif, dan nada tidak sama dengan sikap.</li>
+    <li>Komentator YouTube memilih sendiri untuk berkomentar. Mereka tidak mewakili warga Bali, dan urutan hasil pencarian ditentukan algoritma YouTube.</li>
+    <li>Tidak ada klaim sebab-akibat. Peristiwa dan lonjakan komentar hanya terjadi pada waktu yang sama.</li>
+  </ul>
+  <p class="meta">Dikumpulkan 2026-11-05 13:27 UTC. Data lengkap (Excel/CSV, satu baris per komentar dengan tautan) ada di repo Public Opinion, folder <code>proyek/bbm-bali-youtube</code>, dan di proyek “KELANGKAAN BBM BALI (YouTube 11-20 Okt 2026)” pada platform Public Opinion (angka platform: <code>informal-2</code>, dinilai ulang 6 November 2026). Sampel manual 400 baris berlabel: berkas sampel_manual_400_label.csv; label per komentar dari informal-2: berkas label_informal2_per_komentar.csv.</p>
+</section>
+
+<section aria-labelledby="sna-h">
+  <div class="eyebrow">Analisis jaringan sosial</div>
+  <h2 id="sna-h">Siapa berkomentar di mana, dan siapa membalas siapa</h2>
+  <p>Jaringan dibangun dari data yang sudah ada: kode akun acak, video yang dikomentari, dan tautan balasan ke komentar induk. Tidak ada nama akun. Yang diukur adalah bentuk percakapannya, bukan niat atau afiliasi akun.</p>
+  <div class="board" aria-label="Ringkasan jaringan">
+    <div><b>21%</b><span>akun (4.810) berkomentar di 2 video atau lebih; mereka menulis 46% komentar</span></div>
+    <div><b>105</b><span>akun muncul di 10 video atau lebih</span></div>
+    <div><b>0,07</b><span>tumpang-tindih pengomentar tertinggi antara dua video (indeks Jaccard)</span></div>
+    <div><b>8,3%</b><span>balasan diterima oleh 10 akun teratas</span></div>
+  </div>
+
+  <h3>Akun menurut jumlah video yang dikomentari</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Jumlah video</th><th class="num">Akun</th><th></th><th class="num">Porsi akun</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">17.993</td><td class="barcell"><span style="width:100%"></span></td><td class="num">78,9%</td></tr>
+      <tr><td>2</td><td class="num">2.873</td><td class="barcell"><span style="width:16.0%"></span></td><td class="num">12,6%</td></tr>
+      <tr><td>3</td><td class="num">961</td><td class="barcell"><span style="width:5.3%"></span></td><td class="num">4,2%</td></tr>
+      <tr><td>4</td><td class="num">400</td><td class="barcell"><span style="width:2.2%"></span></td><td class="num">1,8%</td></tr>
+      <tr><td>5</td><td class="num">207</td><td class="barcell"><span style="width:1.2%"></span></td><td class="num">0,9%</td></tr>
+      <tr><td>6 atau lebih</td><td class="num">369</td><td class="barcell"><span style="width:2.1%"></span></td><td class="num">1,6%</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Yang terlihat</h3>
+  <ul class="qs">
+    <li><b>Dua lapisan pengomentar.</b> Empat dari lima akun hanya muncul di satu video. Seperlima akun berpindah-pindah video dan menghasilkan hampir separuh komentar, jadi sebagian besar suara datang dari pengomentar yang ikut banyak video, bukan dari penonton sekali lewat.</li>
+    <li><b>Penonton tiap video hampir terpisah.</b> Dari pasangan video yang masing-masing punya minimal 100 pengomentar, tumpang-tindih tertinggi hanya 0,07 (dua video dari satu kanal berita langsung), dan tidak ada gugus video yang saling berbagi pengomentar dalam jumlah besar. Tidak tampak kelompok kanal yang dihuni akun yang sama.</li>
+    <li><b>Balasan menyebar.</b> Ada 5.062 balasan, 4.275 pasangan akun yang unik, dan 4.561 akun terlibat. Sepuluh akun yang paling sering dibalas hanya menerima 8,3% balasan, sehingga tidak ada satu atau dua akun yang menjadi pusat. 453 akun menerima tiga balasan atau lebih. 330 balasan ditulis akun untuk komentarnya sendiri.</li>
+    <li><b>Satu gugus besar, banyak gugus kecil.</b> Jaringan balasan terpecah menjadi 597 gugus. Yang terbesar berisi 3.047 akun (67% dari akun yang terlibat) dan tersambung karena akun yang sama muncul di banyak utas. Gugus lain paling banyak 10 akun.</li>
+    <li><b>Nada tidak berbeda menurut pola.</b> Di antara komentar yang dinilai alat (<code>informal-2</code>), 70,2% negatif untuk akun yang berkomentar sekali, 69,4% untuk akun yang berkomentar lebih dari sekali di satu video, dan 69,1% untuk akun yang berkomentar di tiga video atau lebih. Pengomentar yang rajin tidak lebih negatif daripada pengomentar sekali lewat.</li>
+  </ul>
+
+  <div class="note">
+    <b>Bacaannya dan batasnya</b>
+    <ul>
+      <li>Temuan ini searah dengan pemeriksaan buzzer di atas: tidak ada pola gugus akun yang tertutup, tidak ada hub tunggal, dan nada tidak berbeda menurut keaktifan. Itu bukan bukti bahwa tidak ada koordinasi. Jaringan ini tidak memuat data profil kanal atau waktu pembuatan akun.</li>
+      <li>YouTube menyatukan balasan atas balasan ke komentar induknya, sehingga hanya satu tingkat tautan yang terlihat. Karena itu timbal balik antarakun (A membalas B, B membalas A) tidak bisa diukur, dan nilainya nol di data ini.</li>
+      <li>Persentase negatif pada butir terakhir berasal dari alat, jadi hanya berlaku untuk 51% komentar yang dinilai.</li>
+      <li>Jaringan menjelaskan siapa berada di mana. Ia tidak dipakai untuk menebak nada komentar yang belum dinilai, karena balasan hanya searah dengan induknya sebesar peluang kebetulan (49%).</li>
+    </ul>
+  </div>
+</section>
+</div>

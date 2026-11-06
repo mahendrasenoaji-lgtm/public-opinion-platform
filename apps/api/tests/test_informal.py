@@ -55,6 +55,34 @@ class TestCanonical:
         assert all(variant != canon for variant, canon in SLANG.items())
 
 
+class TestImbuhan:
+    """`_AFFIX_GROUPS`: bentuk berimbuhan yang ditulis tangan, bukan stemmer."""
+
+    def test_tidak_ada_varian_yang_dipetakan_ke_dua_akar_berbeda(self) -> None:
+        from app.services.informal import _AFFIX_GROUPS, _SLANG_GROUPS
+
+        pasangan = [
+            (variant, canon)
+            for groups in (_SLANG_GROUPS, _AFFIX_GROUPS)
+            for canon, variants in groups.items()
+            for variant in variants.split()
+        ]
+        # dict comprehension SLANG diam-diam menimpa duplikat; tes ini yang menangkapnya
+        assert len(pasangan) == len({variant for variant, _ in pasangan})
+        assert len(SLANG) == len(pasangan)
+
+    def test_varian_dipetakan_ke_akar(self) -> None:
+        assert SLANG["kebohongan"] == "bohong"
+        assert SLANG["dimarahin"] == "marah"
+        assert SLANG["terburuk"] == "buruk"
+        assert SLANG["menyalahkan"] == "salah"
+
+    def test_kata_yang_hanya_mirip_akar_tidak_dipetakan(self) -> None:
+        mirip_saja = ("namanya", "sebenarnya", "nikmati", "demokrasi", "jaman", "sedang")
+        for kata in (*mirip_saja, "penderitaan"):
+            assert kata not in SLANG, kata
+
+
 class TestFrasa:
     def test_frasa_dua_kata_digabung(self) -> None:
         assert canonical_tokens("terima kasih bu", VOCAB) == ["terimakasih", "bu"]

@@ -1,0 +1,1017 @@
+{
+ "window": [
+  "2026-10-11T00:00:00+08:00",
+  "2026-10-21T00:00:00+08:00"
+ ],
+ "collected_at": "2026-11-05T13:27:55.252584+00:00",
+ "queries": [
+  "bbm langka bali",
+  "kelangkaan bbm bali",
+  "antrean spbu bali",
+  "antre bbm bali",
+  "pertalite bali langka",
+  "ganjil genap spbu bali",
+  "pertamina bali bbm",
+  "koster bbm bali",
+  "bahlil bbm bali",
+  "krisis bbm bali",
+  "spbu bali kosong",
+  "bbm bali normal"
+ ],
+ "quota_units": 3211,
+ "videos_found": 527,
+ "videos_with_comments": 458,
+ "comments": 36319,
+ "top_level": 31257,
+ "replies": 5062,
+ "outside_window": 425,
+ "unique_authors": 22803,
+ "labels": {
+  "negatif": 9683,
+  "positif": 4402,
+  "abstain": 21020,
+  "netral": 1214
+ },
+ "days": [
+  {
+   "date": "2026-10-11",
+   "n": 0,
+   "positif": 0,
+   "negatif": 0,
+   "netral": 0,
+   "abstain": 0,
+   "mean": null
+  },
+  {
+   "date": "2026-10-12",
+   "n": 31,
+   "positif": 3,
+   "negatif": 8,
+   "netral": 0,
+   "abstain": 20,
+   "mean": -0.393
+  },
+  {
+   "date": "2026-10-13",
+   "n": 1851,
+   "positif": 221,
+   "negatif": 403,
+   "netral": 35,
+   "abstain": 1192,
+   "mean": -0.197
+  },
+  {
+   "date": "2026-10-14",
+   "n": 3881,
+   "positif": 499,
+   "negatif": 1019,
+   "netral": 139,
+   "abstain": 2224,
+   "mean": -0.22
+  },
+  {
+   "date": "2026-10-15",
+   "n": 11916,
+   "positif": 1406,
+   "negatif": 3183,
+   "netral": 388,
+   "abstain": 6939,
+   "mean": -0.243
+  },
+  {
+   "date": "2026-10-16",
+   "n": 9502,
+   "positif": 1182,
+   "negatif": 2488,
+   "netral": 328,
+   "abstain": 5504,
+   "mean": -0.224
+  },
+  {
+   "date": "2026-10-17",
+   "n": 5498,
+   "positif": 655,
+   "negatif": 1568,
+   "netral": 203,
+   "abstain": 3072,
+   "mean": -0.257
+  },
+  {
+   "date": "2026-10-18",
+   "n": 2383,
+   "positif": 279,
+   "negatif": 681,
+   "netral": 72,
+   "abstain": 1351,
+   "mean": -0.265
+  },
+  {
+   "date": "2026-10-19",
+   "n": 915,
+   "positif": 115,
+   "negatif": 246,
+   "netral": 40,
+   "abstain": 514,
+   "mean": -0.244
+  },
+  {
+   "date": "2026-10-20",
+   "n": 342,
+   "positif": 42,
+   "negatif": 87,
+   "netral": 9,
+   "abstain": 204,
+   "mean": -0.211
+  }
+ ],
+ "themes": {
+  "Antrean & dampak harian": {
+   "n": 5446,
+   "scored": 2822,
+   "mean": -0.202
+  },
+  "Pertamina / distribusi": {
+   "n": 2711,
+   "scored": 1662,
+   "mean": -0.206
+  },
+  "Pemerintah daerah (Koster/Pemprov)": {
+   "n": 6194,
+   "scored": 2699,
+   "mean": -0.29
+  },
+  "Pemerintah pusat (Bahlil/ESDM/Presiden)": {
+   "n": 4222,
+   "scored": 2209,
+   "mean": -0.28
+  },
+  "Ganjil-genap / pembatasan": {
+   "n": 268,
+   "scored": 132,
+   "mean": -0.299
+  },
+  "Pariwisata & ekonomi": {
+   "n": 1152,
+   "scored": 633,
+   "mean": -0.218
+  },
+  "Sekolah/WFH daring": {
+   "n": 216,
+   "scored": 102,
+   "mean": -0.313
+  },
+  "Pengecer / harga / penimbunan": {
+   "n": 1048,
+   "scored": 580,
+   "mean": -0.253
+  },
+  "Curiga/teori konspirasi": {
+   "n": 383,
+   "scored": 190,
+   "mean": -0.287
+  },
+  "Pertamax / jenis BBM lain": {
+   "n": 568,
+   "scored": 245,
+   "mean": -0.284
+  },
+  "Permintaan maaf / sudah normal": {
+   "n": 921,
+   "scored": 592,
+   "mean": 0.07
+  }
+ },
+ "top_videos": [
+  {
+   "title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY",
+   "published_at": "2026-10-15T06:34:35Z",
+   "views": 1204865,
+   "comments_in_window": 3636
+  },
+  {
+   "title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA",
+   "published_at": "2026-10-15T05:56:27Z",
+   "views": 275077,
+   "comments_in_window": 1331
+  },
+  {
+   "title": "GUBERNUR BALI DI N0NAKT!FKAN PRABOWO BUNTUT US!R PEGAWAI SPBU, WARGA BALI NG4MUK DATANGI GUBERNUR? ",
+   "channel": "REY TV",
+   "url": "https://www.youtube.com/watch?v=8RLqbU17Ink",
+   "published_at": "2026-10-17T03:45:19Z",
+   "views": 270153,
+   "comments_in_window": 1317
+  },
+  {
+   "title": "Buntut Pegawai SPBU Semprot Gubernur Koster, Pertamina Buka Suara dan Minta Bantuan Prajurit TNI",
+   "channel": "Tribunnews",
+   "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI",
+   "published_at": "2026-10-15T15:37:47Z",
+   "views": 601477,
+   "comments_in_window": 1109
+  },
+  {
+   "title": "Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka",
+   "channel": "Tribunnews",
+   "url": "https://www.youtube.com/watch?v=2gaAOHwDiMY",
+   "published_at": "2026-10-15T05:24:19Z",
+   "views": 199603,
+   "comments_in_window": 835
+  },
+  {
+   "title": "KRISIS BBM DI BALI! Antrean SPBU Mengular 3 KM, Warga Pingsan Dievakuasi Polisi | iNews Terkini",
+   "channel": "Official iNews",
+   "url": "https://www.youtube.com/watch?v=sucLThIVbpM",
+   "published_at": "2026-10-14T05:41:21Z",
+   "views": 145523,
+   "comments_in_window": 735
+  },
+  {
+   "title": "BALI KRISIS BBM ARYA WEDAKARNA TURUN TANGAN⁉️ #beritaterkini #trending #fyp #shortsvideo #shorts",
+   "channel": "Masken",
+   "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k",
+   "published_at": "2026-10-13T09:30:12Z",
+   "views": 109614,
+   "comments_in_window": 728
+  },
+  {
+   "title": "Viral Pegawai SPBU Marahi Gubernur Bali Malah Ikut Emosi, Hei Urusin Pegawai Kamu",
+   "channel": "Tribun Sumsel",
+   "url": "https://www.youtube.com/watch?v=LExDN2aDBRw",
+   "published_at": "2026-10-15T08:26:22Z",
+   "views": 127479,
+   "comments_in_window": 701
+  },
+  {
+   "title": "Bahlil Bersembunyi, Koster yg Dihakimi: Siapa Sebenarnya Biang Antrean BBM di Bali?",
+   "channel": "GunRomli",
+   "url": "https://www.youtube.com/watch?v=8CzsgJuGDXY",
+   "published_at": "2026-10-16T04:32:07Z",
+   "views": 265469,
+   "comments_in_window": 658
+  },
+  {
+   "title": "GUBERNUR BALI Bentak Pegawai SPBU Imbas BBM Langka : Diam Kamu",
+   "channel": "Tribun MedanTV",
+   "url": "https://www.youtube.com/watch?v=dn0i8BG_WYM",
+   "published_at": "2026-10-15T10:00:33Z",
+   "views": 39282,
+   "comments_in_window": 593
+  },
+  {
+   "title": "Atasi Kelangkaan BBM di Bali, Presiden Prabowo Subianto Gelar Ratas Bersama Menteri ESDM & Pertamina",
+   "channel": "GARUDA TV",
+   "url": "https://www.youtube.com/watch?v=9chPmBjHsoI",
+   "published_at": "2026-10-14T12:33:31Z",
+   "views": 103468,
+   "comments_in_window": 510
+  },
+  {
+   "title": "Pemilik SPBU di Bali Menangis di Depan Wayan Koster & CEO Pertamina, Minta Percepat Pengiriman BBM",
+   "channel": "Tribunnews",
+   "url": "https://www.youtube.com/watch?v=DyaBi9z1oso",
+   "published_at": "2026-10-17T00:42:38Z",
+   "views": 258318,
+   "comments_in_window": 474
+  },
+  {
+   "title": "BALI DARURAT BBM? Alokasi Pasokan Berkurang Setengah, Warga Mengeluh | Sindo Siang | 14/10",
+   "channel": "SINDOnews",
+   "url": "https://www.youtube.com/watch?v=UsJDJZT7yzw",
+   "published_at": "2026-10-14T07:55:40Z",
+   "views": 80163,
+   "comments_in_window": 458
+  },
+  {
+   "title": "REAKSI GUBERNUR BALI Diprotes Pegawai SPBU Imbas BBM Langka",
+   "channel": "Tribun MedanTV",
+   "url": "https://www.youtube.com/watch?v=ELNVpO9UxoM",
+   "published_at": "2026-10-16T04:22:05Z",
+   "views": 61087,
+   "comments_in_window": 456
+  },
+  {
+   "title": "Emosional! Owner SPBU Minta Pertamina dan Gubernur Koster Segera Atasi Masalah BBM di Bali",
+   "channel": "JTNTV",
+   "url": "https://www.youtube.com/watch?v=q9o5Qc9jZeo",
+   "published_at": "2026-10-17T07:00:04Z",
+   "views": 454237,
+   "comments_in_window": 396
+  }
+ ],
+ "top_liked": [
+  {
+   "waktu_wita": "2026-10-15 14:46",
+   "text": "Ada suara jeritan rakyat \"DIAM KAMU\"  hebat nih Gubenur",
+   "likes": 1148,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgwKSfCQdlQwPjfTU9p4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:39",
+   "text": "itulah WAJAH ASLI PEJABAT KITA,,,MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN...YANG MAUNYA HIDUP ENAK .....OGAH TERIMA KRITIKAN...",
+   "likes": 849,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugy4DQa--4udqB0qPtl4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:48",
+   "text": "No respect, petugas spbu juga manusia bukan robot..",
+   "likes": 687,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgzHVD-v9ByAxyU5Bu94AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 15:03",
+   "text": "harusnya ditenangkan! bukan malah dibentak suruh diam!",
+   "likes": 673,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx40hSdpH3FZcc-M4p4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:45",
+   "text": "Hampir semua pejabat merasa lebih mulia dan tidak layak di salahkan",
+   "likes": 515,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgzXYwfqyHXkcleLjUx4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 15:03",
+   "text": "jika nggak becus ngurus, mundur itu lebih elegan....",
+   "likes": 439,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgykfQsPLemNiap9kYB4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:48",
+   "text": "Gak gubernur nya gak agt DPD nya sama2 \"diam kamu\"",
+   "likes": 378,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugwvvrp9a2T_LeRREN54AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 20:19",
+   "text": "owh ini gubernur yang suka bilang DIAM KAMU \ngubernur gak bermutu 👎",
+   "likes": 327,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugyny8MbXsaPW3FIF3x4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 14:02",
+   "text": "Kpk periksa gubernur bali",
+   "likes": 315,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=Ugy7wdIxmEv3O4SXHtF4AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 17:53",
+   "text": "Nggak gubernur nggak DPR & DPD sama aja tindas teruss rakyat kecill",
+   "likes": 312,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgwRkudfvTNTeXuScNJ4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov); Pemerintah pusat (Bahlil/ESDM/Presiden)"
+  },
+  {
+   "waktu_wita": "2026-10-15 16:05",
+   "text": "Lebih baik gurbenur ini di lengserkan saja daripada buat gaduh",
+   "likes": 311,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugy6sUkoszRqCs1NmBd4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:24",
+   "text": "Hebaaat.... Anda sebagai rakyat yang berani",
+   "likes": 288,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=Ugy3qoCRo_K-O9VBswN4AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 23:50",
+   "text": "SURUH PEJABAT² YG JAGA DI SPBU, BIAR TAU RASANYA \"KERJA\" BUKAN CUMA OMON²",
+   "likes": 283,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI&lc=UgzCyWA2odxej43_luV4AaABAg",
+   "video_title": "Buntut Pegawai SPBU Semprot Gubernur Koster, Pertamina Buka Suara dan Minta Bantuan Prajurit TNI",
+   "channel": "Tribunnews",
+   "themes": "Antrean & dampak harian"
+  },
+  {
+   "waktu_wita": "2026-10-15 13:42",
+   "text": "Mantap, rakyat memang harus bersuara pada pemimpin yang tak becus ngurus.",
+   "likes": 259,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=2gaAOHwDiMY&lc=UgyRDZiEdy__jlHilZ54AaABAg",
+   "video_title": "Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka",
+   "channel": "Tribunnews",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:50",
+   "text": "Harusnya Gubernur Protesnya Ke Menteri ESDM Bahlil bukan ke SPBU.\nSANGAT MEMBAHLULKAN. \nTUL'GAK GUYS?\n👇🤪",
+   "likes": 248,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgxCT0-awskL6jVQXCB4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov); Pemerintah pusat (Bahlil/ESDM/Presiden)"
+  },
+  {
+   "waktu_wita": "2026-10-15 22:20",
+   "text": "Sungguh MEMALUKAN.... !!!!!! \nApakah Begitu Seorang Pemimpin Bali. \nBenar - Benar Bikin MALU.",
+   "likes": 246,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugyn69gGjqAcnMVIjQ94AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:19",
+   "text": "Suruh gubernur itu jadi operator SPBU..asal asalan saja orang itu",
+   "likes": 242,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=UgwR09CN1ikR5Xotay94AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 14:14",
+   "text": "Odgj dijadikan pejabat pasti idenya gila 😂😂",
+   "likes": 209,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=UgxyBZyjC_CA46SAjPV4AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:06",
+   "text": "Ini gubernur bikin Bali rusak, kumuh, berantakan, dll., tapi bisa kepilih 2 periode?????",
+   "likes": 192,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=UgwpioT63R4QRjj8aQV4AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 16:47",
+   "text": "Berani sama yg kecil... Coba lawan itu menteri ESDMnya...",
+   "likes": 188,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgzTZiJLJ2Ga6k_NoVJ4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah pusat (Bahlil/ESDM/Presiden)"
+  },
+  {
+   "waktu_wita": "2026-10-15 13:30",
+   "text": "Betul karyawan di ibaratkan robot.... gila banget",
+   "likes": 187,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=2gaAOHwDiMY&lc=Ugwg0IFaZsN8a1bdv_R4AaABAg",
+   "video_title": "Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka",
+   "channel": "Tribunnews",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:21",
+   "text": "Gubernurnya suruh sama stafnya jadi pegawai SPBU biar tau.",
+   "likes": 185,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=UgzQHQDjOA7rdpL9gE14AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 14:42",
+   "text": "Baru turun sok jadi pahlawan,sama Bae kelakuan kaya si anggota DPD 😮‍💨",
+   "likes": 173,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgyLfrse7zFIjBBXU_J4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 13:41",
+   "text": "Mulai dari Pemerintah Pusat sampe Pemerintah Daerah..semua KERJA nya gak ada yang bener..cuma ngerti nyari proyek..malak..sama korup doang..",
+   "likes": 169,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=2gaAOHwDiMY&lc=Ugxr-4ZYwf_LClxcNnp4AaABAg",
+   "video_title": "Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka",
+   "channel": "Tribunnews",
+   "themes": "Antrean & dampak harian; Pemerintah pusat (Bahlil/ESDM/Presiden)"
+  },
+  {
+   "waktu_wita": "2026-10-15 15:43",
+   "text": "Suruh dia jaga sendiri SPBU 24 jam",
+   "likes": 167,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx-_JjSORSsT7FYxe94AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 16:27",
+   "text": "Keliatan kan kapasitas pemimpin Bali modelan gimana!!😂😂",
+   "likes": 167,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=LExDN2aDBRw&lc=UgwqXUdSRbxeFYN40Xt4AaABAg",
+   "video_title": "Viral Pegawai SPBU Marahi Gubernur Bali Malah Ikut Emosi, Hei Urusin Pegawai Kamu",
+   "channel": "Tribun Sumsel",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 14:47",
+   "text": "Cerminan penguasa bukan pemimpin.",
+   "likes": 165,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgzoGfvYpwGr0jArekt4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-13 17:54",
+   "text": "Kemungkinan antrian itu dikarenakan mereka tidak memberikan tip ke operator SPBU nya",
+   "likes": 158,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k&lc=UgxsVVnSVxUYGFL7zeF4AaABAg",
+   "video_title": "BALI KRISIS BBM ARYA WEDAKARNA TURUN TANGAN⁉️ #beritaterkini #trending #fyp #shortsvideo #shorts",
+   "channel": "Masken",
+   "themes": "Antrean & dampak harian"
+  },
+  {
+   "waktu_wita": "2026-10-15 16:44",
+   "text": "Saya lebih respect sama PETUGAS SPBU NYA....dibanding gubernurnya....",
+   "likes": 155,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgwrWkzT7tPvZvrrIAd4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 15:19",
+   "text": "Coba itu biar dia yang layanin Pelanggan SPBU nya. Biar dicaci maki",
+   "likes": 148,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx6GjnmVc1QjfqN1Kd4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-16 09:01",
+   "text": "GA PANTAS SEORANG GUBERNUR BERSIKAP SEPERTI ITU PADA RAKYAT BIASA..",
+   "likes": 147,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx8LiotShM0viTTllZ4AaABAg",
+   "video_title": "Viral! Gubernur Bali Wayan Koster Ribut dengan Petugas SPBU di Tengah Antrean BBM | Liputan 6",
+   "channel": "Liputan6",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-17 12:02",
+   "text": "Di bayar rakyat loh kurang ajar sama rakyat miskin 😭😭😭😭😭😭",
+   "likes": 147,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=8RLqbU17Ink&lc=UgxjpOvmkMaGou1iJ4R4AaABAg",
+   "video_title": "GUBERNUR BALI DI N0NAKT!FKAN PRABOWO BUNTUT US!R PEGAWAI SPBU, WARGA BALI NG4MUK DATANGI GUBERNUR? ",
+   "channel": "REY TV",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-17 12:02",
+   "text": "Di bayar rakyat loh kurang ajar sama rakyat miskin 😭😭😭😭😭😭",
+   "likes": 147,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=8RLqbU17Ink&lc=UgxjpOvmkMaGou1iJ4R4AaABAg",
+   "video_title": "GUBERNUR BALI DI N0NAKT!FKAN PRABOWO BUNTUT US!R PEGAWAI SPBU, WARGA BALI NG4MUK DATANGI GUBERNUR? ",
+   "channel": "REY TV",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-15 16:45",
+   "text": "Klu gak mau di komplain jngan jadi pemimpin, kasian rakyat kecil pak di peras tenaga nya, masih peras pajak 😂",
+   "likes": 144,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=LExDN2aDBRw&lc=Ugx2e1ccyILoGIoboKV4AaABAg",
+   "video_title": "Viral Pegawai SPBU Marahi Gubernur Bali Malah Ikut Emosi, Hei Urusin Pegawai Kamu",
+   "channel": "Tribun Sumsel",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-16 01:57",
+   "text": "Gubernur Bali suruh jadi operator SPBU itu coba dah,biar tau rasanya",
+   "likes": 143,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI&lc=UgxZdgMGp9bK3VhdaUl4AaABAg",
+   "video_title": "Buntut Pegawai SPBU Semprot Gubernur Koster, Pertamina Buka Suara dan Minta Bantuan Prajurit TNI",
+   "channel": "Tribunnews",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-15 13:44",
+   "text": "Ini gubernur gak sadar yah kalo di protes",
+   "likes": 139,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=2gaAOHwDiMY&lc=UgyJZAlIZCuGsgWQAOp4AaABAg",
+   "video_title": "Viral Video Gubernur Bali Wayan Koster Diprotes, Pegawai SPBU Keluhkan Beban Kerja Imbas BBM Langka",
+   "channel": "Tribunnews",
+   "themes": "Pemerintah daerah (Koster/Pemprov)"
+  },
+  {
+   "waktu_wita": "2026-10-16 13:36",
+   "text": "Pecat Bahlil.... memang dari dulu seperti itu, bikin kacau",
+   "likes": 139,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=8CzsgJuGDXY&lc=UgxfYQaLUUVXwEpAyex4AaABAg",
+   "video_title": "Bahlil Bersembunyi, Koster yg Dihakimi: Siapa Sebenarnya Biang Antrean BBM di Bali?",
+   "channel": "GunRomli",
+   "themes": "Pemerintah pusat (Bahlil/ESDM/Presiden)"
+  },
+  {
+   "waktu_wita": "2026-10-15 17:00",
+   "text": "Di Indonesia gaji seuprit tapi mintak karyawan spek dewa harus tahan di bawa tekanan 😊",
+   "likes": 132,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=LExDN2aDBRw&lc=UgxAiDvOZauQ3jonYFB4AaABAg",
+   "video_title": "Viral Pegawai SPBU Marahi Gubernur Bali Malah Ikut Emosi, Hei Urusin Pegawai Kamu",
+   "channel": "Tribun Sumsel",
+   "themes": ""
+  },
+  {
+   "waktu_wita": "2026-10-16 00:28",
+   "text": "Gubernurnya yang harus minta maaf ke karyawan SPBU karena seenaknya aja memarahin orang yang sudah lelah bekerja.",
+   "likes": 132,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI&lc=UgyVobI6ZuoN6Be6oDZ4AaABAg",
+   "video_title": "Buntut Pegawai SPBU Semprot Gubernur Koster, Pertamina Buka Suara dan Minta Bantuan Prajurit TNI",
+   "channel": "Tribunnews",
+   "themes": "Antrean & dampak harian; Pemerintah daerah (Koster/Pemprov); Permintaan maaf / sudah normal"
+  },
+  {
+   "waktu_wita": "2026-10-15 14:47",
+   "text": "Pemimpin TDK punya solusi. Inilah hasil pemilihan lewat partai.",
+   "likes": 128,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=FZtpOJTGASA&lc=UgwwIfoLRaOzyttETl54AaABAg",
+   "video_title": "Diminta Buka 24 Jam, Petugas SPBU Ngamuk di Depan Gubernur Bali | Kabar Siang",
+   "channel": "tvOneNews ",
+   "themes": ""
+  }
+ ],
+ "by_day_samples": {
+  "2026-10-11": [],
+  "2026-10-12": [
+   {
+    "waktu_wita": "2026-10-12 20:27",
+    "text": "Naskleeenhh onyangann pejabattt pulessss giliran ngalih suara mare tekeee poloneee",
+    "likes": 19,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=y112-VPdPKQ&lc=Ugw_i16_hV3GelXpAul4AaABAg",
+    "channel": "TRIBUN BALI"
+   },
+   {
+    "waktu_wita": "2026-10-12 17:19",
+    "text": "Serius dong pak jangan kebanyakan minum kopi campur arak biar gak lengeh\"han nanti,kami perlu bukti bukan omongan saja rugi dong bayar pajak gede\" Buat gaji bapak tapi kerjanya kek gini 😂",
+    "likes": 16,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=y112-VPdPKQ&lc=UgxyUQ5arh0W2f9rEOR4AaABAg",
+    "channel": "TRIBUN BALI"
+   },
+   {
+    "waktu_wita": "2026-10-12 21:02",
+    "text": "Hari ini bbm sudah payah..",
+    "likes": 7,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=y112-VPdPKQ&lc=UgzsfCOVg83c4jPlcot4AaABAg",
+    "channel": "TRIBUN BALI"
+   },
+   {
+    "waktu_wita": "2026-10-12 21:33",
+    "text": "Ape gen gae ULI seminggu sebelumnya Yan . Lesbian arak aja kopi sing",
+    "likes": 7,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=y112-VPdPKQ&lc=Ugxu_hX00MTRjmFyYpd4AaABAg",
+    "channel": "TRIBUN BALI"
+   }
+  ],
+  "2026-10-13": [
+   {
+    "waktu_wita": "2026-10-13 17:54",
+    "text": "Kemungkinan antrian itu dikarenakan mereka tidak memberikan tip ke operator SPBU nya",
+    "likes": 158,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k&lc=UgxsVVnSVxUYGFL7zeF4AaABAg",
+    "channel": "Masken"
+   },
+   {
+    "waktu_wita": "2026-10-13 18:11",
+    "text": "BBM ga usah ke bali... Kalian import aja dari bule bule... Kan itu kebangganmu bro",
+    "likes": 108,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k&lc=UgytuPCupTpQwRKlpV94AaABAg",
+    "channel": "Masken"
+   },
+   {
+    "waktu_wita": "2026-10-13 17:37",
+    "text": "Coba ngasih Tip kaya orang Bule,...pasti tidak ngantri,...😂 Yg ngantri pasti Miskin,...yg Miskin jangan di Bali,.. Bali mau bersih bersih orang miskin",
+    "likes": 70,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k&lc=UgxIh10tMKGBOIoz72h4AaABAg",
+    "channel": "Masken"
+   },
+   {
+    "waktu_wita": "2026-10-13 18:07",
+    "text": "Minyak dari Indramayu harus ngasih tip agar ber etika",
+    "likes": 70,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=mmJ2TC0Bm1k&lc=UgyTBhiK6sIGafSsvcB4AaABAg",
+    "channel": "Masken"
+   }
+  ],
+  "2026-10-14": [
+   {
+    "waktu_wita": "2026-10-14 14:30",
+    "text": "Ohhh ini mungkin yg di maksud DPD Bali Arya Wedhakarna, Bali lagi bersih\".. \nBersih\" BBM 😂😂😂😂😂😂😂🎉🎉",
+    "likes": 76,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=sucLThIVbpM&lc=Ugw_pyBYMNN0AJKCr2l4AaABAg",
+    "channel": "Official iNews"
+   },
+   {
+    "waktu_wita": "2026-10-14 15:05",
+    "text": "berikan kesempatan spbu swasta.. agar bisa saling melengkapi",
+    "likes": 72,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=sucLThIVbpM&lc=UgxLRKGq_UjaMnk_iC14AaABAg",
+    "channel": "Official iNews"
+   },
+   {
+    "waktu_wita": "2026-10-14 14:16",
+    "text": "Hebat prabowo gibran...tlah suksrs menyengsarakan rakyatnya",
+    "likes": 69,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=sucLThIVbpM&lc=UgyBl6S34_7f_zuU_894AaABAg",
+    "channel": "Official iNews"
+   },
+   {
+    "waktu_wita": "2026-10-14 14:32",
+    "text": "Gila bayangin, sekelas Bali loh ini, gmaa Yang lebih pelosokan",
+    "likes": 52,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=sucLThIVbpM&lc=Ugx4MFMbecX14hcss3h4AaABAg",
+    "channel": "Official iNews"
+   }
+  ],
+  "2026-10-15": [
+   {
+    "waktu_wita": "2026-10-15 14:46",
+    "text": "Ada suara jeritan rakyat \"DIAM KAMU\"  hebat nih Gubenur",
+    "likes": 1148,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgwKSfCQdlQwPjfTU9p4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-15 14:39",
+    "text": "itulah WAJAH ASLI PEJABAT KITA,,,MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN...YANG MAUNYA HIDUP ENAK .....OGAH TERIMA KRITIKAN...",
+    "likes": 849,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugy4DQa--4udqB0qPtl4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-15 14:48",
+    "text": "No respect, petugas spbu juga manusia bukan robot..",
+    "likes": 687,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=UgzHVD-v9ByAxyU5Bu94AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-15 15:03",
+    "text": "harusnya ditenangkan! bukan malah dibentak suruh diam!",
+    "likes": 673,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx40hSdpH3FZcc-M4p4AaABAg",
+    "channel": "Liputan6"
+   }
+  ],
+  "2026-10-16": [
+   {
+    "waktu_wita": "2026-10-16 09:01",
+    "text": "GA PANTAS SEORANG GUBERNUR BERSIKAP SEPERTI ITU PADA RAKYAT BIASA..",
+    "likes": 147,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=X1DUz9FT-WY&lc=Ugx8LiotShM0viTTllZ4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-16 01:57",
+    "text": "Gubernur Bali suruh jadi operator SPBU itu coba dah,biar tau rasanya",
+    "likes": 143,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI&lc=UgxZdgMGp9bK3VhdaUl4AaABAg",
+    "channel": "Tribunnews"
+   },
+   {
+    "waktu_wita": "2026-10-16 13:36",
+    "text": "Pecat Bahlil.... memang dari dulu seperti itu, bikin kacau",
+    "likes": 139,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=8CzsgJuGDXY&lc=UgxfYQaLUUVXwEpAyex4AaABAg",
+    "channel": "GunRomli"
+   },
+   {
+    "waktu_wita": "2026-10-16 00:28",
+    "text": "Gubernurnya yang harus minta maaf ke karyawan SPBU karena seenaknya aja memarahin orang yang sudah lelah bekerja.",
+    "likes": 132,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=Aa_7_rscyqI&lc=UgyVobI6ZuoN6Be6oDZ4AaABAg",
+    "channel": "Tribunnews"
+   }
+  ],
+  "2026-10-17": [
+   {
+    "waktu_wita": "2026-10-17 12:02",
+    "text": "Di bayar rakyat loh kurang ajar sama rakyat miskin 😭😭😭😭😭😭",
+    "likes": 147,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=8RLqbU17Ink&lc=UgxjpOvmkMaGou1iJ4R4AaABAg",
+    "channel": "REY TV"
+   },
+   {
+    "waktu_wita": "2026-10-17 12:02",
+    "text": "Di bayar rakyat loh kurang ajar sama rakyat miskin 😭😭😭😭😭😭",
+    "likes": 147,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=8RLqbU17Ink&lc=UgxjpOvmkMaGou1iJ4R4AaABAg",
+    "channel": "REY TV"
+   },
+   {
+    "waktu_wita": "2026-10-17 09:01",
+    "text": "Nah ini ibu yg peduli. Yg diatas coba dong teladani sikap empati ibu ini. Perhatikan rakyatnya.",
+    "likes": 117,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=DyaBi9z1oso&lc=UgzKH4X9Gn3i3bxgYzh4AaABAg",
+    "channel": "Tribunnews"
+   },
+   {
+    "waktu_wita": "2026-10-17 13:08",
+    "text": "Pemerintah sekarang sudah ga becus.bisanya korupsi.",
+    "likes": 85,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=8RLqbU17Ink&lc=UgwnZDEG2Jop1bAz2YR4AaABAg",
+    "channel": "REY TV"
+   }
+  ],
+  "2026-10-18": [
+   {
+    "waktu_wita": "2026-10-18 13:13",
+    "text": "Rakyat berjoget untuk hibur kesusahannya, pejabat berjoget dalam kemewahannya",
+    "likes": 68,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=LkQR2AqXXrc&lc=UgyUmIeWJxSua7HpXd54AaABAg",
+    "channel": "Warta Kota Production"
+   },
+   {
+    "waktu_wita": "2026-10-18 23:22",
+    "text": "kemana sibahlul  kok kayanya gak bertanggung jawab, pak presiden sudah gak layak lagi dia jadi mentri",
+    "likes": 35,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=xFL34GjMKjY&lc=UgyIvEPBpLfI72GlIUJ4AaABAg",
+    "channel": "SINDOnews"
+   },
+   {
+    "waktu_wita": "2026-10-18 14:15",
+    "text": "Hebat kalian...gw salut sm esabaran kalian yg milih joget / nysnyi bareng drpd emosi",
+    "likes": 30,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=LkQR2AqXXrc&lc=UgxUxlfLUOVem7Leag14AaABAg",
+    "channel": "Warta Kota Production"
+   },
+   {
+    "waktu_wita": "2026-10-18 00:50",
+    "text": "Jauh Lebih mantap Aura pemimpin si pemilik SPBU.. Dari pada gub baliho",
+    "likes": 28,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=6dmAJpIfPYc&lc=UgwIKmDRSwLKQ1kMfIV4AaABAg",
+    "channel": "SINDOnews"
+   }
+  ],
+  "2026-10-19": [
+   {
+    "waktu_wita": "2026-10-19 02:38",
+    "text": "Nah kan PD diam dan nutup mata yg d atas.....mana suaranya jgn cuma pajak2 aj yg kencang",
+    "likes": 17,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=xFL34GjMKjY&lc=UgzHSiJh55epnTEB6tR4AaABAg",
+    "channel": "SINDOnews"
+   },
+   {
+    "waktu_wita": "2026-10-19 00:29",
+    "text": "Masalahnya di distribusi bukan di SPBU yang harus bekerja 24 jam. Artinya distribusikan BBM ke semua SPBU di Bali dan jangan ada keterlambatan.",
+    "likes": 8,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=xFL34GjMKjY&lc=UgzJO0iOmUgGTR5I0Wx4AaABAg",
+    "channel": "SINDOnews"
+   },
+   {
+    "waktu_wita": "2026-10-19 04:02",
+    "text": "TDK PERLU KPK PERTIMBANGKAN, LANGSUNG SERET",
+    "likes": 8,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=xFL34GjMKjY&lc=UgyjUkGH18UHapY0kch4AaABAg",
+    "channel": "SINDOnews"
+   },
+   {
+    "waktu_wita": "2026-10-19 20:17",
+    "text": "Menteri yang jujur di copot sedangkan menteri yang kerjanya buruk dipertahankan. Wowo sakit jiwa",
+    "likes": 8,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=j3B6d6ULbKw&lc=UgxggfiKEhgkWGDbAB94AaABAg",
+    "channel": "KOMPASTV JEMBER"
+   }
+  ],
+  "2026-10-20": [
+   {
+    "waktu_wita": "2026-10-20 21:55",
+    "text": "Nggak percaya sama sekali kalau orang ini yg omong... eh iya, ini beneran orang???¿",
+    "likes": 16,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=lal0AE7PGQc&lc=UgyR8GiZEUqs5cM1HBl4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-20 20:40",
+    "text": "Kejadian dlh baru klarifikasi. Itulah pejabat konoha",
+    "likes": 14,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=lal0AE7PGQc&lc=UgwLIRhF14NsBLV0eNl4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-20 22:35",
+    "text": "Mukanya kelihatan capek banget ...capek harus berbohong terus ke rakyat 😂😂😂",
+    "likes": 9,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=lal0AE7PGQc&lc=UgwlS550HeJ3zpoJNQd4AaABAg",
+    "channel": "Liputan6"
+   },
+   {
+    "waktu_wita": "2026-10-20 21:28",
+    "text": "Problemnya karena kau menteri nya😅",
+    "likes": 8,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=lal0AE7PGQc&lc=UgxT3qoUtC0-aMfT5rV4AaABAg",
+    "channel": "Liputan6"
+   }
+  ]
+ }
+}
