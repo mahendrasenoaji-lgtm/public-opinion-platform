@@ -8,24 +8,27 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 
 ## 🟢 Mulai dari sini
 
-1. Komputer lain: clone/`git pull` repo `mahendrasenoaji-lgtm/public-opinion-platform`, lalu
-   `git fetch && git checkout bbm-bali-sampel-manual` (PR #45) dan buka folder ini. Kode penilai
-   `informal-2` ada di cabang terpisah `sentimen-perluas-kamus-informal` (PR #46).
+1. Komputer lain: clone/`git pull` repo `mahendrasenoaji-lgtm/public-opinion-platform` dan buka folder ini
+   (`proyek/bbm-bali-youtube/`). Semua pekerjaan BBM Bali sudah ada di `main`.
 2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push lewat PR, seperti bagian lain repo.
-   `gh pr merge` ke `main` ditolak classifier auto mode; siapkan PR sampai CI hijau, lalu **merge sendiri**.
-3. **Status 6 Nov 2026 (akhir sesi):** dua PR terbuka, keduanya menunggu Anda.
-   - **PR #45** `bbm-bali-sampel-manual`: sampel manual 400 + SNA + laporan yang dihitung ulang dengan
-     informal-2 + skrip + catatan ini. Hanya berkas di `proyek/`.
-   - **PR #46** `sentimen-perluas-kamus-informal`: kode `informal-2` di `apps/api` + tes (569 lulus).
-     **Setelah merge #46**, mention SOCIAL semua proyek berstatus "menunggu rescore"; jalankan
-     `POST /projects/{id}/signals/rescore` per proyek (MBG, KEBAKARAN HUTAN, KDMP 2026, BBM Bali).
-     Itu aksi database production yang tidak dijalankan agen.
-   - Urutan merge bebas, tetapi laporan di #45 mengutip hasil #46 dan membangun ulangnya butuh kode #46.
-4. Laporan yang benar: `laporan_pembaruan_sampel_manual.html` (artifact
-   https://claude.ai/artifact/E7TiPtANVW32KoeLQygC7v, versi 3, privat; bagikan lewat Share). Laporan 5 Nov
-   (`laporan.html`, artifact `WFPjyhn…`, PDF) sengaja tidak diubah dan memuat "63% negatif" versi informal-1.
-5. Tampilan artifact versi 3 belum dilihat di browser oleh agen; periksa grafik harian (sumbu skor
-   −0,5) dan tabel tema.
+3. **Status 6 Nov 2026 (akhir hari): proyek BBM Bali SELESAI.**
+   - PR #45 (sampel manual 400 + SNA + laporan) dan PR #46 (kode `informal-2`) digabung ke `main`
+     6 Nov atas izin pengguna; Render sudah deploy `informal-2`.
+   - **Rescore BBM Bali di platform sudah dijalankan sampai tuntas** (tombol "Nilai ulang konten lama"
+     di `/sinyal`, sesi Chrome pengguna): sisa 0. Platform kini: 35.772 konten (sesudah dedup), 18.358
+     dinilai (51%), model `lexicon-id-1+informal-2`, sentimen rata-rata sosial −0,31. Sejalan dengan
+     laporan (36.319 komentar, 18.592 dinilai, 51%).
+   - Artifact https://claude.ai/artifact/E7TiPtANVW32KoeLQygC7v **versi 4** (privat; bagikan lewat Share):
+     dicek di browser (grafik harian, linimasa, tabel), kalimat "platform masih informal-1" diganti.
+     `laporan_pembaruan_sampel_manual.html` di repo = isi artifact; `skrip/build_report_pembaruan.py`
+     dari `stats_informal2.json` menghasilkan HTML yang identik.
+   - Laporan 5 Nov (`laporan.html`, artifact `WFPjyhn…`, PDF) sengaja tidak diubah (versi informal-1).
+4. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
+   KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
+   Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
+5. **Catatan rescore di production:** satu klik tombol = sampai 20 × 500 baris. Selama rescore 36 rb baris,
+   Render beberapa kali membalas 502/503 (restart ±40 dtk) dan 429 (batas 120 permintaan/menit per org).
+   Datanya aman (bertahap, idempoten); cukup tunggu lalu klik lagi. Jangan klik beruntun cepat.
 
 ## Permintaan pengguna (urut)
 
@@ -53,6 +56,8 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
     seluruh angka sentimen dihitung ulang (bukan hanya kepala halaman).
 12. (6 Nov) "Aku akan meneruskan di komputer lain, simpan semua progress dan percakapan nya di github" →
     blok "Mulai dari sini" di atas dan bagian "Pelajaran dari sesi 6 Nov" di bawah.
+13. (6 Nov, sesi berikut) "merge #45 dan #46 … BBM Bali selesaikan sampai tuntas. kamus sudah diperbaiki?" →
+    #46 lalu #45 digabung; rescore BBM Bali di platform sampai sisa 0; artifact versi 4; catatan ini.
 
 ## Pembaruan 6 November 2026
 
@@ -123,14 +128,14 @@ Taksiran ±67% (64–70%) dari sampel manual tetap untuk seluruh komentar. Nada 
 | Label informal-2 tiap komentar | `label_informal2_per_komentar.csv` (comment_id, skor, label) |
 | Skrip | `skrip/build_report.py` (narasi kini dibuat dari angka), `skrip/build_report_pembaruan.py` (menyisipkan bagian pembaruan + SNA), `skrip/analyze_bbm.py` (mencatat `model_version`) |
 
-Membangun ulang laporan (butuh kode informal-2: gabungkan PR #46 atau arahkan `POP_API_DIR` ke checkout-nya):
+Membangun ulang laporan (kode informal-2 sudah di `main`; `analyze_bbm.py` butuh `openpyxl`):
 ```bash
 POP_API_DIR=<checkout informal-2>/apps/api python3 -X utf8 skrip/analyze_bbm.py raw_youtube_api.json <keluaran>
 python3 -X utf8 skrip/build_report.py <keluaran>/stats.json <keluaran>/laporan_dasar.html
 python3 -X utf8 skrip/build_report_pembaruan.py <keluaran>/laporan_dasar.html laporan_pembaruan_sampel_manual.html
 ```
 CSV/XLSX 5 Nov (`komentar_youtube_bbm_bali_11-20okt2026.*`) sengaja tidak ditimpa: label di dalamnya tetap
-informal-1. Angka di platform (Vercel) juga masih informal-1 sampai PR #46 digabung dan rescore dijalankan.
+informal-1. Angka di platform (Vercel) sudah informal-2 sejak rescore 6 Nov.
 
 **Belum dilakukan:** `laporan.html`, artifact lama (WFPjyhn…), dan PDF tetap versi informal-1 tanpa catatan
 "42% dari komentar"; belum ada pelabel kedua; perbaikan `_modifier` (negator sampai kata bermuatan kedua).

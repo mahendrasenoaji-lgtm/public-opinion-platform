@@ -77,12 +77,13 @@ UPD = """
     <li><b>Sindiran:</b> komentar positif hampir tidak ada di kelompok yang tidak dinilai (5 dari 400, semuanya pujian untuk petugas SPBU, pemilik SPBU, atau Gubernur Jawa Barat). Sebaliknya sekitar 22% komentar yang dinilai alat berlabel positif, sebagian jelas sindiran seperti “hebat nih Gubenur”.</li>
     <li><b>Jaringan tidak bisa mengisi kekosongan ini:</b> dari 962 pasangan komentar induk dan balasan yang sama-sama dinilai, hanya 49% searah, sama dengan peluang kebetulan (±49%). Hasil analisis jaringan ada di bagian terakhir halaman.</li>
   </ul>
-  <p class="meta">Batasan: pelabel tunggal (satu pembaca, tanpa penilai kedua), jadi ini taksiran kasar dan bukan ukuran akurasi. Dugaan atau tuduhan tanpa kata evaluatif (“pasti ada oknum yang bermain”) dihitung negatif; dengan aturan yang lebih ketat porsi negatif turun dan netral naik. Sampel manual hanya mewakili komentar yang tidak dinilai <code>informal-1</code>. Perubahan kamus ada di usulan PR #46 pada repo Public Opinion dan belum dipakai di platform; skor di platform baru berubah setelah PR itu digabung dan penilaian ulang dijalankan, jadi angka di platform masih memakai <code>informal-1</code>.</p>
+  <p class="meta">Batasan: pelabel tunggal (satu pembaca, tanpa penilai kedua), jadi ini taksiran kasar dan bukan ukuran akurasi. Dugaan atau tuduhan tanpa kata evaluatif (“pasti ada oknum yang bermain”) dihitung negatif; dengan aturan yang lebih ketat porsi negatif turun dan netral naik. Sampel manual hanya mewakili komentar yang tidak dinilai <code>informal-1</code>. Perubahan kamus masuk ke platform Public Opinion lewat PR #46 (digabung 6 November 2026), dan seluruh komentar proyek ini di platform sudah dinilai ulang dengan <code>informal-2</code> pada hari yang sama. Platform menghitung 35.772 komentar karena duplikat dibuang; 18.358 di antaranya dinilai (51%), sejalan dengan angka di halaman ini.</p>
 </section>
 """
 rep("\n<section>\n  <h2>Percakapan memuncak", UPD + "\n<section>\n  <h2>Percakapan memuncak")
 
-rep("pada platform Public Opinion.</p>\n</section>\n</div>", "pada platform Public Opinion (angka platform: <code>informal-1</code>). Sampel manual 400 baris berlabel: berkas sampel_manual_400_label.csv; label per komentar dari informal-2: berkas label_informal2_per_komentar.csv.</p>\n</section>\n" + """
+rep("ada di folder <code>~/Documents/bbm-bali-youtube</code>", "ada di repo Public Opinion, folder <code>proyek/bbm-bali-youtube</code>,")
+rep("pada platform Public Opinion.</p>\n</section>\n</div>", "pada platform Public Opinion (angka platform: <code>informal-2</code>, dinilai ulang 6 November 2026). Sampel manual 400 baris berlabel: berkas sampel_manual_400_label.csv; label per komentar dari informal-2: berkas label_informal2_per_komentar.csv.</p>\n</section>\n" + """
 <section aria-labelledby="sna-h">
   <div class="eyebrow">Analisis jaringan sosial</div>
   <h2 id="sna-h">Siapa berkomentar di mana, dan siapa membalas siapa</h2>
