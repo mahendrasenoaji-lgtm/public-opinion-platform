@@ -28,9 +28,10 @@ for v in range(0, vmax + 1, 3000):
     y = PT + ih - ih * v / vmax
     svg.append(f'<line x1="{PL}" x2="{W-PR}" y1="{y:.1f}" y2="{y:.1f}" class="grid"/>')
     svg.append(f'<text x="{PL-8}" y="{y+4:.1f}" class="ax" text-anchor="end">{v:,}</text>'.replace(",", "."))
-# sumbu kanan sentimen 0 .. -0.4
-for v in (0, -0.1, -0.2, -0.3, -0.4):
-    y = PT + ih * (-v) / 0.4
+# sumbu kanan sentimen 0 .. -0.5 (informal-2: 12 Okt rata-rata -0,42)
+AX = 0.5
+for v in (0, -0.1, -0.2, -0.3, -0.4, -0.5):
+    y = PT + ih * (-v) / AX
     lbl = "0" if v == 0 else f"{v:.1f}".replace(".", ",").replace("-", "−")
     svg.append(f'<text x="{W-PR+8}" y="{y+4:.1f}" class="ax sx">{lbl}</text>')
 pts = []
@@ -44,7 +45,7 @@ for i, d in enumerate(days):
         svg.append(f'<text x="{x+bw/2:.1f}" y="{PT+ih-h-6:.1f}" class="val" text-anchor="middle">{d["n"]:,}</text>'.replace(",", "."))
     svg.append(f'<text x="{x+bw/2:.1f}" y="{H-PB+18:.1f}" class="ax" text-anchor="middle">{DAYS_ID[d["date"]]}</text>')
     if d["mean"] is not None:
-        pts.append((x + bw / 2, PT + ih * (-d["mean"]) / 0.4, d["mean"]))
+        pts.append((x + bw / 2, PT + ih * (-d["mean"]) / AX, d["mean"]))
 svg.append('<polyline class="line" points="' + " ".join(f"{x:.1f},{y:.1f}" for x, y, _ in pts) + '"/>')
 for x, y, m in pts:
     svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="3.5" class="dot"><title>rata-rata skor {m:+.3f}</title></circle>')
@@ -61,6 +62,24 @@ def pct(a, b):
 
 lab = s["labels"]
 scored = lab.get("positif", 0) + lab.get("negatif", 0) + lab.get("netral", 0)
+MODEL = s.get("model_version", "lexicon-id-1+informal-1")  # stats lama (5 Nov) belum mencatat versi
+
+
+def fmt(x):
+    return f"{x:+.2f}".replace(".", ",").replace("-", "−")
+
+
+# Narasi yang bergantung angka dibuat dari data, bukan ditulis tangan: kisaran skor harian
+# (hari dengan >= 300 komentar) dan tema yang skornya positif berubah bila penilai berubah.
+big = [d["mean"] for d in days if d["n"] >= 300 and d["mean"] is not None]
+range_txt = f"−{abs(max(big)):.2f} sampai −{abs(min(big)):.2f}".replace(".", ",")
+pos_themes = [k for k, v in s["themes"].items() if v["mean"] is not None and v["mean"] > 0]
+closest = max((kv for kv in s["themes"].items() if kv[1]["mean"] is not None), key=lambda kv: kv[1]["mean"])
+if pos_themes:
+    theme_txt = "Satu-satunya tema dengan skor rata-rata positif adalah " + ", ".join(pos_themes) + "."
+else:
+    theme_txt = (f"Tidak ada tema yang skor rata-ratanya positif; yang paling dekat ke netral adalah "
+                 f"“{closest[0]}” ({fmt(closest[1]['mean'])}).")
 
 timeline = []
 for d in days:
@@ -177,12 +196,12 @@ code {{ font-family: var(--mono); font-size: 0.88em; }}
   <div><b>{n(s["comments"])}</b><span>komentar dalam jendela</span></div>
   <div><b>{n(s["videos_with_comments"])}</b><span>video yang dikomentari (dari {n(s["videos_found"])})</span></div>
   <div><b>{n(s["unique_authors"])}</b><span>akun berbeda</span></div>
-  <div><b>{pct(lab.get("negatif",0), scored)}</b><span>negatif, dari {n(scored)} komentar yang bisa dinilai</span></div>
+  <div><b>{pct(lab.get("negatif",0), scored)}</b><span>negatif, dari {n(scored)} komentar yang bisa dinilai ({pct(scored, s["comments"])} dari semua)</span></div>
 </div>
 
 <section>
   <h2>Percakapan memuncak pada 15 Oktober</h2>
-  <p>Sepertiga komentar ({pct(days[4]["n"], s["comments"])}) ditulis pada Kamis 15 Oktober, hari ketika video Gubernur Koster diprotes petugas SPBU beredar. Sejak itu volume turun setiap hari. Rata-rata skor sentimen bertahan negatif di kisaran −0,2 sampai −0,27 sepanjang jendela, termasuk setelah pemerintah menyatakan pasokan normal.</p>
+  <p>Sepertiga komentar ({pct(days[4]["n"], s["comments"])}) ditulis pada Kamis 15 Oktober, hari ketika video Gubernur Koster diprotes petugas SPBU beredar. Sejak itu volume turun setiap hari. Rata-rata skor sentimen (hanya komentar yang dinilai alat) bertahan negatif di kisaran {range_txt} pada hari-hari dengan ratusan komentar atau lebih, termasuk setelah pemerintah menyatakan pasokan normal.</p>
   <div class="chart">{chart}</div>
   <div class="legend"><span><i style="background:var(--social-soft)"></i>semua komentar</span><span><i style="background:var(--social)"></i>dinilai negatif</span><span><i style="background:var(--ink);height:3px;vertical-align:3px"></i>rata-rata skor (sumbu kanan, hanya komentar yang bisa dinilai)</span></div>
 </section>
@@ -195,7 +214,7 @@ code {{ font-family: var(--mono); font-size: 0.88em; }}
 
 <section>
   <h2>Siapa yang disorot</h2>
-  <p>Tema ditandai dari kata kunci di teks komentar. Satu komentar bisa masuk lebih dari satu tema, dan sebagian besar komentar tidak masuk tema mana pun. Komentar yang menyebut pemerintah daerah lebih banyak daripada yang menyebut Pertamina. Satu-satunya tema dengan skor rata-rata positif adalah komentar tentang permintaan maaf dan pasokan yang kembali normal.</p>
+  <p>Tema ditandai dari kata kunci di teks komentar. Satu komentar bisa masuk lebih dari satu tema, dan sebagian besar komentar tidak masuk tema mana pun. Komentar yang menyebut pemerintah daerah lebih banyak daripada yang menyebut Pertamina. {theme_txt}</p>
   <div class="tbl-wrap"><table>
     <thead><tr><th>Tema</th><th class="num">Komentar</th><th></th><th class="num">Skor rata-rata</th></tr></thead>
     <tbody>{theme_rows}</tbody>
@@ -241,7 +260,7 @@ code {{ font-family: var(--mono); font-size: 0.88em; }}
     <li>Diambil semua komentar dan balasan pada video itu, lalu disaring menurut waktu tulis: 11 Okt 00:00 sampai 20 Okt 23:59 WITA. {n(s["outside_window"])} komentar yang ditulis sesudah 20 Okt dibuang.</li>
     <li>Tidak ada komentar pada 11 Okt karena video pertama tentang krisis baru terbit 12 Okt. Penurunan menjelang 20 Okt sebagian karena video yang terbit sesudah 20 Okt tidak ikut diambil.</li>
     <li>Nama akun tidak disimpan. Diganti kode acak supaya jumlah akun berbeda tetap bisa dihitung.</li>
-    <li>Sentimen dinilai dengan penilai leksikon ragam informal milik platform Public Opinion (<code>lexicon-id-1+informal-1</code>). {pct(lab.get("abstain",0), s["comments"])} komentar tidak bisa dinilai. Sarkasme sering terbaca positif, dan nada tidak sama dengan sikap.</li>
+    <li>Sentimen dinilai dengan penilai leksikon ragam informal milik platform Public Opinion (<code>{MODEL}</code>). {pct(lab.get("abstain",0), s["comments"])} komentar tidak bisa dinilai. Sarkasme sering terbaca positif, dan nada tidak sama dengan sikap.</li>
     <li>Komentator YouTube memilih sendiri untuk berkomentar. Mereka tidak mewakili warga Bali, dan urutan hasil pencarian ditentukan algoritma YouTube.</li>
     <li>Tidak ada klaim sebab-akibat. Peristiwa dan lonjakan komentar hanya terjadi pada waktu yang sama.</li>
   </ul>
