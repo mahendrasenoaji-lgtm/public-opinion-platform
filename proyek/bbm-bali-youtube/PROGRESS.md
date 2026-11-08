@@ -25,10 +25,17 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    - Laporan 5 Nov (`laporan.html`, artifact `WFPjyhn…`, PDF) sengaja tidak diubah (versi informal-1).
    - Deck PowerPoint 12 slide: `presentasi_bbm_bali_youtube.pptx` (angka = laporan versi 4, grafik asli
      PowerPoint, catatan pembicara tiap slide; dicek lewat ekspor PDF PowerPoint). Pembuat: `skrip/build_pptx.js`.
-4. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
+4. **8 Nov 2026 — kamus bahasa daerah `informal-3`** (cabang `sentimen/informal-3-bahasa-daerah`):
+   modul `apps/api/app/services/regional.py` (13 bahasa daerah + Indonesia cakap, dengan arti dan
+   daftar kata yang sengaja dikecualikan karena artinya berbeda antarbahasa). Abstain BBM Bali
+   48,8% → 46,7%; presisi label negatif pada komentar yang baru dinilai 95,6% (sampel buta 100).
+   CSV/XLSX komentar **dibuat ulang dengan informal-3** (kolom kata penanda + bahasa, sheet
+   "Kamus daerah"); label informal-1 lama di `label_informal1_per_komentar.csv`. Rincian:
+   `UKUR_ULANG_INFORMAL3.md`. Setelah PR digabung: rescore platform (tombol di `/sinyal`).
+5. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
    KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
    Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
-5. **Catatan rescore di production:** satu klik tombol = sampai 20 × 500 baris. Selama rescore 36 rb baris,
+6. **Catatan rescore di production:** satu klik tombol = sampai 20 × 500 baris. Selama rescore 36 rb baris,
    Render beberapa kali membalas 502/503 (restart ±40 dtk) dan 429 (batas 120 permintaan/menit per org).
    Datanya aman (bertahap, idempoten); cukup tunggu lalu klik lagi. Jangan klik beruntun cepat.
 
@@ -61,6 +68,9 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 13. (6 Nov, sesi berikut) "merge #45 dan #46 … BBM Bali selesaikan sampai tuntas. kamus sudah diperbaiki?" →
     #46 lalu #45 digabung; rescore BBM Bali di platform sampai sisa 0; artifact versi 4; catatan ini.
 14. (6 Nov) "buatkan pptx nya untuk bbm bali" → `presentasi_bbm_bali_youtube.pptx` + `skrip/build_pptx.js`.
+15. (8 Nov) "abstain itu indikatornya apa? … cuih menjijikan … akan melihatnya sebagai negatif" → dijelaskan
+    (abstain = tak ada kata kamus; Excel masih informal-1). Lalu: "ya buat ulang, tapi lengkapi kamusnya
+    … bahasa daerah/kesukuan … masing2 memiliki makna yang berbeda" → `informal-3`, Excel dibuat ulang.
 
 ## Pembaruan 6 November 2026
 

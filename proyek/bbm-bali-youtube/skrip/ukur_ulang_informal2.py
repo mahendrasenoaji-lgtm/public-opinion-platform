@@ -4,6 +4,8 @@ Pakai:
     python3 -I -X utf8 skrip/ukur_ulang_informal2.py <komentar.csv> <sampel_manual_400_label.csv>
 
 Skor lama dibaca dari kolom `sentiment_label` di CSV komentar (hasil informal-1).
+Sejak 8 Nov CSV komentar memuat label informal-3; label informal-1 disimpan di
+label_informal1_per_komentar.csv (kolom sama) — pakai file itu sebagai argumen pertama.
 Skor baru dihitung dari kode di apps/api. Butuh sampel_manual_400_label.csv (PR #45).
 Dijalankan dengan Python dari venv apps/api supaya `app.services` bisa diimpor.
 """
