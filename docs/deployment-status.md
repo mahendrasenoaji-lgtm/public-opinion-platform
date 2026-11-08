@@ -6,6 +6,16 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 8 November 2026: kamus informal-4, peta aktor, BBM Bali dinilai ulang
+
+- Penilai SOCIAL kini `lexicon-id-1+informal-4`: bahasa daerah (`services/regional.py`, PR #48) dan
+  pola frasa (`services/phrases.py`, PR #50). Peta aktor/tingkat kekuasaan: `services/actors.py`.
+  Pembaca komentar LLM: `app/ai/comment_reader.py` (belum aktif; `ANTHROPIC_API_KEY` belum di Render).
+- Proyek KELANGKAAN BBM BALI dinilai ulang ke informal-4 (19.828 dari 35.772 dinilai, rata-rata −0,35).
+  Proyek lain sengaja tidak dinilai ulang (keputusan pengguna), jadi deret sosialnya campuran versi.
+- Semua PR (#48–#51) digabung; tidak ada PR terbuka. Rincian, cara membangun ulang laporan/deck/Excel,
+  dan daftar yang masih terbuka: `proyek/bbm-bali-youtube/PROGRESS.md`, blok "Mulai dari sini" butir 3.
+
 # 🟢 MULAI DARI SINI — 5 November 2026: proyek KELANGKAAN BBM BALI + unggah JSON
 
 **Baca blok ini dulu.** Blok 30 Oktober di bawahnya tetap berlaku (pengumpulan terjadwal mati).
