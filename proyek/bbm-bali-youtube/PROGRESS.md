@@ -31,7 +31,13 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    48,8% → 46,7%; presisi label negatif pada komentar yang baru dinilai 95,6% (sampel buta 100).
    CSV/XLSX komentar **dibuat ulang dengan informal-3** (kolom kata penanda + bahasa, sheet
    "Kamus daerah"); label informal-1 lama di `label_informal1_per_komentar.csv`. Rincian:
-   `UKUR_ULANG_INFORMAL3.md`. Setelah PR digabung: rescore platform (tombol di `/sinyal`).
+   `UKUR_ULANG_INFORMAL3.md`. **PR #48 digabung 8 Nov** (atas perintah pengguna), Render deploy
+   informal-3, lalu rescore BBM Bali di platform. Laporan **versi 5** (artifact yang sama
+   E7TiPtANVW32KoeLQygC7v; `laporan_pembaruan_sampel_manual.html` = isinya, dari
+   `build_report.py stats_informal3.json` + `build_report_pembaruan.py`, angka platform lewat env
+   `PLATFORM_NOTE`/`PLATFORM_VERSION`) dan deck **13 slide** (slide 9 baru: kamus bahasa daerah).
+   QA deck tanpa LibreOffice: ekspor PDF lewat PowerPoint (AppleScript, folder container
+   `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents`) lalu render PDFKit (Swift).
 5. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
    KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
    Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
@@ -71,6 +77,9 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 15. (8 Nov) "abstain itu indikatornya apa? … cuih menjijikan … akan melihatnya sebagai negatif" → dijelaskan
     (abstain = tak ada kata kamus; Excel masih informal-1). Lalu: "ya buat ulang, tapi lengkapi kamusnya
     … bahasa daerah/kesukuan … masing2 memiliki makna yang berbeda" → `informal-3`, Excel dibuat ulang.
+16. (8 Nov) "abstain/positif/negatif ketentuannya?" → dijelaskan (bobot kata, negasi ×−0,75, penguat ×1,5,
+    pelemah ×0,6, rata-rata, batas ±0,15). Lalu: "merge PR #48 lalu rescore platform. lalu di artifacts
+    perlu diupdate beserta pptx nya" → dikerjakan (lihat butir 4 di atas).
 
 ## Pembaruan 6 November 2026
 
