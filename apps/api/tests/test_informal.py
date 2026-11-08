@@ -69,7 +69,11 @@ class TestImbuhan:
         ]
         # dict comprehension SLANG diam-diam menimpa duplikat; tes ini yang menangkapnya
         assert len(pasangan) == len({variant for variant, _ in pasangan})
-        assert len(SLANG) == len(pasangan)
+        from app.services.regional import REGIONAL_MODIFIERS
+
+        # pemetaan daerah tidak boleh menimpa pemetaan yang sudah ada
+        assert not {variant for variant, _ in pasangan} & set(REGIONAL_MODIFIERS)
+        assert len(SLANG) == len(pasangan) + len(REGIONAL_MODIFIERS)
 
     def test_varian_dipetakan_ke_akar(self) -> None:
         assert SLANG["kebohongan"] == "bohong"

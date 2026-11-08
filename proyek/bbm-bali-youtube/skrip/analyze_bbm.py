@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 # Penilai sentimen diambil dari apps/api di repo yang sama (proyek/bbm-bali-youtube/skrip -> ../../../apps/api).
 sys.path.insert(0, os.environ.get("POP_API_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "apps", "api")))
 from app.services.sentiment import INFORMAL_MODEL_VERSION, score  # noqa: E402  (penilai yang sama dengan platform)
+from app.services import regional  # noqa: E402  (kamus bahasa daerah, informal-3)
 from openpyxl import Workbook  # noqa: E402
 from openpyxl.styles import Font  # noqa: E402
 
@@ -41,6 +42,8 @@ for c in d["comments"]:
         "video_title": v["title"], "channel": v["channel"], "video_url": v["url"],
         "sentiment": s.score, "sentiment_label": s.label if s.score is not None else "abstain",
         "themes": "; ".join(themes),
+        "kata_penanda": "; ".join(f"{w} ({v:+g})" for w, v in s.matched),
+        "bahasa_kata": "; ".join(sorted({regional.origin(w) for w, _ in s.matched if regional.origin(w)})),
     })
 rows.sort(key=lambda r: r["published_at"])
 
@@ -82,10 +85,10 @@ stats = dict(
 for day in days:
     rs = sorted([r for r in rows if r["tanggal_wita"] == day["date"]], key=lambda r: -r["likes"])[:4]
     stats["by_day_samples"][day["date"]] = [{k: r[k] for k in ("waktu_wita", "text", "likes", "sentiment_label", "url", "channel")} for r in rs]
-json.dump(stats, open(f"{OUT}/stats.json", "w"), ensure_ascii=False, indent=1)
+json.dump(stats, open(f"{OUT}/stats.json", "w"), ensure_ascii=False, indent=1)  # nama tetap; salin sesuai versi
 
 # ---- CSV + XLSX
-cols = ["waktu_wita", "type", "text", "likes", "sentiment", "sentiment_label", "themes", "url",
+cols = ["waktu_wita", "type", "text", "likes", "sentiment", "sentiment_label", "kata_penanda", "bahasa_kata", "themes", "url",
         "video_title", "channel", "video_url", "comment_id", "parent_id", "author_hash", "published_at"]
 with open(f"{OUT}/komentar_youtube_bbm_bali_11-20okt2026.csv", "w", newline="", encoding="utf-8-sig") as f:
     w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
@@ -95,12 +98,14 @@ with open(f"{OUT}/komentar_youtube_bbm_bali_11-20okt2026.csv", "w", newline="", 
 wb = Workbook()
 ws = wb.active
 ws.title = "Komentar"
-ws.append(["Waktu (WITA)", "Jenis", "Komentar", "Suka", "Skor sentimen", "Label", "Tema", "Link komentar",
+ws.append(["Waktu (WITA)", "Jenis", "Komentar", "Suka", "Skor sentimen", "Label", "Kata penanda (bobot)",
+           "Bahasa kata penanda", "Tema", "Link komentar",
            "Judul video", "Kanal", "Link video", "ID komentar", "ID induk", "Akun (hash)", "Waktu (UTC)"])
-for r in rows:
+# Nomor baris dihitung sendiri: ws.max_row memindai semua sel tiap kali dipanggil (kuadratik).
+for row_no, r in enumerate(rows, start=2):
     ws.append([r[k] for k in cols])
-    ws.cell(ws.max_row, 8).hyperlink = r["url"]
-    ws.cell(ws.max_row, 11).hyperlink = r["video_url"]
+    ws.cell(row_no, 10).hyperlink = r["url"]
+    ws.cell(row_no, 13).hyperlink = r["video_url"]
 vs = wb.create_sheet("Video")
 vs.append(["Judul", "Kanal", "Terbit (UTC)", "Ditonton", "Komentar total", "Komentar dalam jendela", "Link", "Kueri penemu"])
 for v in sorted(videos.values(), key=lambda v: -per_video.get(v["video_id"], 0)):
@@ -118,11 +123,23 @@ for line in [
     "Kueri: " + "; ".join(d["queries"]),
     "Komentar: semua komentar dan balasan pada video tersebut, disaring menurut waktu tulis dalam jendela.",
     "Nama akun tidak disimpan; diganti hash (12 karakter) agar tetap bisa menghitung akun unik.",
-    f"Sentimen: penilai leksikon ragam informal platform Public Opinion ({INFORMAL_MODEL_VERSION}). Abstain = tak ada kata penanda.",
+    f"Sentimen: penilai leksikon ragam informal platform Public Opinion ({INFORMAL_MODEL_VERSION}). Abstain = tak ada satu pun kata penanda yang dikenali kamus (bukan berarti netral).",
+    "Sejak informal-3 kamus memuat kosakata bahasa daerah (Bali, Jawa, Sunda, Betawi, Minang, Batak/Medan, Melayu, Banjar, Palembang, Bugis/Makassar, Manado/Maluku/Papua, Madura, Sasak); lihat sheet 'Kamus daerah'.",
+    "Kata yang artinya berbeda antarbahasa (mis. 'sing' = 'tidak' di Bali tapi 'yang' di Jawa) sengaja tidak dinilai; alasannya ada di sheet 'Kamus daerah'.",
     "Batas: komentar YouTube self-selected, tidak mewakili warga Bali; urutan pencarian ditentukan YouTube; nada ≠ sikap; sarkasme sering salah baca.",
     f"Dikumpulkan: {d['collected_at']} — kuota API ~{d['quota_units']} unit.",
 ]:
     ms.append([line])
+ks = wb.create_sheet("Kamus daerah")
+ks.append(["Kata", "Bahasa", "Arti", "Bobot", "Status"])
+for bahasa, kata_bahasa in regional.REGIONAL_LEXICON.items():
+    for kata, (bobot, arti) in sorted(kata_bahasa.items()):
+        ks.append([kata, bahasa, arti, bobot, "dinilai"])
+for kata, (padanan, bahasa) in regional.REGIONAL_MODIFIERS.items():
+    ks.append([kata, bahasa, f"dibaca sebagai '{padanan}'", None, "pengubah/ejaan"])
+for kata, alasan in regional.EXCLUDED.items():
+    ks.append([kata, None, alasan, None, "SENGAJA tidak dinilai"])
+ks.column_dimensions["C"].width = 90
 for sh in wb.worksheets:
     for cell in sh[1]:
         cell.font = Font(bold=True)

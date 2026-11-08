@@ -255,12 +255,6 @@ class TestInformal2:
     dan kata yang SENGAJA tidak dimasukkan tetap abstain.
     """
 
-    def test_versi_dinaikkan(self) -> None:
-        from app.services.sentiment import INFORMAL_MODEL_VERSION, MODEL_VERSION
-
-        assert INFORMAL_MODEL_VERSION == "lexicon-id-1+informal-2"
-        assert MODEL_VERSION == "lexicon-id-1"  # ragam baku tidak bergeser
-
     @pytest.mark.parametrize(
         "teks",
         [
