@@ -44,6 +44,8 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    uji siap di `skrip/pilot_pembaca_ai.py`). Abstain 46,7% → 44,7%; presisi frasa 95%. Laporan
    **versi 6** (bagian frasa, yang tetap lolos, peta aktor & relasi kuasa) dan deck **17 slide**.
    Rincian: `UKUR_ULANG_INFORMAL4.md`. Pengguna: proyek lain TIDAK perlu dinilai ulang.
+   PR #50 digabung pengguna 8 Nov 07:49 UTC; rescore BBM Bali di platform tuntas: 19.828 dari
+   35.772 konten dinilai (55%), rata-rata −0,35, model `lexicon-id-1+informal-4`.
 6. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
    KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
    Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
