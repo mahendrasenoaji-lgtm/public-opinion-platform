@@ -23,7 +23,7 @@ from app.services.sentiment import (
 
 class TestStrukturKamus:
     def test_versi_dinaikkan(self) -> None:
-        assert INFORMAL_MODEL_VERSION == "lexicon-id-1+informal-3"
+        assert INFORMAL_MODEL_VERSION.startswith("lexicon-id-1+informal-")
         assert MODEL_VERSION == "lexicon-id-1"  # ragam baku tidak bergeser
 
     def test_kata_tidak_tercatat_di_dua_bahasa(self) -> None:

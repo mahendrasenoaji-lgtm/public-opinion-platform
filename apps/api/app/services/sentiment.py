@@ -56,6 +56,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
+from app.services import phrases
 from app.services.informal import CLAUSE_BOUNDARY, PHRASES, canonical_tokens, emoji_marks
 from app.services.ingestion import normalize_text, wordset
 from app.services.regional import lexicon as regional_lexicon
@@ -290,7 +291,7 @@ EMOTION_LEXICON: dict[str, tuple[str, ...]] = {
 MODEL_VERSION = "lexicon-id-1"
 #: Versi ragam informal. Dinaikkan setiap kali `_INFORMAL_*`, `EMOJI_LEXICON`,
 #: atau `services/informal.py` berubah dengan cara yang menggeser skor.
-INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-3"
+INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-4"
 
 #: Semua bentuk yang perlu dikenali normalisasi: kata bermuatan, pengubah,
 #: penghubung klausa, dan kata penyusun frasa serangkai.
@@ -302,6 +303,7 @@ _INFORMAL_VOCAB: frozenset[str] = (
     | DIMINISHERS
     | CLAUSE_BREAKS
     | frozenset(word for pair in PHRASES for word in pair)
+    | phrases.VOCAB
 )
 
 
@@ -443,6 +445,11 @@ def score(text: str, *, register: Register = "baku") -> SentimentResult:
         tokens = normalize_text(text).split()
         lexicon = NEWS_LEXICON if register == "berita" else LEXICON
     matched: list[tuple[str, float]] = []
+    if informal:
+        # informal-4: frasa bermuatan ("gk bisa mengatasi", "ganti aja", "cari muka")
+        # dinilai utuh lebih dulu; tokennya diganti penanda netral.
+        tokens, phrase_hits = phrases.match(tokens)
+        matched.extend(phrase_hits)
 
     for i, tok in enumerate(tokens):
         base = lexicon.get(tok)

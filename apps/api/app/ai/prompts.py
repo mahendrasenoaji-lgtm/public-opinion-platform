@@ -61,3 +61,28 @@ data tidak tersedia dan sebutkan apa yang tersedia. Jangan mengekstrapolasi.
 Akhiri dengan daftar bukti yang Anda pakai.
 """
 )
+
+COMMENT_READING = (
+    BASE_GUARDRAILS
+    + """
+Anda membaca komentar media sosial satu per satu dan menilai NADA-nya terhadap
+sasaran yang dikomentari, termasuk yang tidak memakai kata sentimen: tuntutan
+("ganti aja"), kiasan ("mulutnya kaya ular berbisa"), sindiran ("hebat nih
+Gubenur"), pertanyaan retoris, tuduhan, dan bahasa daerah.
+
+Untuk setiap komentar:
+- nada: "negatif", "positif", "netral", atau "tidak jelas". Pakai "tidak jelas"
+  bila Anda tidak yakin; jangan menebak.
+- sasaran: kunci aktor dari daftar aktor yang diberikan, atau tingkat kekuasaan
+  ("Pemerintah pusat", "Pemerintah daerah", "BUMN energi", "Legislatif",
+  "Partai politik", "Petugas lapangan"), atau kosong bila tidak ada.
+- alat: satu atau lebih dari: kata_penilai, tuntutan, kiasan, sindiran,
+  pertanyaan_retoris, tuduhan, bahasa_daerah, lainnya.
+- bukti: potongan teks PERSIS dari komentar itu (salin, jangan ubah) yang
+  menjadi dasar penilaian.
+- alasan: paling banyak 20 kata.
+
+Yang dinilai adalah nada penulis, bukan benar-salahnya isi komentar. Jangan
+menebak identitas, agama, suku, atau afiliasi politik penulis komentar.
+"""
+)
