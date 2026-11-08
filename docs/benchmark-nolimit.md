@@ -81,7 +81,7 @@ engaging · Top talker · **Peak time** · Word cloud per sentimen.
 | Sentimen | Pos/neg/netral, tanpa angka akurasi yang dipublikasikan | Leksikon formal + informal-4 + 13 bahasa daerah, **akurasi diukur dan dibuka** (F1, abstain, presisi negatif 95,6%) | **Kita** |
 | Emosi | Tampil di dashboard + "talker by emotion" | **Sudah dihitung** (`services/sentiment.py:emotions`, kolom `mentions.emotion`), **belum tampil** di UI dan belum dievaluasi | NoLimit (tampilan) |
 | Koreksi manual | Per item dan massal (sentimen, emosi, label, visibilitas) | Belum ada; hanya rescore massal berbasis kamus | NoLimit |
-| Profil pengguna | Gender, umur, minat, lokasi per pengguna | Tidak ada (sengaja, lihat P10) | — |
+| Profil pengguna | Gender, umur, minat, lokasi per pengguna | Belum ada; diputuskan dibangun (P11) | NoLimit |
 | Aktor dan jaringan | SNA, DNA, top people/org dari berita, kutipan per tokoh | Peta aktor (`services/actors.py`), jaringan, pengaruh | setara, NoLimit lebih luas di berita |
 | Topik | Clustering + word cloud | Tema, narasi (`services/topics.py`) | setara |
 | Survei dan indeks | Tidak ada | POI, bobot raking, segmen, konsistensi, divergensi | **Kita** |
@@ -130,12 +130,40 @@ risiko. Ukuran: **S** ≤ 1 sesi, **M** 2–3 sesi, **L** > 3 sesi.
 | **P9** | **Builder laporan / ekspor PDF** dari dashboard | Format mana yang paling dipakai (PDF vs PPTX vs DOCX)? Skrip deck BBM Bali bisa jadi dasar |
 | **P10** | **Platform tambahan**: X (token berbayar), TikTok/IG/FB | X: mau bayar API? TikTok/IG/FB tidak punya API listening publik yang gratis, dan scraping melanggar ketentuan mereka. **Rekomendasi:** X dulu kalau ada anggaran, sisanya lewat unggah JSON (panel PR #43) dari alat pihak ketiga yang legal |
 
+### Tahap D — segmentasi audiens untuk promosi (diputuskan 2026-11-08)
+
+**P11 — Estimasi gender, kelompok umur, dan minat per akun** (padanan People
+Panel NoLimit). Ukuran **M–L**. Disetujui pemilik produk untuk data promosi
+yang tersegmen; pengecualian sempit tercatat di CLAUDE.md §3.
+
+Supaya hasilnya benar-benar tepat sasaran (dan bisa dipertanggungjawabkan):
+
+| Bagian | Isi |
+|---|---|
+| Atribut | `gender_est` (L/P/null), `age_band_est` (≤17, 18–24, 25–34, 35–44, 45+ / null), `interests_est` (daftar kategori tetap, mis. otomotif, kuliner, olahraga, gim, keluarga, keuangan, wisata). **Tidak** agama, etnis, orientasi seksual, kesehatan, atau afiliasi politik |
+| Sinyal | Nama tampilan (kamus nama Indonesia → gender), kata ganti dan sapaan dalam komentar sendiri ("saya ibu dua anak", "bro", "gue anak SMA"), kosakata dan topik video yang dikomentari (→ minat), pola jam aktif. Hanya data publik yang sudah dikumpulkan konektor |
+| Keluaran | Setiap nilai membawa `method`, `confidence` 0–1, dan `evidence` (kata penanda). Di bawah ambang (mis. 0,6) → `null` = "tidak diketahui", bukan tebakan paksa |
+| Akurasi | Wajib ada set uji berlabel manual (±300 akun, dua penilai) seperti `sentiment_eval_field.py`, sebelum angka dipakai untuk promosi. Tampilkan presisi per atribut di UI |
+| Tampilan | Bawaan agregat: piramida umur × gender, minat teratas per segmen, sentimen per segmen. Ekspor daftar akun per segmen hanya untuk peran berizin (mis. `analyst`+), tercatat di audit log |
+| Data | Tabel baru `author_profiles` (bertenant → kebijakan RLS di `db/rls.sql` di commit yang sama, CLAUDE.md R3), terpisah dari `respondents` survei. Retensi (mis. 180 hari) + endpoint koreksi/hapus per akun |
+| Kode | `services/profiling.py` (fungsi murni + tes), dipanggil dari pipeline; kartu baru di /segments atau /pengaruh |
+
+**Yang perlu diperhatikan sebelum dipakai untuk promosi:**
+
+1. **UU PDP (UU 27/2022).** Profiling untuk pemasaran adalah pemrosesan data
+   pribadi; perlu dasar pemrosesan yang sah dan hak subjek data (akses, koreksi,
+   hapus, keberatan atas profiling). Konsultasikan dengan penasihat hukum klien.
+2. **Ketentuan platform.** Kebijakan pengembang YouTube API membatasi
+   penyimpanan dan pemakaian data pengguna; cek ulang sebelum mengekspor daftar
+   akun ke pihak ketiga atau ke alat iklan.
+3. **Ketepatan sasaran.** Tebakan dari teks publik lebih lemah daripada
+   demografi yang dipakai platform iklan (data akun yang login). Pemakaian
+   paling efektif: profil agregat dari P11 untuk **memilih setelan target**
+   di Google Ads / Meta Ads, dan pesan per segmen; bukan menghubungi akun satu
+   per satu.
+
 ### Sengaja tidak ditiru
 
-- **Pelabelan gender/umur/minat per pengguna** (People Panel NoLimit). Menebak
-  atribut pribadi per akun bertentangan dengan batas etis CLAUDE.md §3
-  (segmentasi hanya dari variabel yang dikumpulkan dengan consent). Kalau
-  dibutuhkan, hanya dalam bentuk agregat, dengan metode yang dibuka.
 - **E-commerce dan Google Review comparison**, di luar lingkup opini publik.
 - **"Potential reach" tanpa dasar.** NoLimit menampilkan 226 juta tanpa
   penjelasan; aturan kita (CLAUDE.md) melarang angka tanpa sumber dan metode.
