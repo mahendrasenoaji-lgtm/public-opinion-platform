@@ -11,7 +11,44 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 1. Komputer lain: clone/`git pull` repo `mahendrasenoaji-lgtm/public-opinion-platform` dan buka folder ini
    (`proyek/bbm-bali-youtube/`). Semua pekerjaan BBM Bali sudah ada di `main`.
 2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push lewat PR, seperti bagian lain repo.
-3. **Status 6 Nov 2026 (akhir hari): proyek BBM Bali SELESAI.**
+3. **Status terkini — 8 Nov 2026 (akhir): semua di `main`, tidak ada PR terbuka.**
+   - Penilai platform: `lexicon-id-1+informal-4` = kamus baku + ragam informal + bahasa daerah
+     (`apps/api/app/services/regional.py`) + pola frasa (`phrases.py`). Peta aktor: `actors.py`.
+     Pembaca AI: `apps/api/app/ai/comment_reader.py` (BELUM jalan, butuh `ANTHROPIC_API_KEY` di Render).
+   - Platform (proyek KELANGKAAN BBM BALI): dinilai ulang ke informal-4, 19.828 dari 35.772 konten
+     dinilai (55%), rata-rata −0,35. Proyek lain SENGAJA tidak dinilai ulang (keputusan pengguna 8 Nov).
+   - Output terbaru: artifact https://claude.ai/artifact/E7TiPtANVW32KoeLQygC7v **versi 7**
+     (= `laporan_pembaruan_sampel_manual.html`), deck **17 slide** `presentasi_bbm_bali_youtube.pptx`,
+     Excel/CSV `komentar_youtube_bbm_bali_11-20okt2026.*` (kolom kata penanda, bahasa, aktor, tingkat;
+     sheet Kamus daerah, Aktor & kekuasaan), `stats_informal4.json`.
+   - Rincian ukur: `UKUR_ULANG_INFORMAL3.md`, `UKUR_ULANG_INFORMAL4.md`.
+   - **Membangun ulang semua output** (dari folder ini; Python = venv apps/api dengan `pip install -e
+     "../../apps/api[dev]" openpyxl`; Node = `npm install pptxgenjs@3.12.0` di folder kerja mana pun):
+     ```
+     python3 -X utf8 skrip/analyze_bbm.py raw_youtube_api.json <keluaran>   # CSV, XLSX, stats.json
+     python3 skrip/build_report.py stats_informal4.json <dasar>.html
+     PLATFORM_NOTE='…' PLATFORM_VERSION='…' python3 skrip/build_report_pembaruan.py <dasar>.html \
+         laporan_pembaruan_sampel_manual.html stats_informal4.json
+     NODE_PATH=<node_modules> SKILL_DIR=<folder skill pptx Claude> PLATFORM_NOTE_PPT='…' \
+         node skrip/build_pptx.js presentasi_bbm_bali_youtube.pptx
+     ```
+     Tanpa env PLATFORM_* laporan menulis "platform sedang dinilai ulang" (aman, tidak mengarang angka).
+     QA deck di Mac tanpa LibreOffice: buka pptx di PowerPoint lewat AppleScript, simpan sebagai PDF di
+     `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents/`, lalu
+     `swift skrip/render_pdf.swift <pdf> <folder>` (PNG per slide).
+   - Ukur ulang: `skrip/ukur_ulang_informal4.py`; sampel buta: `skrip/ambil_sampel_buta_informal4.py
+     tulis|nilai`; bacaan 185 komentar yang tetap lolos: `skrip/baca_manual_185.py`.
+   - **Masih terbuka:** (a) `ANTHROPIC_API_KEY` di Render (pengguna sendiri), lalu
+     `skrip/pilot_pembaca_ai.py` pada sampel 400; (b) pelabel kedua manusia (penutur Bali/Jawa) untuk
+     sampel 400; (c) `_modifier`: "harusnya mengayomi, bukan bentak", "gak usah lebay", pertanyaan
+     retoris ("kok gak dicopot") masih membalik kata negatif; (d) laporan 5 Nov (`laporan.html`, PDF)
+     sengaja tetap versi informal-1.
+   - Catatan kerja: merge PR oleh Claude diblokir pemeriksa keamanan Claude Code; pengguna merge
+     sendiri: `gh pr merge N -R mahendrasenoaji-lgtm/public-opinion-platform --squash --delete-branch`.
+     Push berkas data besar: `git -c http.postBuffer=524288000 push`. Rescore di `/sinyal`: Render
+     sering 502/503/429 di tengah jalan; aman diklik ulang (atau pengulang `setInterval` di halaman).
+
+   **Riwayat status 6 Nov 2026 (akhir hari):**
    - PR #45 (sampel manual 400 + SNA + laporan) dan PR #46 (kode `informal-2`) digabung ke `main`
      6 Nov atas izin pengguna; Render sudah deploy `informal-2`.
    - **Rescore BBM Bali di platform sudah dijalankan sampai tuntas** (tombol "Nilai ulang konten lama"
@@ -91,6 +128,12 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 17. (8 Nov) "proyek lain tidak perlu digabung, merge pr 49, apakah kamu dapat melihat relasi kuasa, tema besar,
     konteks …" → PR #49 digabung; dijelaskan kamus tidak bisa, tiga jalan diusulkan. Lalu: "kerjakan semua
     hingga tuntas.... lalu update semua outputnya" → butir 5 di atas.
+18. (8 Nov) "apakah rumus sentimen itu dibaca perkata? … dibaca per kalimat … disebut apa?" → dijelaskan: per kata
+    + jendela negasi + frasa = analisis isi manifes; per kalimat dengan tafsiran = analisis isi laten
+    (Berelson/Krippendorff), pragmatik/implikatur, analisis wacana kritis; di NLP: sentimen tingkat kalimat,
+    berbasis aspek/sasaran, deteksi sikap. Konsekuensi: perlu reliabilitas antarpengode.
+19. (8 Nov) "simpan semua di lokal dan github supaya saya dapat meneruskan di komputer lain" → blok status
+    terkini di atas, `skrip/render_pdf.swift`, catatan di docs/deployment-status.md.
 
 ## Pembaruan 6 November 2026
 
