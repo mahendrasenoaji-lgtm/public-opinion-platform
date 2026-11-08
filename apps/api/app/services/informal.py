@@ -18,8 +18,10 @@ dioper sebagai argumen ke `canonical()`.
 - **Tidak ada koreksi salah ketik bebas** (jarak sunting). "Maaataaap" tidak
   ditebak jadi "mantap". Setiap pemetaan di `SLANG` ditulis tangan supaya
   setiap skor tetap bisa ditelusuri ke aturan yang memicunya.
-- **Bahasa daerah tidak diterjemahkan.** Komentar berbahasa Jawa atau Sunda
-  tetap tidak terbaca, dan akan abstain.
+- **Bahasa daerah tidak diterjemahkan.** Sejak informal-3, negator, penguat,
+  dan ejaan daerah yang tercatat di `services/regional.py` dipetakan ke
+  padanannya ("ora becus" -> "tidak becus"), dan kata bermuatan daerah dinilai
+  langsung. Kalimat daerah di luar daftar itu tetap tidak terbaca.
 """
 
 from __future__ import annotations
@@ -29,6 +31,8 @@ import unicodedata
 from collections.abc import Collection
 
 from app.services.ingestion import _URL_RE, normalize_text
+from app.services.regional import REGIONAL_PHRASES
+from app.services.regional import slang as regional_slang
 
 #: Ejaan informal -> bentuk yang dipakai leksikon. Ditulis per kelompok fungsi
 #: supaya mudah disunting. Hanya kata yang memengaruhi skor (negator, penguat,
@@ -125,10 +129,14 @@ _AFFIX_GROUPS: dict[str, str] = {
 }
 
 SLANG: dict[str, str] = {
-    variant: canon
-    for groups in (_SLANG_GROUPS, _AFFIX_GROUPS)
-    for canon, variants in groups.items()
-    for variant in variants.split()
+    **{
+        variant: canon
+        for groups in (_SLANG_GROUPS, _AFFIX_GROUPS)
+        for canon, variants in groups.items()
+        for variant in variants.split()
+    },
+    # informal-3: negator, penguat, dan ejaan bahasa daerah.
+    **regional_slang(),
 }
 
 #: Frasa dua kata yang di leksikon ditulis serangkai. Tanpa ini entri seperti
@@ -141,6 +149,7 @@ PHRASES: dict[tuple[str, str], str] = {
     ("tepat", "sasaran"): "tepatsasaran",
     ("tanggung", "jawab"): "tanggungjawab",
     ("bertanggung", "jawab"): "tanggungjawab",
+    **REGIONAL_PHRASES,
 }
 
 #: Klitik yang boleh dilepas dari ekor kata. Urutannya penting: "-nya" dicoba

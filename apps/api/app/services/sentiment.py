@@ -58,6 +58,7 @@ from typing import Literal
 
 from app.services.informal import CLAUSE_BOUNDARY, PHRASES, canonical_tokens, emoji_marks
 from app.services.ingestion import normalize_text, wordset
+from app.services.regional import lexicon as regional_lexicon
 
 #: Ragam teks yang dinilai. "baku" = ejaan media (RSS); "informal" = komentar
 #: media sosial. Lihat bagian "Dua ragam" di docstring modul.
@@ -256,6 +257,10 @@ INFORMAL_LEXICON: dict[str, float] = {
     **LEXICON,
     **{w: s for w, s in _INFORMAL_POSITIVE.items()},
     **{w: -s for w, s in _INFORMAL_NEGATIVE.items()},
+    # informal-3 (2026-11): bahasa daerah dan ragam kesukuan, disusun per bahasa
+    # di `services/regional.py` (beserta kata yang sengaja dikecualikan karena
+    # artinya berbeda antarbahasa).
+    **regional_lexicon(),
 }
 
 #: Emoji bermuatan, hanya untuk ragam informal. Yang maknanya bergantung
@@ -285,7 +290,7 @@ EMOTION_LEXICON: dict[str, tuple[str, ...]] = {
 MODEL_VERSION = "lexicon-id-1"
 #: Versi ragam informal. Dinaikkan setiap kali `_INFORMAL_*`, `EMOJI_LEXICON`,
 #: atau `services/informal.py` berubah dengan cara yang menggeser skor.
-INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-2"
+INFORMAL_MODEL_VERSION = "lexicon-id-1+informal-3"
 
 #: Semua bentuk yang perlu dikenali normalisasi: kata bermuatan, pengubah,
 #: penghubung klausa, dan kata penyusun frasa serangkai.
