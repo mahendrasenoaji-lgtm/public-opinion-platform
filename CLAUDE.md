@@ -73,6 +73,16 @@ Ini keputusan produk, bukan preferensi. Jangan diimplementasikan ulang.
 - Jangan menginferensi agama, etnisitas, orientasi seksual, kondisi kesehatan,
   atau afiliasi politik individu. Segmentasi hanya dari variabel yang dikumpulkan
   dengan consent.
+  - **Pengecualian yang diputuskan pemilik produk (2026-11-08):** estimasi
+    **gender, kelompok umur, dan minat** per akun media sosial publik BOLEH,
+    untuk segmentasi data promosi. Syaratnya: setiap nilai ditandai sebagai
+    *estimasi* lengkap dengan `method` dan `confidence`, dan boleh `null`
+    ("tidak diketahui") bila sinyalnya lemah. Tampilan bawaan berupa agregat;
+    data per akun hanya untuk peran berizin, dengan audit log, retensi, dan
+    jalur koreksi/hapus. Estimasi tidak pernah dicampur dengan variabel
+    survei yang dikumpulkan dengan consent. Pengecualian ini **tidak**
+    berlaku untuk kategori di kalimat pertama butir ini. Rincian:
+    `docs/benchmark-nolimit.md` P11.
 - Jangan pernah menyatakan akun tertentu "mengendalikan" opini. Istilah yang
   dipakai: *influence estimate*, selalu dengan metodenya.
 - Jangan menyatakan kausalitas dari data observasional. Kata yang dipakai:
