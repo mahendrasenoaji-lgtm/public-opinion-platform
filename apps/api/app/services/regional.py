@@ -238,6 +238,7 @@ REGIONAL_LEXICON: dict[str, dict[str, tuple[float, str]]] = {
         "gabener": (-0.7, "plesetan 'gubernur tidak benar'"),
         "cuih": (-0.6, "ludah, tanda jijik"),
         "cih": (-0.5, "tanda meremehkan"),
+        "konoha": (-0.5, "julukan sinis untuk negara ('pejabat konoha')"),
     },
 }
 

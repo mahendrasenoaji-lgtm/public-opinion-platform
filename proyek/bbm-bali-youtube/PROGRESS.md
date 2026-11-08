@@ -38,10 +38,16 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
    `PLATFORM_NOTE`/`PLATFORM_VERSION`) dan deck **13 slide** (slide 9 baru: kamus bahasa daerah).
    QA deck tanpa LibreOffice: ekspor PDF lewat PowerPoint (AppleScript, folder container
    `~/Library/Containers/com.microsoft.Powerpoint/Data/Documents`) lalu render PDFKit (Swift).
-5. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
+5. **8 Nov 2026 (lanjutan) — `informal-4` + peta aktor + pembaca AI** (PR #50): pola frasa
+   (`services/phrases.py`), peta aktor dan tingkat kekuasaan (`services/actors.py`), kerangka
+   pembaca LLM (`app/ai/comment_reader.py`, belum jalan: tidak ada ANTHROPIC_API_KEY lokal/Render;
+   uji siap di `skrip/pilot_pembaca_ai.py`). Abstain 46,7% → 44,7%; presisi frasa 95%. Laporan
+   **versi 6** (bagian frasa, yang tetap lolos, peta aktor & relasi kuasa) dan deck **17 slide**.
+   Rincian: `UKUR_ULANG_INFORMAL4.md`. Pengguna: proyek lain TIDAK perlu dinilai ulang.
+6. **Belum dinilai ulang (proyek lain, bukan bagian BBM Bali):** MBG AGUSTUS 2026, KEBAKARAN HUTAN,
    KDMP 2026, tiga POLKAM (Kemendagri/Kemenlu/Kemenhan), dan proyek lain yang punya komentar YouTube.
    Sampai dinilai ulang, deret sentimen sosialnya bercampur `informal-1` dan `informal-2`.
-6. **Catatan rescore di production:** satu klik tombol = sampai 20 × 500 baris. Selama rescore 36 rb baris,
+7. **Catatan rescore di production:** satu klik tombol = sampai 20 × 500 baris. Selama rescore 36 rb baris,
    Render beberapa kali membalas 502/503 (restart ±40 dtk) dan 429 (batas 120 permintaan/menit per org).
    Datanya aman (bertahap, idempoten); cukup tunggu lalu klik lagi. Jangan klik beruntun cepat.
 
@@ -80,6 +86,9 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 16. (8 Nov) "abstain/positif/negatif ketentuannya?" → dijelaskan (bobot kata, negasi ×−0,75, penguat ×1,5,
     pelemah ×0,6, rata-rata, batas ±0,15). Lalu: "merge PR #48 lalu rescore platform. lalu di artifacts
     perlu diupdate beserta pptx nya" → dikerjakan (lihat butir 4 di atas).
+17. (8 Nov) "proyek lain tidak perlu digabung, merge pr 49, apakah kamu dapat melihat relasi kuasa, tema besar,
+    konteks …" → PR #49 digabung; dijelaskan kamus tidak bisa, tiga jalan diusulkan. Lalu: "kerjakan semua
+    hingga tuntas.... lalu update semua outputnya" → butir 5 di atas.
 
 ## Pembaruan 6 November 2026
 

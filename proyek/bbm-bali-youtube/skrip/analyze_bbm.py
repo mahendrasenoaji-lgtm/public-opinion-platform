@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 sys.path.insert(0, os.environ.get("POP_API_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "apps", "api")))
 from app.services.sentiment import INFORMAL_MODEL_VERSION, score  # noqa: E402  (penilai yang sama dengan platform)
 from app.services import regional  # noqa: E402  (kamus bahasa daerah, informal-3)
+from app.services import actors, phrases  # noqa: E402  (pola frasa informal-4, peta aktor)
 from openpyxl import Workbook  # noqa: E402
 from openpyxl.styles import Font  # noqa: E402
 
@@ -44,8 +45,13 @@ for c in d["comments"]:
         "themes": "; ".join(themes),
         "kata_penanda": "; ".join(f"{w} ({v:+g})" for w, v in s.matched),
         "bahasa_kata": "; ".join(sorted({regional.origin(w) for w, _ in s.matched if regional.origin(w)})),
+        "aktor": "; ".join(actors.actor(k).name for k in actors.detect(c["text"])),
+        "aktor_keys": actors.detect(c["text"]),
+        "tingkat": actors.levels(c["text"]),
     })
 rows.sort(key=lambda r: r["published_at"])
+for r in rows:
+    r["tingkat_txt"] = "; ".join(r["tingkat"])
 
 # ---- statistik
 by_day = defaultdict(lambda: Counter())
@@ -71,13 +77,31 @@ per_video = Counter(r["video_id"] for r in rows)
 top_videos = [dict(**{k: videos[v][k] for k in ("title", "channel", "url", "published_at", "views")}, comments_in_window=n)
               for v, n in per_video.most_common(15)]
 labels = Counter(r["sentiment_label"] for r in rows)
+
+
+def _agg(sel):
+    d = [r for r in sel if r["sentiment"] is not None]
+    return dict(n=len(sel), scored=len(d), abstain=len(sel) - len(d),
+                negatif=sum(r["sentiment_label"] == "negatif" for r in d),
+                mean=round(sum(r["sentiment"] for r in d) / len(d), 3) if d else None)
+
+
+actor_stats = [dict(key=a.key, name=a.name, role=a.role, level=a.level,
+                    **_agg([r for r in rows if a.key in r["aktor_keys"]])) for a in actors.ACTORS]
+level_stats = [dict(level=lv, **_agg([r for r in rows if lv in r["tingkat"]])) for lv in actors.LEVELS]
+co = dict(pusat_dan_daerah=sum(1 for r in rows if "Pemerintah pusat" in r["tingkat"] and "Pemerintah daerah" in r["tingkat"]),
+          pejabat_dan_petugas=sum(1 for r in rows if "Petugas lapangan" in r["tingkat"] and ({"Pemerintah pusat", "Pemerintah daerah", "BUMN energi"} & set(r["tingkat"]))),
+          tanpa_aktor=sum(1 for r in rows if not r["tingkat"]))
+phrase_labels = {pat.label for pat in phrases.PATTERNS}
+phrase_counts = Counter(w for r in rows for w in {x.split(" (")[0] for x in r["kata_penanda"].split("; ") if x} if w in phrase_labels)
 top_liked = sorted(rows, key=lambda r: -r["likes"])[:40]
 stats = dict(
     window=d["window"], collected_at=d["collected_at"], queries=d["queries"], quota_units=d["quota_units"],
     videos_found=len(videos), videos_with_comments=len(per_video), comments=len(rows),
     top_level=sum(r["type"] == "komentar" for r in rows), replies=sum(r["type"] == "balasan" for r in rows),
     outside_window=d["comments_outside_window"], unique_authors=len({r["author_hash"] for r in rows}),
-    model_version=INFORMAL_MODEL_VERSION, labels=dict(labels), days=days, themes=theme_sent, top_videos=top_videos,
+    model_version=INFORMAL_MODEL_VERSION, labels=dict(labels),
+    actors=actor_stats, levels=level_stats, co_mentions=co, phrases=dict(phrase_counts.most_common()), days=days, themes=theme_sent, top_videos=top_videos,
     top_liked=[{k: r[k] for k in ("waktu_wita", "text", "likes", "sentiment_label", "url", "video_title", "channel", "themes")} for r in top_liked],
     by_day_samples={},
 )
@@ -88,7 +112,7 @@ for day in days:
 json.dump(stats, open(f"{OUT}/stats.json", "w"), ensure_ascii=False, indent=1)  # nama tetap; salin sesuai versi
 
 # ---- CSV + XLSX
-cols = ["waktu_wita", "type", "text", "likes", "sentiment", "sentiment_label", "kata_penanda", "bahasa_kata", "themes", "url",
+cols = ["waktu_wita", "type", "text", "likes", "sentiment", "sentiment_label", "kata_penanda", "bahasa_kata", "aktor", "tingkat_txt", "themes", "url",
         "video_title", "channel", "video_url", "comment_id", "parent_id", "author_hash", "published_at"]
 with open(f"{OUT}/komentar_youtube_bbm_bali_11-20okt2026.csv", "w", newline="", encoding="utf-8-sig") as f:
     w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
@@ -99,13 +123,13 @@ wb = Workbook()
 ws = wb.active
 ws.title = "Komentar"
 ws.append(["Waktu (WITA)", "Jenis", "Komentar", "Suka", "Skor sentimen", "Label", "Kata penanda (bobot)",
-           "Bahasa kata penanda", "Tema", "Link komentar",
+           "Bahasa kata penanda", "Aktor disebut", "Tingkat kekuasaan", "Tema", "Link komentar",
            "Judul video", "Kanal", "Link video", "ID komentar", "ID induk", "Akun (hash)", "Waktu (UTC)"])
 # Nomor baris dihitung sendiri: ws.max_row memindai semua sel tiap kali dipanggil (kuadratik).
 for row_no, r in enumerate(rows, start=2):
     ws.append([r[k] for k in cols])
-    ws.cell(row_no, 10).hyperlink = r["url"]
-    ws.cell(row_no, 13).hyperlink = r["video_url"]
+    ws.cell(row_no, 12).hyperlink = r["url"]
+    ws.cell(row_no, 15).hyperlink = r["video_url"]
 vs = wb.create_sheet("Video")
 vs.append(["Judul", "Kanal", "Terbit (UTC)", "Ditonton", "Komentar total", "Komentar dalam jendela", "Link", "Kueri penemu"])
 for v in sorted(videos.values(), key=lambda v: -per_video.get(v["video_id"], 0)):
@@ -125,6 +149,8 @@ for line in [
     "Nama akun tidak disimpan; diganti hash (12 karakter) agar tetap bisa menghitung akun unik.",
     f"Sentimen: penilai leksikon ragam informal platform Public Opinion ({INFORMAL_MODEL_VERSION}). Abstain = tak ada satu pun kata penanda yang dikenali kamus (bukan berarti netral).",
     "Sejak informal-3 kamus memuat kosakata bahasa daerah (Bali, Jawa, Sunda, Betawi, Minang, Batak/Medan, Melayu, Banjar, Palembang, Bugis/Makassar, Manado/Maluku/Papua, Madura, Sasak); lihat sheet 'Kamus daerah'.",
+    "Sejak informal-4 kamus juga membaca pola frasa (mis. 'gk bisa mengatasi', 'ganti aja', 'tidak punya otak', 'cari muka', 'ular berbisa'); frasa ada di sheet 'Kamus daerah'.",
+    "Kolom Aktor/Tingkat kekuasaan: pejabat, lembaga, dan partai yang disebut, dipetakan ke tingkat (pusat, daerah, BUMN, legislatif, partai, petugas lapangan). Ringkasannya di sheet 'Aktor & kekuasaan'.",
     "Kata yang artinya berbeda antarbahasa (mis. 'sing' = 'tidak' di Bali tapi 'yang' di Jawa) sengaja tidak dinilai; alasannya ada di sheet 'Kamus daerah'.",
     "Batas: komentar YouTube self-selected, tidak mewakili warga Bali; urutan pencarian ditentukan YouTube; nada ≠ sikap; sarkasme sering salah baca.",
     f"Dikumpulkan: {d['collected_at']} — kuota API ~{d['quota_units']} unit.",
@@ -137,9 +163,27 @@ for bahasa, kata_bahasa in regional.REGIONAL_LEXICON.items():
         ks.append([kata, bahasa, arti, bobot, "dinilai"])
 for kata, (padanan, bahasa) in regional.REGIONAL_MODIFIERS.items():
     ks.append([kata, bahasa, f"dibaca sebagai '{padanan}'", None, "pengubah/ejaan"])
+for pat in phrases.PATTERNS:
+    contoh = " + ".join("/".join(sorted(slot)[:4]) for slot in pat.slots)
+    ks.append([pat.label, "frasa (informal-4)", f"pola: {contoh}", pat.weight, "dinilai"])
 for kata, alasan in regional.EXCLUDED.items():
     ks.append([kata, None, alasan, None, "SENGAJA tidak dinilai"])
 ks.column_dimensions["C"].width = 90
+asx = wb.create_sheet("Aktor & kekuasaan")
+asx.append(["Aktor / tingkat", "Jabatan / keterangan", "Tingkat kekuasaan", "Komentar menyebut", "Dinilai", "Abstain",
+            "Negatif di antara yang dinilai (%)", "Rata-rata skor"])
+for a in actor_stats:
+    if a["n"]:
+        asx.append([a["name"], a["role"], a["level"], a["n"], a["scored"], a["abstain"],
+                    round(100 * a["negatif"] / a["scored"], 1) if a["scored"] else None, a["mean"]])
+asx.append([])
+for lv in level_stats:
+    asx.append([lv["level"], "semua aktor + kata jabatan umum", lv["level"], lv["n"], lv["scored"], lv["abstain"],
+                round(100 * lv["negatif"] / lv["scored"], 1) if lv["scored"] else None, lv["mean"]])
+asx.append([])
+asx.append(["Catatan: menyebut tidak sama dengan menyalahkan; satu komentar bisa menyebut beberapa aktor. Jabatan per Oktober 2026. Afiliasi politik penulis komentar tidak ditebak."])
+asx.column_dimensions["A"].width = 30
+asx.column_dimensions["B"].width = 45
 for sh in wb.worksheets:
     for cell in sh[1]:
         cell.font = Font(bold=True)
