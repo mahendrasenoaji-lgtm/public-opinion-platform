@@ -1,5 +1,6 @@
-// Deck "Kelangkaan BBM di Bali menurut komentar YouTube" — angka dari laporan versi 4
-// (artifact E7TiPtANVW32KoeLQygC7v, stats_informal2.json, sampel_manual_400_label.csv).
+// Deck "Kelangkaan BBM di Bali menurut komentar YouTube" — angka dari laporan versi 5
+// (artifact E7TiPtANVW32KoeLQygC7v, stats_informal3.json, sampel_manual_400_label.csv,
+// UKUR_ULANG_INFORMAL3.md). Versi 5 (8 Nov 2026): penilai informal-3 (kamus bahasa daerah).
 // Pakai: npm install pptxgenjs@3.12.0 di folder kerja, lalu
 //   NODE_PATH=<folder>/node_modules SKILL_DIR=<folder skill pptx> node skrip/build_pptx.js presentasi_bbm_bali_youtube.pptx
 // SKILL_DIR = folder skill pptx Claude (berisi scripts/apply_theme.js, yang menulis warna tema ke berkas).
@@ -57,8 +58,8 @@ const name = (s) => `${s}-${++n}`;
 // angka dasar
 const days = ["12 Okt", "13 Okt", "14 Okt", "15 Okt", "16 Okt", "17 Okt", "18 Okt", "19 Okt", "20 Okt"];
 const total = [31, 1851, 3881, 11916, 9502, 5498, 2383, 915, 342];
-const neg = [9, 515, 1306, 4221, 3407, 2132, 936, 345, 115];
-const score = [-0.419, -0.263, -0.291, -0.314, -0.302, -0.326, -0.344, -0.330, -0.300];
+const neg = [9, 564, 1376, 4479, 3628, 2257, 987, 368, 121];
+const score = [-0.422, -0.296, -0.308, -0.332, -0.324, -0.341, -0.356, -0.342, -0.311];
 
 const label = (txt) => ({ fontSize: 12, color: C.text2 });
 
@@ -68,8 +69,8 @@ pres.addSection({ title: "Pembuka" });
   const s = pres.addSlide({ masterName: "Judul gelap", sectionTitle: "Pembuka" });
   s.addText("KOMENTAR YOUTUBE · 11–20 OKTOBER 2026", { placeholder: "kicker" });
   s.addText("Kelangkaan BBM di Bali, menurut kolom komentar YouTube", { placeholder: "title" });
-  s.addText("36.319 komentar dan balasan dari antrean pertama di SPBU sampai pemerintah menyatakan pasokan normal. Pembaruan 6 November 2026: sampel manual 400 komentar, kamus informal-2, dan analisis jaringan.", { placeholder: "body" });
-  s.addNotes("Deck ini meringkas komentar YouTube tentang kelangkaan BBM di Bali selama sepuluh hari, 11 sampai 20 Oktober 2026. Sumbernya hanya YouTube; pemberitaan media tidak dihitung. Angka sentimen memakai penilai lexicon-id-1+informal-2 dan sudah sama dengan angka di platform Public Opinion sejak penilaian ulang 6 November.");
+  s.addText("36.319 komentar dan balasan dari antrean pertama di SPBU sampai pemerintah menyatakan pasokan normal. Pembaruan 6 dan 8 November 2026: sampel manual 400 komentar, kamus yang diperluas (termasuk bahasa daerah), dan analisis jaringan.", { placeholder: "body" });
+  s.addNotes("Deck ini meringkas komentar YouTube tentang kelangkaan BBM di Bali selama sepuluh hari, 11 sampai 20 Oktober 2026. Sumbernya hanya YouTube; pemberitaan media tidak dihitung. Angka sentimen memakai penilai lexicon-id-1+informal-3, yang sejak 8 November juga mengenali kosakata bahasa daerah, dan sama dengan penilai di platform Public Opinion.");
 }
 
 // ---------- 2. Ringkasan angka ----------
@@ -86,7 +87,7 @@ pres.addSection({ title: "Temuan utama" });
     ["36.319", "komentar dan balasan dalam jendela 11–20 Okt"],
     ["458", "video yang dikomentari (dari 527 video ditemukan)"],
     ["22.803", "akun berbeda, nama diganti kode acak"],
-    ["70%", "negatif di antara 18.592 komentar yang bisa dinilai alat (51% dari semua)"],
+    ["71%", "negatif di antara 19.354 komentar yang bisa dinilai alat (53% dari semua)"],
   ];
   stats.forEach(([big, small], i) => {
     const x = 4.9 + (i % 2) * 2.35, y = 1.35 + Math.floor(i / 2) * 1.85;
@@ -94,7 +95,7 @@ pres.addSection({ title: "Temuan utama" });
     s.addText(big, { x: x + 0.2, y: y + 0.15, w: 1.85, h: 0.6, fontSize: 28, bold: true, color: C.text1, fontFace: THEME.headFontFace, margin: 0, isTextBox: true, objectName: name("angka") });
     s.addText(small, { x: x + 0.2, y: y + 0.78, w: 1.85, h: 0.85, fontSize: 12, color: C.text2, valign: "top", margin: 0, isTextBox: true, objectName: name("label") });
   });
-  s.addNotes("Angka utama ada dua. 70 persen negatif hanya berlaku untuk komentar yang bisa dinilai alat, yaitu sekitar separuh data. Untuk seluruh komentar, perkiraan terbaik adalah sekitar 67 persen negatif, rentang 64 sampai 70 persen, karena sampel manual menunjukkan komentar yang tidak dinilai alat juga mayoritas negatif.");
+  s.addNotes("Angka utama ada dua. 71 persen negatif hanya berlaku untuk komentar yang bisa dinilai alat, yaitu sekitar separuh data. Untuk seluruh komentar, perkiraan terbaik adalah sekitar 67 persen negatif, rentang 64 sampai 70 persen, karena sampel manual menunjukkan komentar yang tidak dinilai alat juga mayoritas negatif.");
 }
 
 // ---------- 3. Grafik harian ----------
@@ -125,7 +126,7 @@ pres.addSection({ title: "Temuan utama" });
   );
   const pts = [
     ["11.916", "komentar pada Kamis 15 Okt, sepertiga seluruh data. Hari itu video Gubernur Koster diprotes petugas SPBU beredar."],
-    ["−0,26 – −0,34", "rata-rata skor harian pada hari dengan ratusan komentar, termasuk sesudah pasokan dinyatakan normal 19 Okt."],
+    ["−0,30 – −0,36", "rata-rata skor harian pada hari dengan ratusan komentar, termasuk sesudah pasokan dinyatakan normal 19 Okt."],
   ];
   pts.forEach(([big, small], i) => {
     const y = 1.35 + i * 1.9;
@@ -168,7 +169,7 @@ pres.addSection({ title: "Temuan utama" });
   s.addText("Komentar terpopuler menyorot sikap Gubernur", { placeholder: "title" });
   const q = [
     ["Ada suara jeritan rakyat \"DIAM KAMU\" hebat nih Gubenur", "1.148 suka", "label alat: positif (sindiran)", C.accent4],
-    ["itulah WAJAH ASLI PEJABAT KITA… MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN", "849 suka", "label alat: tidak dinilai", C.text2],
+    ["itulah WAJAH ASLI PEJABAT KITA… MEREKA MENGAGGAP DIRINYA SEBAGAI TUAN BUKAN PELAYAN… OGAH TERIMA KRITIKAN", "849 suka", "label alat: negatif", C.accent1],
     ["No respect, petugas spbu juga manusia bukan robot..", "687 suka", "label alat: tidak dinilai", C.text2],
     ["jika nggak becus ngurus, mundur itu lebih elegan....", "439 suka", "label alat: negatif", C.accent1],
   ];
@@ -180,7 +181,7 @@ pres.addSection({ title: "Temuan utama" });
     s.addText([{ text: likes + "  ·  ", options: { color: C.text2 } }, { text: lab, options: { color: col, bold: true } }],
       { x: x + 0.6, y: y + 1.25, w: 3.6, h: 0.35, fontSize: 11, margin: 0, isTextBox: true, objectName: name("meta") });
   });
-  s.addNotes("Semua dari video Liputan6 tanggal 15 Oktober. Komentar teratas jelas sindiran tetapi dibaca positif oleh alat. Dua komentar berikutnya kritik tanpa kata sentimen, jadi tidak dinilai. Karena itu angka sentimen adalah perkiraan nada kasar, bukan ukuran sikap. Setiap kutipan punya tautan langsung ke YouTube di laporan.");
+  s.addNotes("Semua dari video Liputan6 tanggal 15 Oktober. Komentar teratas jelas sindiran tetapi dibaca positif oleh alat. Komentar kedua kini terbaca negatif lewat kata Betawi “ogah” (kamus informal-3). Komentar ketiga kritik tanpa kata sentimen, jadi tidak dinilai. Karena itu angka sentimen adalah perkiraan nada kasar, bukan ukuran sikap. Setiap kutipan punya tautan langsung ke YouTube di laporan.");
 }
 
 // ---------- 6. Tema ----------
@@ -188,14 +189,14 @@ pres.addSection({ title: "Temuan utama" });
   const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Temuan utama" });
   s.addText("Pemda paling disorot; semua tema negatif", { placeholder: "title" });
   const th = [
-    ["Pemerintah daerah (Koster/Pemprov)", 6194, "-0,38"],
-    ["Antrean & dampak harian", 5446, "-0,26"],
-    ["Pemerintah pusat (Bahlil/ESDM/Presiden)", 4222, "-0,35"],
-    ["Pertamina / distribusi", 2711, "-0,26"],
-    ["Pariwisata & ekonomi", 1152, "-0,31"],
-    ["Pengecer / harga / penimbunan", 1048, "-0,31"],
-    ["Permintaan maaf / sudah normal", 921, "-0,03"],
-    ["Pertamax / jenis BBM lain", 568, "-0,31"],
+    ["Pemerintah daerah (Koster/Pemprov)", 6194, "-0,40"],
+    ["Antrean & dampak harian", 5446, "-0,28"],
+    ["Pemerintah pusat (Bahlil/ESDM/Presiden)", 4222, "-0,36"],
+    ["Pertamina / distribusi", 2711, "-0,27"],
+    ["Pariwisata & ekonomi", 1152, "-0,32"],
+    ["Pengecer / harga / penimbunan", 1048, "-0,32"],
+    ["Permintaan maaf / sudah normal", 921, "-0,04"],
+    ["Pertamax / jenis BBM lain", 568, "-0,32"],
   ].reverse();
   s.addChart(pres.charts.BAR, [{ name: "Komentar", labels: th.map((t) => `${t[0]}  (${t[2].replace("-", "−")})`), values: th.map((t) => t[1]) }], {
     x: 0.5, y: 1.25, w: 6.4, h: 3.85, barDir: "bar", objectName: name("grafik-tema"),
@@ -210,18 +211,18 @@ pres.addSection({ title: "Temuan utama" });
     { text: "rata-rata skor sentimen tema itu (−1 sampai +1).", options: { breakLine: true } },
     { text: " ", options: { breakLine: true, fontSize: 6 } },
     { text: "Paling dekat netral", options: { bold: true, breakLine: true } },
-    { text: "“Permintaan maaf / sudah normal” (−0,03).", options: { breakLine: true } },
+    { text: "“Permintaan maaf / sudah normal” (−0,04).", options: { breakLine: true } },
     { text: " ", options: { breakLine: true, fontSize: 6 } },
     { text: "Cara menandai", options: { bold: true, breakLine: true } },
     { text: "kata kunci di teks; satu komentar bisa masuk beberapa tema, sebagian besar tidak masuk tema mana pun." },
   ], { x: 7.35, y: 1.5, w: 2.0, h: 3.35, fontSize: 12, color: C.text1, valign: "top", margin: 0, isTextBox: true, objectName: name("catatan") });
-  s.addNotes("Komentar yang menyebut pemerintah daerah lebih banyak daripada yang menyebut Pertamina. Tidak ada tema yang skor rata-ratanya positif. Tiga tema kecil tidak ditampilkan di grafik: curiga atau teori konspirasi 383 komentar (−0,36), ganjil-genap 268 (−0,33), sekolah atau WFH daring 216 (−0,35).");
+  s.addNotes("Komentar yang menyebut pemerintah daerah lebih banyak daripada yang menyebut Pertamina. Tidak ada tema yang skor rata-ratanya positif. Tiga tema kecil tidak ditampilkan di grafik: curiga atau teori konspirasi 383 komentar (−0,38), ganjil-genap 268 (−0,34), sekolah atau WFH daring 216 (−0,35).");
 }
 
 // ---------- 7. Sampel manual ----------
-pres.addSection({ title: "Pembaruan 6 November" });
+pres.addSection({ title: "Pembaruan kamus" });
 {
-  const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Pembaruan 6 November" });
+  const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Pembaruan kamus" });
   s.addText("Yang tak terbaca alat pun mayoritas negatif", { placeholder: "title" });
   s.addChart(pres.charts.DOUGHNUT, [{ name: "Sampel manual 400", labels: ["Negatif", "Netral / informatif", "Tidak jelas", "Positif"], values: [279, 58, 58, 5] }], {
     x: 0.4, y: 1.2, w: 4.3, h: 3.9, objectName: name("grafik-sampel"), holeSize: 58,
@@ -246,11 +247,11 @@ pres.addSection({ title: "Pembaruan 6 November" });
 
 // ---------- 8. Kamus informal-2 ----------
 {
-  const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Pembaruan 6 November" });
+  const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Pembaruan kamus" });
   s.addText("Kamus baru: tak terbaca turun 58% → 49%", { placeholder: "title" });
   const cols = [
     ["informal-1", "penilai lama", ["57,9%", "tidak dinilai"], ["15.299", "komentar dinilai"], ["63,3%", "negatif di antara yang dinilai"], C.background2, C.text1],
-    ["informal-2", "dipakai sekarang, juga di platform", ["48,8%", "tidak dinilai"], ["18.592", "komentar dinilai"], ["69,8%", "negatif di antara yang dinilai"], C.text1, C.background1],
+    ["informal-2", "6 November: kata kritik kepada pejabat", ["48,8%", "tidak dinilai"], ["18.592", "komentar dinilai"], ["69,8%", "negatif di antara yang dinilai"], C.text1, C.background1],
   ];
   cols.forEach(([nm, sub, a, b, c, bg, fg], i) => {
     const x = 0.5 + i * 3.05;
@@ -271,10 +272,40 @@ pres.addSection({ title: "Pembaruan 6 November" });
     s.addText(big, { x: 6.75, y, w: 2.75, h: 0.45, fontSize: 22, bold: true, color: C.accent1, fontFace: THEME.headFontFace, margin: 0, isTextBox: true, objectName: name("angka") });
     s.addText(small, { x: 6.75, y: y + 0.45, w: 2.75, h: 0.75, fontSize: 11, color: C.text1, valign: "top", margin: 0, isTextBox: true, objectName: name("label") });
   });
-  s.addNotes("Tidak ada komentar yang dulu dinilai lalu kini tidak dinilai, dan 94,9 persen label lama tetap sama. Platform Public Opinion sudah memakai informal-2 sejak 6 November dan seluruh komentar proyek ini sudah dinilai ulang: 18.358 dari 35.772 konten sesudah duplikat dibuang, 51 persen. Kelemahan yang belum diperbaiki: sindiran masih terbaca positif dan aturan negasi bisa membalik kata kedua.");
+  s.addNotes("Pembaruan pertama, 6 November. Tidak ada komentar yang dulu dinilai lalu kini tidak dinilai, dan 94,9 persen label lama tetap sama. Kelemahan yang belum diperbaiki: sindiran masih terbaca positif dan aturan negasi bisa membalik kata kedua. Slide berikutnya: pembaruan kedua, kamus bahasa daerah.");
 }
 
-// ---------- 9. Organik atau buzzer ----------
+// ---------- 9. Kamus bahasa daerah (informal-3) ----------
+{
+  const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Pembaruan kamus" });
+  s.addText("Kamus bahasa daerah: tak terbaca 49% → 47%", { placeholder: "title" });
+  const cols = [
+    ["informal-2", "6 November", ["48,8%", "tidak dinilai"], ["18.592", "komentar dinilai"], ["69,8%", "negatif di antara yang dinilai"], C.background2, C.text1],
+    ["informal-3", "8 November, dipakai sekarang, juga di platform", ["46,7%", "tidak dinilai"], ["19.354", "komentar dinilai"], ["71,2%", "negatif di antara yang dinilai"], C.text1, C.background1],
+  ];
+  cols.forEach(([nm, sub, a, b, c, bg, fg], i) => {
+    const x = 0.5 + i * 3.05;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: 1.3, w: 2.85, h: 3.7, fill: { color: bg }, line: { type: "none" }, rectRadius: 0.08, objectName: name("kolom") });
+    s.addText([{ text: nm, options: { bold: true, fontSize: 18, breakLine: true } }, { text: sub, options: { fontSize: 11 } }], { x: x + 0.25, y: 1.45, w: 2.4, h: 0.7, color: fg, margin: 0, valign: "top", isTextBox: true, objectName: name("nama") });
+    [a, b, c].forEach(([big, small], k) => {
+      const y = 2.3 + k * 0.9;
+      s.addText([{ text: big, options: { bold: true, fontSize: 24, breakLine: true } }, { text: small, options: { fontSize: 11 } }], { x: x + 0.25, y, w: 2.4, h: 0.8, color: fg, margin: 0, valign: "top", isTextBox: true, objectName: name("nilai") });
+    });
+  });
+  const notes = [
+    ["13 bahasa", "Bali, Jawa, Sunda, Betawi, Minang, Batak/Medan, Melayu, Banjar, Palembang, Bugis/Makassar, Manado/Maluku/Papua, Madura, Sasak"],
+    ["95,6%", "label negatif yang benar pada komentar yang baru dinilai (100 komentar dilabeli tanpa melihat skor alat; 89–98%)"],
+    ["“sing”", "Bali ‘tidak’, Jawa ‘yang’: kata yang artinya beda antarbahasa sengaja tidak dinilai"],
+  ];
+  notes.forEach(([big, small], i) => {
+    const y = 1.35 + i * 1.25;
+    s.addText(big, { x: 6.75, y, w: 2.75, h: 0.45, fontSize: 22, bold: true, color: C.accent1, fontFace: THEME.headFontFace, margin: 0, isTextBox: true, objectName: name("angka") });
+    s.addText(small, { x: 6.75, y: y + 0.45, w: 2.75, h: 0.75, fontSize: 11, color: C.text1, valign: "top", margin: 0, isTextBox: true, objectName: name("label") });
+  });
+  s.addNotes("Pembaruan kedua, 8 November. Komentar ditulis dalam banyak bahasa: makian Bali seperti naskleng dan cicing, Jawa seperti pekok dan ora becus, logat Medan seperti parah kali. Kamus kini memuat kosakata 13 bahasa daerah beserta artinya. Kata yang artinya berbeda antarbahasa, misalnya sing, seng, ambek, dan goreng, sengaja tidak dinilai supaya tidak salah baca. Lima kata dibuang setelah dicek di data karena lebih sering menyesatkan, misalnya seneng yang di sini dipakai menuduh. Kenaikannya kecil: komentar yang tersisa sebagian besar tidak memuat kata penilai sama sekali, maknanya dari konteks, sindiran, atau kiasan. 71 persen komentar negatif di sampel manual tetap tidak terbaca alat, jadi perkiraan 67 persen dari sampel manual tetap ukuran terbaik." + (process.env.PLATFORM_NOTE_PPT ? " " + process.env.PLATFORM_NOTE_PPT : ""));
+}
+
+// ---------- 10. Organik atau buzzer ----------
 pres.addSection({ title: "Akun dan jaringan" });
 {
   const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Akun dan jaringan" });
@@ -298,7 +329,7 @@ pres.addSection({ title: "Akun dan jaringan" });
   s.addNotes("Kelompok akun yang sangat aktif dan mengulang pesan menulis sekitar 3 persen komentar. Itu layak ditinjau manual, tetapi belum cukup untuk menyebut mereka buzzer. Pemeriksaan yang lebih kuat butuh data profil kanal seperti tanggal dibuat dan jumlah video, yang tidak ikut disimpan.");
 }
 
-// ---------- 10. Jaringan ----------
+// ---------- 11. Jaringan ----------
 {
   const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Akun dan jaringan" });
   s.addText("Seperlima akun menulis hampir separuh komentar", { placeholder: "title" });
@@ -314,17 +345,17 @@ pres.addSection({ title: "Akun dan jaringan" });
     ["21% → 46%", "4.810 akun yang berkomentar di 2 video atau lebih menulis 46% komentar"],
     ["0,07", "tumpang-tindih pengomentar tertinggi antara dua video: tidak ada gugus kanal berisi akun yang sama"],
     ["8,3%", "balasan yang diterima 10 akun teratas: tidak ada pusat tunggal"],
-    ["≈70%", "porsi negatif sama untuk pengomentar sekali lewat maupun yang rajin"],
+    ["≈71%", "porsi negatif sama untuk pengomentar sekali lewat maupun yang rajin"],
   ];
   pts.forEach(([big, small], i) => {
     const y = 1.3 + i * 0.95;
     s.addText(big, { x: 5.6, y, w: 1.6, h: 0.5, fontSize: 20, bold: true, color: C.accent1, fontFace: THEME.headFontFace, margin: 0, isTextBox: true, objectName: name("angka") });
     s.addText(small, { x: 7.25, y, w: 2.25, h: 0.88, fontSize: 11, color: C.text1, valign: "top", margin: 0, isTextBox: true, objectName: name("label") });
   });
-  s.addNotes("Jaringan dibangun dari kode akun acak, video yang dikomentari, dan tautan balasan. Jaringan tidak bisa dipakai menebak nada komentar yang belum dinilai: balasan searah dengan induknya hanya 49 persen, sama dengan peluang kebetulan. Timbal balik antarakun tidak bisa diukur karena YouTube menyatukan balasan atas balasan ke komentar induk.");
+  s.addNotes("Jaringan dibangun dari kode akun acak, video yang dikomentari, dan tautan balasan. Jaringan tidak bisa dipakai menebak nada komentar yang belum dinilai: balasan searah dengan induknya 54,8 persen, hampir sama dengan peluang kebetulan 52 persen. Timbal balik antarakun tidak bisa diukur karena YouTube menyatukan balasan atas balasan ke komentar induk.");
 }
 
-// ---------- 11. Metode dan batas ----------
+// ---------- 12. Metode dan batas ----------
 pres.addSection({ title: "Penutup" });
 {
   const s = pres.addSlide({ masterName: "Isi", sectionTitle: "Penutup" });
@@ -338,7 +369,7 @@ pres.addSection({ title: "Penutup" });
     ]],
     ["Batas membacanya", [
       "Nada teks bukan sikap terhadap kebijakan; sindiran sering terbaca positif",
-      "49% komentar tidak bisa dinilai alat",
+      "47% komentar tidak bisa dinilai alat",
       "Pengomentar memilih sendiri; tidak mewakili warga Bali",
       "Tidak ada klaim sebab-akibat antara peristiwa dan lonjakan",
     ]],
@@ -355,7 +386,7 @@ pres.addSection({ title: "Penutup" });
   s.addNotes("Data dikumpulkan 5 November 2026 pukul 13.27 UTC: 527 video, 36.319 komentar dan balasan; 425 komentar yang ditulis sesudah 20 Oktober dibuang. Data lengkap, skrip, dan laporan ada di repo Public Opinion, folder proyek/bbm-bali-youtube, dan di proyek KELANGKAAN BBM BALI pada platform.");
 }
 
-// ---------- 12. Kesimpulan ----------
+// ---------- 13. Kesimpulan ----------
 {
   const s = pres.addSlide({ masterName: "Judul gelap", sectionTitle: "Penutup" });
   s.addText("KESIMPULAN", { placeholder: "kicker" });
