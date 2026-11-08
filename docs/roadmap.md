@@ -7,6 +7,9 @@ Dokumen ini daftar centang per fase. Untuk status jujur per komponen —
 seberapa jauh sesuatu sudah dibuktikan bekerja, dan apa yang menahan yang
 belum — lihat [progress.md](progress.md).
 
+**Prioritas berikutnya (2026-11-08):** hasil benchmark terhadap NoLimit
+Dashboard dan daftar P0–P10 ada di [benchmark-nolimit.md](benchmark-nolimit.md).
+
 ## Phase 1 — fondasi
 
 - [x] Skema database + RLS
