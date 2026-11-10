@@ -65,6 +65,8 @@ from app.models.measurement import SignalSource as ModelSignalSource
 from app.models.project import Project
 from app.models.signal import DataSource, Mention
 from app.schemas.common import Metric, SignalSource
+from app.services import actors as actors_svc
+from app.services import news_quotes, rescoring, signal_stats
 from app.services import sentiment as sentiment_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
@@ -363,6 +365,48 @@ class MentionOut(BaseModel):
     connector: str
     engagement: int
     sentiment: float | None
+    #: True bila `sentiment` adalah label yang ditetapkan manusia
+    #: (nilai wakil, lihat services/rescoring.py:MANUAL_SCORES).
+    sentiment_manual: bool = False
+
+
+SentimentLabel = Literal["negatif", "netral", "positif"]
+
+
+class SentimentCorrectionIn(BaseModel):
+    label: SentimentLabel
+
+
+class SentimentBulkIn(BaseModel):
+    ids: list[UUID] = Field(min_length=1, max_length=200)
+    label: SentimentLabel
+
+
+class SentimentCorrectionOut(BaseModel):
+    id: UUID
+    sentiment: float | None
+    sentiment_manual: bool
+    changed: bool
+
+
+class SentimentBulkOut(BaseModel):
+    requested: int
+    changed: int
+    not_found: int
+
+
+class CorrectionQualityOut(BaseModel):
+    """Penilai otomatis vs label manusia pada konten yang dikoreksi."""
+
+    source: SignalSource
+    n: int
+    machine_abstained: int
+    agreed: int
+    #: None bila belum cukup konten berlabel yang dinilai mesin.
+    agreement: float | None
+    confusion: dict[str, dict[str, int]]
+    insufficient_data: bool
+    caveat: str
 
 
 class SignalSummary(BaseModel):
@@ -385,6 +429,107 @@ class SignalTrendPoint(BaseModel):
     volume: int
     sentiment: float | None
     scored: int
+
+
+class EmotionBySource(BaseModel):
+    """Sebaran penanda emosi satu sumber. Bukan klasifikasi per konten."""
+
+    source: SignalSource
+    method: str
+    n_total: int
+    #: Konten yang memuat minimal satu penanda emosi; penyebut `share`.
+    n_with_emotion: int
+    coverage: float
+    #: None bila `n_with_emotion` di bawah ambang publikasi.
+    share: dict[str, float] | None
+    dominant: dict[str, int] | None
+    insufficient_data: bool
+    note: str | None = None
+
+
+class EmotionSummaryOut(BaseModel):
+    period_start: date
+    period_end: date
+    by_source: list[EmotionBySource]
+    limitations: list[str]
+
+
+class DayActivityOut(BaseModel):
+    day: date
+    volume: int
+    engagement: int
+
+
+class TopMentionOut(BaseModel):
+    id: UUID
+    text: str
+    published_at: datetime
+    engagement: int
+    sentiment: float | None
+    source_url: str | None
+
+
+class ActivityBySource(BaseModel):
+    source: SignalSource
+    method: str
+    n: int
+    engagement_total: int
+    n_with_engagement: int
+    by_day: list[DayActivityOut]
+    #: heatmap[hari][jam]; hari 0 = Senin, jam lokal 0..23.
+    heatmap: list[list[int]]
+    by_hour: list[int]
+    peak_weekday: int | None
+    peak_hour: int | None
+    peak_count: int | None
+    top: list[TopMentionOut]
+
+
+class ActivityOut(BaseModel):
+    period_start: date
+    period_end: date
+    timezone: str
+    weekdays: list[str]
+    by_source: list[ActivityBySource]
+    limitations: list[str]
+
+
+class ActorTallyOut(BaseModel):
+    key: str
+    name: str
+    #: Jabatan publik (aktor bernama) atau None (tingkat kekuasaan).
+    role: str | None
+    level: str
+    n: int
+    scored: int
+    #: Rata-rata nada KONTEN yang menyebutnya; None di bawah ambang publikasi.
+    sentiment: float | None
+
+
+class QuoteOut(BaseModel):
+    text: str
+    speaker: str | None
+    published_at: datetime
+    source_url: str | None
+
+
+class ActorsBySource(BaseModel):
+    source: SignalSource
+    method: str
+    n_total: int
+    n_with_actor: int
+    actors: list[ActorTallyOut]
+    levels: list[ActorTallyOut]
+    #: Hanya liputan: kutipan langsung yang tertulis di judul/ringkasan.
+    quotes: list[QuoteOut]
+    quotes_total: int
+
+
+class ActorsOut(BaseModel):
+    period_start: date
+    period_end: date
+    by_source: list[ActorsBySource]
+    limitations: list[str]
 
 
 class SentimentQuality(BaseModel):
@@ -1446,6 +1591,9 @@ def _pending_rescore(project_id: UUID) -> Any:
     social = and_(
         Mention.source == ModelSignalSource.SOCIAL,
         Mention.sentiment_model.is_distinct_from(sentiment_svc.INFORMAL_MODEL_VERSION),
+        # Koreksi manual menang atas penilaian ulang; tanpa baris ini
+        # `remaining` tidak pernah nol begitu ada satu koreksi.
+        Mention.sentiment_model.is_distinct_from(rescoring.MANUAL_MODEL_VERSION),
     )
     other = and_(
         Mention.source != ModelSignalSource.SOCIAL,
@@ -1584,9 +1732,22 @@ async def rescore(
 # ------------------------------------------------------------- agregasi ----
 
 
-def _window(days: int) -> tuple[datetime, datetime]:
-    end = datetime.now(UTC)
-    return end - timedelta(days=days), end
+def _window(
+    days: int, start: date | None = None, end: date | None = None
+) -> tuple[datetime, datetime]:
+    """Jendela relatif (`days`) atau mutlak (`start` + `end`, keduanya inklusif)."""
+    try:
+        return signal_stats.resolve_window(
+            days=days, start=start, end=end, now=datetime.now(UTC)
+        )
+    except signal_stats.WindowError as e:
+        raise HTTPException(422, str(e)) from e
+
+
+#: Tanggal mutlak untuk data historis. Dipakai berpasangan; bila keduanya
+#: kosong, `days` yang berlaku.
+StartDate = Query(default=None, description="Tanggal awal (UTC, inklusif), bersama `end`")
+EndDate = Query(default=None, description="Tanggal akhir (UTC, inklusif), bersama `start`")
 
 
 def _scoped(query: Select, project_id: UUID, since: datetime, until: datetime) -> Select:
@@ -1597,6 +1758,28 @@ def _scoped(query: Select, project_id: UUID, since: datetime, until: datetime) -
     )
 
 
+async def _manual_count(
+    session: Any,
+    project_id: UUID,
+    since: datetime,
+    until: datetime,
+    source: SignalSource | None,
+) -> int:
+    """Jumlah konten berlabel manual di jendela ini; 0 bila kolom versi belum ada."""
+    query = _scoped(select(func.count()).select_from(Mention), project_id, since, until).where(
+        Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION
+    )
+    if source is not None:
+        query = query.where(Mention.source == ModelSignalSource(source.value))
+    try:
+        async with session.begin_nested():
+            return int((await session.execute(query)).scalar_one())
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        return 0
+
+
 @router.get("/projects/{project_id}/signals/summary", response_model=SignalSummary)
 async def summary(
     project_id: UUID,
@@ -1604,6 +1787,8 @@ async def summary(
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
     source: SignalSource | None = None,
+    start: date | None = StartDate,
+    end: date | None = EndDate,
 ) -> SignalSummary:
     """Volume dan sentimen agregat untuk satu jendela waktu.
 
@@ -1612,7 +1797,7 @@ async def summary(
     dengan skor provinsi n<250 di opinion.py. Volume tetap ditampilkan: berapa
     banyak yang bicara adalah fakta perhitungan, bukan estimasi.
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
 
     base = _scoped(select(Mention), project_id, since, until)
     if source is not None:
@@ -1658,6 +1843,14 @@ async def summary(
         limitations.append(
             f"{concentration:.0%} percakapan datang dari 10 akun paling aktif. "
             "Ini deskripsi sebaran, bukan indikasi koordinasi."
+        )
+
+    manual_n = await _manual_count(session, project_id, since, until, source)
+    if manual_n:
+        limitations.append(
+            f"{manual_n} konten memakai label sentimen koreksi manual. Label "
+            "manusia masuk rata-rata sebagai nilai wakil (negatif -0,5, netral 0, "
+            "positif +0,5), bukan skor leksikon."
         )
 
     revised: Metric | None = None
@@ -1764,6 +1957,8 @@ async def trend(
     session: TenantSession,
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=2, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
 ) -> list[SignalTrendPoint]:
     """Volume dan sentimen harian.
 
@@ -1771,7 +1966,7 @@ async def trend(
     konten bernilai — bukan 0.0, yang akan terbaca sebagai "netral hari itu"
     padahal artinya "tidak terukur hari itu".
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
     day = func.date_trunc("day", Mention.published_at).label("day")
     query = (
         _scoped(
@@ -1808,6 +2003,10 @@ async def list_mentions(
     source: SignalSource | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+    q: str | None = Query(default=None, min_length=2, max_length=80),
+    label: Literal["negatif", "netral", "positif", "abstain"] | None = None,
 ) -> list[MentionOut]:
     """Daftar item mentah, satu per satu, untuk validasi manual.
 
@@ -1826,13 +2025,49 @@ async def list_mentions(
     dan itu dipulihkan di sini. Kalau keduanya kosong, tetap tampilkan
     "tidak ada URL sumber"; jangan ditebak dari field lain.
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
     query = _scoped(select(Mention), project_id, since, until)
     if source is not None:
         query = query.where(Mention.source == ModelSignalSource(source.value))
-    query = query.order_by(Mention.published_at.desc()).limit(limit).offset(offset)
+    if q:
+        # Pencarian teks apa adanya; karakter pola LIKE di-escape supaya
+        # "100%" dicari sebagai teks, bukan sebagai wildcard.
+        needle = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(Mention.text.ilike(f"%{needle}%", escape="\\"))
+    if label == "abstain":
+        query = query.where(Mention.sentiment.is_(None))
+    elif label == "positif":
+        query = query.where(Mention.sentiment > sentiment_svc.POSITIVE_THRESHOLD)
+    elif label == "negatif":
+        query = query.where(Mention.sentiment < sentiment_svc.NEGATIVE_THRESHOLD)
+    elif label == "netral":
+        query = query.where(
+            Mention.sentiment >= sentiment_svc.NEGATIVE_THRESHOLD,
+            Mention.sentiment <= sentiment_svc.POSITIVE_THRESHOLD,
+        )
+    query = query.order_by(Mention.published_at.desc(), Mention.id).limit(limit).offset(offset)
+    mentions = (await session.execute(query)).scalars().all()
+
+    manual_ids: set[UUID] = set()
+    if mentions:
+        try:
+            async with session.begin_nested():
+                manual_ids = set(
+                    (
+                        await session.execute(
+                            select(Mention.id).where(
+                                Mention.id.in_([m.id for m in mentions]),
+                                Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                            )
+                        )
+                    ).scalars()
+                )
+        except ProgrammingError as e:
+            if sqlstate_of(e) != UNDEFINED_COLUMN:
+                raise
+
     out: list[MentionOut] = []
-    for m in (await session.execute(query)).scalars():
+    for m in mentions:
         source_url, origin = _recover_source_url(m.url, m.external_id)
         out.append(
             MentionOut(
@@ -1847,9 +2082,521 @@ async def list_mentions(
                 connector=m.connector,
                 engagement=m.engagement,
                 sentiment=float(m.sentiment) if m.sentiment is not None else None,
+                sentiment_manual=m.id in manual_ids,
             )
         )
     return out
+
+
+# -------------------------------------------------------- koreksi manual ----
+
+
+async def _apply_correction(
+    session: Any, user: Any, project_id: UUID, ids: Sequence[UUID], label: str | None
+) -> list[SentimentCorrectionOut]:
+    """Tetapkan (`label`) atau batalkan (`label=None`) label manual sejumlah konten.
+
+    Mengembalikan satu hasil per konten yang DITEMUKAN di proyek ini; id milik
+    proyek atau org lain tidak terlihat (RLS) dan tidak menghasilkan apa pun.
+    """
+    try:
+        async with session.begin_nested():
+            rows = (
+                await session.execute(
+                    select(
+                        Mention.id,
+                        Mention.source,
+                        Mention.text,
+                        Mention.sentiment,
+                        Mention.sentiment_model,
+                        Mention.sentiment_alt,
+                        Mention.sentiment_alt_model,
+                    ).where(Mention.project_id == project_id, Mention.id.in_(list(ids)))
+                )
+            ).all()
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        raise HTTPException(status.HTTP_409_CONFLICT, _VERSION_COLUMNS_MISSING) from e
+
+    def _dec(value: float | None) -> Decimal | None:
+        return None if value is None else Decimal(str(value))
+
+    out: list[SentimentCorrectionOut] = []
+    params: list[dict[str, object]] = []
+    for r in rows:
+        state = {
+            "social": r.source is ModelSignalSource.SOCIAL,
+            "sentiment": None if r.sentiment is None else float(r.sentiment),
+            "sentiment_model": r.sentiment_model,
+            "sentiment_alt": None if r.sentiment_alt is None else float(r.sentiment_alt),
+            "sentiment_alt_model": r.sentiment_alt_model,
+        }
+        new = (
+            rescoring.apply_manual(label=label, **state)
+            if label is not None
+            else rescoring.revert_manual(text=r.text, **state)
+        )
+        out.append(
+            SentimentCorrectionOut(
+                id=r.id,
+                sentiment=new.sentiment,
+                sentiment_manual=new.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                changed=new.primary_changed,
+            )
+        )
+        if not new.primary_changed:
+            continue
+        params.append(
+            {
+                "b_id": r.id,
+                "b_sentiment": _dec(new.sentiment),
+                "b_model": new.sentiment_model or None,
+                "b_alt": _dec(new.sentiment_alt),
+                "b_alt_model": new.sentiment_alt_model,
+            }
+        )
+        session.add(
+            AuditLog(
+                org_id=user.org_id,
+                actor_id=user.user_id,
+                action="sentiment_correct" if label is not None else "sentiment_revert",
+                entity="mention",
+                entity_id=r.id,
+                metadata_={
+                    "project_id": str(project_id),
+                    "label": label,
+                    "from_sentiment": state["sentiment"],
+                    "from_model": r.sentiment_model,
+                    "to_sentiment": new.sentiment,
+                    "to_model": new.sentiment_model,
+                },
+            )
+        )
+
+    if params:
+        table = Mention.__table__
+        connection = await session.connection()
+        await connection.execute(
+            table.update()
+            .where(table.c.id == bindparam("b_id"))
+            .values(
+                sentiment=bindparam("b_sentiment"),
+                sentiment_model=bindparam("b_model"),
+                sentiment_alt=bindparam("b_alt"),
+                sentiment_alt_model=bindparam("b_alt_model"),
+            ),
+            params,
+        )
+    return out
+
+
+@router.put(
+    "/projects/{project_id}/mentions/{mention_id}/sentiment",
+    response_model=SentimentCorrectionOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def correct_sentiment(
+    project_id: UUID,
+    mention_id: UUID,
+    body: SentimentCorrectionIn,
+    session: TenantSession,
+    user: CurrentUser,
+) -> SentimentCorrectionOut:
+    """Tetapkan label sentimen satu konten secara manual.
+
+    Label manusia menang atas penilai otomatis dan atas penilaian ulang, dan
+    setiap koreksi tercatat di audit log (siapa, kapan, dari skor berapa).
+    Koreksi juga menjadi label emas untuk mengukur penilai otomatis: lihat
+    GET .../signals/correction-quality.
+    """
+    out = await _apply_correction(session, user, project_id, [mention_id], body.label)
+    if not out:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Konten tidak ditemukan.")
+    return out[0]
+
+
+@router.delete(
+    "/projects/{project_id}/mentions/{mention_id}/sentiment",
+    response_model=SentimentCorrectionOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def revert_sentiment(
+    project_id: UUID, mention_id: UUID, session: TenantSession, user: CurrentUser
+) -> SentimentCorrectionOut:
+    """Batalkan koreksi manual; konten kembali ke skor penilai otomatis terkini."""
+    out = await _apply_correction(session, user, project_id, [mention_id], None)
+    if not out:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Konten tidak ditemukan.")
+    return out[0]
+
+
+@router.post(
+    "/projects/{project_id}/mentions/sentiment-bulk",
+    response_model=SentimentBulkOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def correct_sentiment_bulk(
+    project_id: UUID, body: SentimentBulkIn, session: TenantSession, user: CurrentUser
+) -> SentimentBulkOut:
+    """Tetapkan satu label untuk banyak konten sekaligus (maks. 200 id).
+
+    Massal berdasarkan DAFTAR ID yang sudah dilihat pemanggil, bukan
+    berdasarkan filter: label manusia berarti seseorang membaca kontennya.
+    """
+    ids = list(dict.fromkeys(body.ids))
+    out = await _apply_correction(session, user, project_id, ids, body.label)
+    return SentimentBulkOut(
+        requested=len(ids),
+        changed=sum(o.changed for o in out),
+        not_found=len(ids) - len(out),
+    )
+
+
+_CORRECTION_CAVEAT = (
+    "Diukur hanya pada konten yang dipilih seseorang untuk diberi label, bukan "
+    "sampel acak: orang cenderung mengoreksi yang terlihat salah, jadi angka "
+    "ini condong lebih rendah daripada mutu sebenarnya. Untuk ukuran yang "
+    "tidak bias, labeli sampel acak (termasuk yang sudah benar)."
+)
+
+
+@router.get(
+    "/projects/{project_id}/signals/correction-quality",
+    response_model=list[CorrectionQualityOut],
+)
+async def correction_quality(
+    project_id: UUID, session: TenantSession, user: CurrentUser
+) -> list[CorrectionQualityOut]:
+    """Penilai otomatis terkini dibandingkan label manusia, per sumber.
+
+    Label mesin dihitung ulang dari teks dengan penilai TERKINI, jadi angka
+    ini ikut berubah setiap kamus diperbarui; itulah gunanya.
+    """
+    try:
+        async with session.begin_nested():
+            rows = (
+                await session.execute(
+                    select(Mention.source, Mention.text, Mention.sentiment).where(
+                        Mention.project_id == project_id,
+                        Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                    )
+                )
+            ).all()
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        return []
+
+    pairs: dict[ModelSignalSource, list[tuple[str, str | None]]] = {}
+    for src, text, value in rows:
+        if value is None:
+            continue
+        social = src is ModelSignalSource.SOCIAL
+        human = sentiment_svc.label_for(float(value))
+        pairs.setdefault(src, []).append(
+            (human, rescoring.machine_label(social=social, text=text))
+        )
+
+    out: list[CorrectionQualityOut] = []
+    for src, items in pairs.items():
+        stats = rescoring.correction_quality(items)
+        scored = stats.n - stats.machine_abstained
+        enough = scored >= MIN_MENTIONS_FOR_AGGREGATE
+        out.append(
+            CorrectionQualityOut(
+                source=SignalSource(src.value),
+                n=stats.n,
+                machine_abstained=stats.machine_abstained,
+                agreed=stats.agreed,
+                agreement=(
+                    round(stats.agreement, 3) if enough and stats.agreement is not None else None
+                ),
+                confusion=stats.confusion,
+                insufficient_data=not enough,
+                caveat=_CORRECTION_CAVEAT,
+            )
+        )
+    return out
+
+
+_SENTIMENT_SOURCES = (ModelSignalSource.SOCIAL, ModelSignalSource.MEDIA)
+
+_EMOTION_LIMITATIONS = [
+    "Porsi penanda kata emosi, bukan klasifikasi emosi. Leksikonnya kecil dan "
+    "berejaan baku, tidak melihat negasi (\"tidak marah\" tetap terhitung marah), "
+    "dan belum dievaluasi terhadap label manusia.",
+    "Porsi dihitung hanya di antara konten yang memuat penanda. Lihat cakupan: "
+    "bila hanya sebagian kecil konten berpenanda, sebaran ini mewakili sebagian "
+    "kecil itu saja.",
+]
+
+
+@router.get("/projects/{project_id}/signals/emotions", response_model=EmotionSummaryOut)
+async def emotion_summary(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+) -> EmotionSummaryOut:
+    """Sebaran penanda emosi per sumber, dari kolom `mentions.emotion`.
+
+    Liputan dan percakapan TIDAK digabung (R1). Sebaran tidak diterbitkan
+    bila konten berpenanda di bawah MIN_MENTIONS_FOR_AGGREGATE; hitungannya
+    tetap dikembalikan supaya pembaca tahu seberapa tipis datanya.
+    """
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(select(Mention.source, Mention.emotion), project_id, since, until).where(
+                Mention.source.in_(_SENTIMENT_SOURCES)
+            )
+        )
+    ).all()
+
+    grouped: dict[ModelSignalSource, list[dict[str, float] | None]] = {}
+    for src, emotion in rows:
+        grouped.setdefault(src, []).append(emotion if isinstance(emotion, dict) else None)
+
+    by_source: list[EmotionBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        if src not in grouped:
+            continue
+        stats = signal_stats.summarize_emotions(grouped[src])
+        enough = stats.n_with_emotion >= MIN_MENTIONS_FOR_AGGREGATE
+        by_source.append(
+            EmotionBySource(
+                source=SignalSource(src.value),
+                method=signal_stats.EMOTION_METHOD,
+                n_total=stats.n_total,
+                n_with_emotion=stats.n_with_emotion,
+                coverage=round(stats.coverage, 4),
+                share=stats.share if enough else None,
+                dominant=stats.dominant if enough else None,
+                insufficient_data=not enough,
+                note=(
+                    None
+                    if enough
+                    else f"Perlu minimal {MIN_MENTIONS_FOR_AGGREGATE} konten berpenanda "
+                    f"emosi; tersedia {stats.n_with_emotion}."
+                ),
+            )
+        )
+
+    return EmotionSummaryOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        by_source=by_source,
+        limitations=_EMOTION_LIMITATIONS,
+    )
+
+
+#: Kutipan terbanyak yang dikembalikan (terbaru dulu).
+MAX_QUOTES = 20
+
+_ACTOR_METHOD = (
+    "pencocokan nama dan julukan pejabat publik, lembaga, dan partai dari daftar tetap "
+    "(services/actors.py, jabatan per Oktober 2026); nada = rata-rata skor konten yang "
+    "menyebutnya"
+)
+
+_ACTOR_LIMITATIONS = [
+    "Menyebut tidak sama dengan menyalahkan. Nada yang tampil adalah nada konten yang "
+    "menyebut aktor itu, bukan nada terhadap aktornya; konten yang menyebut dua aktor "
+    "dihitung untuk keduanya.",
+    "Daftar aktor disusun untuk isu energi dan pemerintahan per Oktober 2026. Tokoh di luar "
+    "daftar tidak terhitung, dan jabatan bisa sudah berganti.",
+    "Hanya pejabat publik, lembaga, dan partai yang dipetakan. Tidak ada penilaian tentang "
+    "akun yang menulis.",
+    "Kutipan diambil dari tanda petik di judul dan ringkasan feed, bukan dari badan artikel; "
+    "penutur dicatat hanya bila teksnya menyebutkannya.",
+]
+
+
+@router.get("/projects/{project_id}/signals/actors", response_model=ActorsOut)
+async def actor_summary(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+) -> ActorsOut:
+    """Siapa yang disebut, di tingkat kekuasaan mana, dan kutipan dari liputan."""
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(
+                select(
+                    Mention.source,
+                    Mention.text,
+                    Mention.sentiment,
+                    Mention.published_at,
+                    Mention.url,
+                    Mention.external_id,
+                ),
+                project_id,
+                since,
+                until,
+            )
+            .where(Mention.source.in_(_SENTIMENT_SOURCES))
+            .order_by(Mention.published_at.desc())
+        )
+    ).all()
+
+    def _out(tally: actors_svc.Tally, *, named: bool) -> ActorTallyOut:
+        actor = actors_svc.actor(tally.key) if named else None
+        return ActorTallyOut(
+            key=tally.key,
+            name=actor.name if actor else tally.key,
+            role=actor.role if actor else None,
+            level=actor.level if actor else tally.key,
+            n=tally.n,
+            scored=tally.scored,
+            sentiment=tally.mean if tally.scored >= MIN_MENTIONS_FOR_AGGREGATE else None,
+        )
+
+    by_source: list[ActorsBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        mine = [r for r in rows if r.source is src]
+        if not mine:
+            continue
+        stats = actors_svc.summarize(
+            (r.text, None if r.sentiment is None else float(r.sentiment)) for r in mine
+        )
+        quotes: list[QuoteOut] = []
+        quotes_total = 0
+        if src is ModelSignalSource.MEDIA:
+            for r in mine:
+                for quote in news_quotes.extract_quotes(r.text):
+                    quotes_total += 1
+                    if len(quotes) < MAX_QUOTES:
+                        source_url, _ = _recover_source_url(r.url, r.external_id)
+                        quotes.append(
+                            QuoteOut(
+                                text=quote.text,
+                                speaker=quote.speaker,
+                                published_at=r.published_at,
+                                source_url=source_url,
+                            )
+                        )
+        by_source.append(
+            ActorsBySource(
+                source=SignalSource(src.value),
+                method=_ACTOR_METHOD,
+                n_total=stats.n_total,
+                n_with_actor=stats.n_with_actor,
+                actors=[_out(t, named=True) for t in stats.actors],
+                levels=[_out(t, named=False) for t in stats.levels],
+                quotes=quotes,
+                quotes_total=quotes_total,
+            )
+        )
+
+    return ActorsOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        by_source=by_source,
+        limitations=_ACTOR_LIMITATIONS,
+    )
+
+
+#: Jumlah konten paling ramai yang dikembalikan per sumber.
+TOP_ENGAGING = 5
+
+_ACTIVITY_LIMITATIONS = [
+    "Engagement adalah angka yang dilaporkan sumbernya saat konten diambil "
+    "(komentar YouTube: suka + balasan). Ia tidak diperbarui sesudahnya dan "
+    "tidak sebanding antarsumber; feed berita umumnya tidak melaporkannya.",
+    "Jam ramai adalah jam TERBIT konten menurut zona waktu yang dipilih, bukan "
+    "jam orang membacanya, dan bukan zona waktu penulisnya.",
+]
+
+
+@router.get("/projects/{project_id}/signals/activity", response_model=ActivityOut)
+async def activity(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+    tz: Literal["WIB", "WITA", "WIT"] = "WIB",
+) -> ActivityOut:
+    """Engagement harian, peta jam ramai, dan konten paling ramai, per sumber."""
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(
+                select(Mention.source, Mention.published_at, Mention.engagement),
+                project_id,
+                since,
+                until,
+            ).where(Mention.source.in_(_SENTIMENT_SOURCES))
+        )
+    ).all()
+
+    grouped: dict[ModelSignalSource, list[tuple[datetime, int]]] = {}
+    for src, published_at, engagement in rows:
+        grouped.setdefault(src, []).append((published_at, engagement))
+
+    by_source: list[ActivityBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        if src not in grouped:
+            continue
+        stats = signal_stats.summarize_activity(grouped[src], tz=tz)
+        top: list[TopMentionOut] = []
+        if stats.n_with_engagement:
+            top_rows = (
+                await session.execute(
+                    _scoped(select(Mention), project_id, since, until)
+                    .where(Mention.source == src, Mention.engagement > 0)
+                    .order_by(Mention.engagement.desc(), Mention.published_at.desc())
+                    .limit(TOP_ENGAGING)
+                )
+            ).scalars()
+            for m in top_rows:
+                source_url, _ = _recover_source_url(m.url, m.external_id)
+                top.append(
+                    TopMentionOut(
+                        id=m.id,
+                        text=m.text,
+                        published_at=m.published_at,
+                        engagement=m.engagement,
+                        sentiment=float(m.sentiment) if m.sentiment is not None else None,
+                        source_url=source_url,
+                    )
+                )
+        by_source.append(
+            ActivityBySource(
+                source=SignalSource(src.value),
+                method=f"hitungan konten dan jumlah engagement per jam terbit ({tz})",
+                n=stats.n,
+                engagement_total=stats.engagement_total,
+                n_with_engagement=stats.n_with_engagement,
+                by_day=[
+                    DayActivityOut(day=d.day, volume=d.volume, engagement=d.engagement)
+                    for d in stats.by_day
+                ],
+                heatmap=stats.heatmap,
+                by_hour=signal_stats.hourly_totals(stats.heatmap),
+                peak_weekday=stats.peak[0] if stats.peak else None,
+                peak_hour=stats.peak[1] if stats.peak else None,
+                peak_count=stats.peak[2] if stats.peak else None,
+                top=top,
+            )
+        )
+
+    return ActivityOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        timezone=tz,
+        weekdays=list(signal_stats.WEEKDAYS),
+        by_source=by_source,
+        limitations=_ACTIVITY_LIMITATIONS,
+    )
 
 
 @router.get(

@@ -513,6 +513,27 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .btn-danger { background:transparent; color:var(--neg); border-color:var(--neg); font-weight:500; }
 .btn-danger:hover:not(:disabled) { background:var(--neg-bg); filter:none; }
 .btn-sm { padding:5px 10px; font-size:12px; }
+
+/* Sinyal: bilah periode, baris bar berlabel lebar, peta jam ramai. */
+.period-bar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px; }
+.period-bar .field { margin:0; min-width:150px; }
+.period-now { margin:0 0 8px; }
+.dq-row-wide { grid-template-columns:110px 1fr 64px; }
+.act-block + .act-block { margin-top:22px; padding-top:20px; border-top:1px solid var(--line); }
+.heat { margin-top:16px; overflow-x:auto; }
+.heat-row { display:grid; grid-template-columns:34px repeat(24,minmax(14px,1fr)); gap:2px; margin-bottom:2px; min-width:440px; }
+.heat-head span, .heat-day { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--txt3); }
+.heat-day { align-self:center; }
+.heat-cell { height:18px; background:var(--track); border-radius:2px; overflow:hidden; }
+.heat-cell i { display:block; width:100%; height:100%; }
+.corr { display:flex; flex-direction:column; gap:5px; min-width:150px; }
+.corr-v { display:flex; align-items:center; gap:6px; font-size:12px; }
+.corr-btns { display:flex; flex-wrap:wrap; gap:4px; }
+.corr-btns .btn { padding:2px 7px; font-size:11px; }
+.corr-on { border-color:var(--pos) !important; color:var(--pos) !important; }
+.quotes { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:13px; }
+.quotes li { padding-left:12px; border-left:2px solid var(--line-2); }
+.pager { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
 .auth-alt { font-size:12.5px; color:var(--txt2); margin-top:16px; text-align:center; }
 .auth-alt a { color:var(--survey); }
 .form-err {

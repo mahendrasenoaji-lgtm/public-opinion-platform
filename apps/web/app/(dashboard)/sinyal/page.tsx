@@ -4,6 +4,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { RescoreButton } from "@/components/RescoreButton";
+import { SentimentCorrector } from "@/components/SentimentCorrector";
 import { SourceManager } from "@/components/SourceManager";
 import { UploadData } from "@/components/UploadData";
 import { SOURCE } from "@/lib/tokens";
@@ -12,6 +13,14 @@ import { getCurrentProject } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import type { CollectorTokenStatus } from "./actions";
 import { SENTIMENT_LIMITS, formatSentiment, sentimentCards } from "./sentiment";
+import {
+  EMOTION_LABELS,
+  ZONES,
+  heatOpacity,
+  hourLabel,
+  parseWindow,
+  windowQuery,
+} from "./window";
 
 //: Cermin RANK[RESEARCHER]/RANK[RESEARCH_DIRECTOR] di app/deps.py + tiap
 //: dependencies=[Depends(require_role(...))] di app/routers/signals.py.
@@ -41,6 +50,86 @@ interface TrendPoint {
   volume: number;
   sentiment: number | null;
   scored: number;
+}
+
+/** Sebaran penanda emosi satu sumber; lihat GET .../signals/emotions. */
+interface EmotionBySource {
+  source: SignalSource;
+  method: string;
+  n_total: number;
+  n_with_emotion: number;
+  coverage: number;
+  share: Record<string, number> | null;
+  dominant: Record<string, number> | null;
+  insufficient_data: boolean;
+  note: string | null;
+}
+
+interface EmotionSummary {
+  by_source: EmotionBySource[];
+  limitations: string[];
+}
+
+interface ActivityBySource {
+  source: SignalSource;
+  method: string;
+  n: number;
+  engagement_total: number;
+  n_with_engagement: number;
+  by_day: { day: string; volume: number; engagement: number }[];
+  /** heatmap[hari][jam]; hari 0 = Senin. */
+  heatmap: number[][];
+  by_hour: number[];
+  peak_weekday: number | null;
+  peak_hour: number | null;
+  peak_count: number | null;
+  top: {
+    id: string;
+    text: string;
+    published_at: string;
+    engagement: number;
+    sentiment: number | null;
+    source_url: string | null;
+  }[];
+}
+
+interface Activity {
+  timezone: string;
+  weekdays: string[];
+  by_source: ActivityBySource[];
+  limitations: string[];
+}
+
+interface ActorTally {
+  key: string;
+  name: string;
+  role: string | null;
+  level: string;
+  n: number;
+  scored: number;
+  sentiment: number | null;
+}
+
+/** Peta aktor + kutipan liputan; lihat GET .../signals/actors. */
+interface ActorsBySource {
+  source: SignalSource;
+  method: string;
+  n_total: number;
+  n_with_actor: number;
+  actors: ActorTally[];
+  levels: ActorTally[];
+  quotes: {
+    text: string;
+    speaker: string | null;
+    published_at: string;
+    source_url: string | null;
+  }[];
+  quotes_total: number;
+}
+
+interface Actors {
+  by_source: ActorsBySource[];
+  limitations: string[];
 }
 
 interface ClassMetrics {
@@ -122,7 +211,23 @@ interface MentionRow {
   connector: string;
   engagement: number;
   sentiment: number | null;
+  /** Tidak ada kalau backend tertinggal. */
+  sentiment_manual?: boolean;
 }
+
+/** Penilai otomatis vs label manusia; lihat GET .../signals/correction-quality. */
+interface CorrectionQuality {
+  source: SignalSource;
+  n: number;
+  machine_abstained: number;
+  agreed: number;
+  agreement: number | null;
+  insufficient_data: boolean;
+  caveat: string;
+}
+
+const MENTION_LABELS = ["negatif", "netral", "positif", "abstain"] as const;
+const MENTIONS_PER_PAGE = 20;
 
 interface ConnectorRow {
   key: string;
@@ -145,8 +250,26 @@ const BACKEND_TERTINGGAL =
   "backend belum selesai dideploy setelah rilis frontend — coba lagi beberapa " +
   "menit lagi.";
 
-export default async function SinyalPage() {
+export default async function SinyalPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
+  const params = await searchParams;
+  const win = parseWindow(params);
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+  const search = one(params.cari).slice(0, 80);
+  const tone_ = one(params.nada);
+  const labelFilter = (MENTION_LABELS as readonly string[]).includes(tone_) ? tone_ : "";
+  const page = Math.max(1, Math.min(500, Number.parseInt(one(params.hal), 10) || 1));
+  const mentionQuery: Record<string, string> = {
+    limit: String(MENTIONS_PER_PAGE),
+    offset: String((page - 1) * MENTIONS_PER_PAGE),
+  };
+  if (search.length >= 2) mentionQuery.q = search;
+  if (labelFilter) mentionQuery.label = labelFilter;
+  const q = (extra: Record<string, string> = {}) => windowQuery(win, extra);
 
   // SEMUA panggilan pakai apiOrNullLenient, termasuk dua yang secara logika "selalu
   // ada" (sentiment-quality dan daftar konektor tidak bergantung pada data
@@ -168,19 +291,44 @@ export default async function SinyalPage() {
     connectors,
     mentions,
     tokenStatus,
+    emotions,
+    activity,
+    corrections,
+    actors,
   ] = await Promise.all([
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q()}`),
     // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
     // hanya dipakai untuk volume, komposisi, dan sebaran akun.
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=SOCIAL`),
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=MEDIA`),
-    apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q({ source: "SOCIAL" })}`,
+    ),
+    apiOrNullLenient<SignalSummary>(
+      `/projects/${projectId}/signals/summary${q({ source: "MEDIA" })}`,
+    ),
+    apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend${q()}`),
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
     apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
-    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions?limit=20`),
+    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions${q(mentionQuery)}`),
     apiOrNullLenient<CollectorTokenStatus>(`/projects/${projectId}/signals/collector-token`),
+    apiOrNullLenient<EmotionSummary>(`/projects/${projectId}/signals/emotions${q()}`),
+    apiOrNullLenient<Activity>(`/projects/${projectId}/signals/activity${q({ tz: win.zone })}`),
+    apiOrNullLenient<CorrectionQuality[]>(`/projects/${projectId}/signals/correction-quality`),
+    apiOrNullLenient<Actors>(`/projects/${projectId}/signals/actors${q()}`),
   ]);
+
+  /** Tautan halaman daftar konten yang mempertahankan periode dan filter. */
+  const mentionsHref = (target: number) => {
+    const u = new URLSearchParams();
+    if (win.start && win.end) {
+      u.set("dari", win.start);
+      u.set("sampai", win.end);
+    }
+    u.set("zona", win.zone);
+    if (search) u.set("cari", search);
+    if (labelFilter) u.set("nada", labelFilter);
+    if (target > 1) u.set("hal", String(target));
+    return `?${u.toString()}#konten`;
+  };
 
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
   const role = sessionToken ? decodeJwtPayload(sessionToken)?.role : undefined;
@@ -198,6 +346,45 @@ export default async function SinyalPage() {
     <>
       <PageHeader kicker="Sinyal & Sentimen" title={name} isDemo={isDemo} />
       <div className="body">
+        {/* Form GET polos: periode hidup di URL, jadi bisa dibagikan dan
+            tidak butuh komponen klien. Kosongkan kedua tanggal = 30 hari
+            terakhir (perilaku bawaan backend). */}
+        <form method="get" className="period-bar">
+          <label className="field">
+            <span className="kicker">Dari</span>
+            <input type="date" name="dari" defaultValue={win.start ?? ""} />
+          </label>
+          <label className="field">
+            <span className="kicker">Sampai</span>
+            <input type="date" name="sampai" defaultValue={win.end ?? ""} />
+          </label>
+          <label className="field">
+            <span className="kicker">Zona jam ramai</span>
+            <select name="zona" defaultValue={win.zone}>
+              {ZONES.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="btn btn-sm">
+            Terapkan
+          </button>
+          {(win.start || win.error) && (
+            <a className="btn btn-ghost btn-sm" href={`?zona=${win.zone}`}>
+              30 hari terakhir
+            </a>
+          )}
+          <span className="proj-s period-now">
+            {win.error
+              ? `${win.error} Menampilkan 30 hari terakhir.`
+              : summary
+                ? `Periode tampil: ${summary.period_start} s.d. ${summary.period_end} (UTC)`
+                : ""}
+          </span>
+        </form>
+
         <section className="stat-row">
           <div className="stat stat-big">
             <div className="kicker">Volume percakapan</div>
@@ -337,9 +524,370 @@ export default async function SinyalPage() {
           </Panel>
         </div>
 
-        <Panel kicker="Akuntabilitas riset" title="Item terbaru (untuk validasi manual)">
+        <Panel kicker="Emosi" title="Penanda emosi per sumber">
+          {!emotions ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : emotions.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              <div className="grid-2">
+                {emotions.by_source.map((e) => {
+                  const color = SOURCE[e.source].color;
+                  return (
+                    <div key={e.source}>
+                      <div className="kicker" style={{ marginBottom: 10 }}>
+                        <span className="pill" style={{ color }}>{SOURCE[e.source].label}</span>{" "}
+                        {e.n_with_emotion.toLocaleString("id-ID")} dari{" "}
+                        {e.n_total.toLocaleString("id-ID")} konten memuat penanda (
+                        {(e.coverage * 100).toFixed(1)}%)
+                      </div>
+                      {e.share === null ? (
+                        <InsufficientData reason={e.note ?? "Belum cukup konten berpenanda emosi."} />
+                      ) : (
+                        <div className="dq">
+                          {EMOTION_LABELS.map(([key, label]) => {
+                            const share = e.share?.[key] ?? 0;
+                            return (
+                              <div key={key} className="dq-row dq-row-wide">
+                                <span>{label}</span>
+                                <div className="bar100">
+                                  <div style={{ width: `${share * 100}%`, background: color }} />
+                                </div>
+                                <b>{(share * 100).toFixed(1)}%</b>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <Provenance
+                        method={e.method}
+                        n={e.n_with_emotion}
+                        confidence="Rendah"
+                        limits="Porsi di antara konten berpenanda saja, bukan seluruh konten."
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {emotions.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <Panel
+          kicker="Engagement & jam ramai"
+          title="Kapan percakapan terjadi"
+          right={activity && <span className="pill pill-warn">{activity.timezone}</span>}
+        >
+          {!activity ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : activity.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              {activity.by_source.map((a) => {
+                const color = SOURCE[a.source].color;
+                const max = Math.max(1, ...a.heatmap.flat());
+                const peakDay = Math.max(1, ...a.by_day.map((d) => d.engagement));
+                return (
+                  <div key={a.source} className="act-block">
+                    <div className="fc-out" style={{ marginTop: 0, borderTop: 0, paddingTop: 0 }}>
+                      <div>
+                        <span className="kicker">
+                          <span className="pill" style={{ color }}>{SOURCE[a.source].label}</span>{" "}
+                          Konten
+                        </span>
+                        <b>{a.n.toLocaleString("id-ID")}</b>
+                      </div>
+                      <div>
+                        <span className="kicker">Total engagement</span>
+                        <b>
+                          {a.n_with_engagement === 0
+                            ? "tidak dilaporkan"
+                            : a.engagement_total.toLocaleString("id-ID")}
+                        </b>
+                      </div>
+                      <div>
+                        <span className="kicker">Konten dengan engagement</span>
+                        <b>{a.n_with_engagement.toLocaleString("id-ID")}</b>
+                      </div>
+                      <div>
+                        <span className="kicker">Jam paling ramai</span>
+                        <b>
+                          {a.peak_hour === null || a.peak_weekday === null
+                            ? "-"
+                            : `${activity.weekdays[a.peak_weekday]} ${hourLabel(a.peak_hour)}`}
+                        </b>
+                      </div>
+                    </div>
+
+                    <div className="heat" role="img" aria-label={`Peta jam terbit konten ${SOURCE[a.source].label}, ${activity.timezone}`}>
+                      <div className="heat-row heat-head">
+                        <span />
+                        {a.by_hour.map((_, h) => (
+                          <span key={h}>{h % 3 === 0 ? String(h).padStart(2, "0") : ""}</span>
+                        ))}
+                      </div>
+                      {a.heatmap.map((hours, d) => (
+                        <div className="heat-row" key={d}>
+                          <span className="heat-day">{activity.weekdays[d]}</span>
+                          {hours.map((count, h) => (
+                            <span
+                              key={h}
+                              className="heat-cell"
+                              title={`${activity.weekdays[d]} ${hourLabel(h)} ${activity.timezone}: ${count} konten`}
+                            >
+                              <i style={{ background: color, opacity: heatOpacity(count, max) }} />
+                            </span>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+
+                    {a.n_with_engagement > 0 && (
+                      <div className="grid-2" style={{ marginTop: 16 }}>
+                        <div>
+                          <div className="kicker" style={{ marginBottom: 8 }}>
+                            Engagement per hari ({activity.timezone})
+                          </div>
+                          <div className="dq">
+                            {a.by_day.slice(-14).map((d) => (
+                              <div key={d.day} className="dq-row dq-row-wide">
+                                <span className="mono">{d.day}</span>
+                                <div className="bar100">
+                                  <div
+                                    style={{
+                                      width: `${(d.engagement / peakDay) * 100}%`,
+                                      background: color,
+                                    }}
+                                  />
+                                </div>
+                                <b>{d.engagement.toLocaleString("id-ID")}</b>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="kicker" style={{ marginBottom: 8 }}>
+                            Konten paling ramai
+                          </div>
+                          <table className="tbl">
+                            <tbody>
+                              {a.top.map((t) => (
+                                <tr key={t.id}>
+                                  <td>
+                                    {t.text.length > 120 ? `${t.text.slice(0, 120)}…` : t.text}
+                                    {t.source_url && (
+                                      <>
+                                        {" "}
+                                        <a
+                                          href={t.source_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{ color }}
+                                        >
+                                          sumber ↗
+                                        </a>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="mono" style={{ textAlign: "right" }}>
+                                    {t.engagement.toLocaleString("id-ID")}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    <Provenance
+                      method={a.method}
+                      n={a.n}
+                      confidence="Tinggi"
+                      limits="Hitungan jam terbit, bukan jam dibaca. Engagement dicatat saat konten diambil."
+                    />
+                  </div>
+                );
+              })}
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {activity.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <Panel kicker="Aktor & kutipan" title="Siapa yang disebut">
+          {!actors ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : actors.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              {actors.by_source.map((a) => {
+                const color = SOURCE[a.source].color;
+                const top = Math.max(1, ...a.actors.map((t) => t.n));
+                return (
+                  <div key={a.source} className="act-block">
+                    <div className="kicker" style={{ marginBottom: 10 }}>
+                      <span className="pill" style={{ color }}>{SOURCE[a.source].label}</span>{" "}
+                      {a.n_with_actor.toLocaleString("id-ID")} dari{" "}
+                      {a.n_total.toLocaleString("id-ID")} konten menyebut aktor bernama
+                    </div>
+                    {a.actors.length === 0 ? (
+                      <InsufficientData reason="Tidak ada aktor dari daftar yang disebut pada periode ini." />
+                    ) : (
+                      <div className="grid-2" style={{ alignItems: "start" }}>
+                        <table className="tbl">
+                          <thead>
+                            <tr>
+                              <th>Aktor</th>
+                              <th>Disebut</th>
+                              <th>Nada konten</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {a.actors.slice(0, 10).map((t) => (
+                              <tr key={t.key}>
+                                <td>
+                                  {t.name}
+                                  <div className="proj-s">{t.role}</div>
+                                  <div className="bar100" style={{ marginTop: 5 }}>
+                                    <div style={{ width: `${(t.n / top) * 100}%`, background: color }} />
+                                  </div>
+                                </td>
+                                <td className="mono">{t.n.toLocaleString("id-ID")}</td>
+                                <td className="mono">
+                                  {t.sentiment === null
+                                    ? `belum cukup (n ${t.scored})`
+                                    : `${formatSentiment(t.sentiment)} (n ${t.scored})`}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <table className="tbl">
+                          <thead>
+                            <tr>
+                              <th>Tingkat kekuasaan</th>
+                              <th>Disebut</th>
+                              <th>Nada konten</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {a.levels.map((t) => (
+                              <tr key={t.key}>
+                                <td>{t.name}</td>
+                                <td className="mono">{t.n.toLocaleString("id-ID")}</td>
+                                <td className="mono">
+                                  {t.sentiment === null
+                                    ? `belum cukup (n ${t.scored})`
+                                    : `${formatSentiment(t.sentiment)} (n ${t.scored})`}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {a.source === "MEDIA" && (
+                      <div style={{ marginTop: 16 }}>
+                        <div className="kicker" style={{ marginBottom: 8 }}>
+                          Kutipan langsung di liputan ({a.quotes_total})
+                        </div>
+                        {a.quotes.length === 0 ? (
+                          <div className="proj-s">
+                            Tidak ada kutipan bertanda petik di judul atau ringkasan pada periode ini.
+                          </div>
+                        ) : (
+                          <ul className="quotes">
+                            {a.quotes.map((qt, i) => (
+                              <li key={i}>
+                                “{qt.text}”
+                                <div className="proj-s">
+                                  {qt.speaker ?? "penutur tidak disebut di ringkasan"} ·{" "}
+                                  {qt.published_at.slice(0, 10)}
+                                  {qt.source_url && (
+                                    <>
+                                      {" · "}
+                                      <a
+                                        href={qt.source_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color }}
+                                      >
+                                        sumber ↗
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                    <Provenance
+                      method={a.method}
+                      n={a.n_total}
+                      confidence="Rendah"
+                      limits="Nada konten yang menyebut aktor, bukan nada terhadap aktornya."
+                    />
+                  </div>
+                );
+              })}
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {actors.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <div id="konten" />
+        <Panel kicker="Akuntabilitas riset" title="Konten (validasi dan koreksi manual)">
+          <form method="get" action="#konten" className="period-bar">
+            {win.start && win.end && (
+              <>
+                <input type="hidden" name="dari" value={win.start} />
+                <input type="hidden" name="sampai" value={win.end} />
+              </>
+            )}
+            <input type="hidden" name="zona" value={win.zone} />
+            <label className="field" style={{ flex: "1 1 220px" }}>
+              <span className="kicker">Cari teks</span>
+              <input type="search" name="cari" defaultValue={search} placeholder="mis. antre" />
+            </label>
+            <label className="field">
+              <span className="kicker">Nada</span>
+              <select name="nada" defaultValue={labelFilter}>
+                <option value="">semua</option>
+                <option value="negatif">negatif</option>
+                <option value="netral">netral</option>
+                <option value="positif">positif</option>
+                <option value="abstain">tidak dinilai</option>
+              </select>
+            </label>
+            <button type="submit" className="btn btn-sm">
+              Saring
+            </button>
+          </form>
           {!mentions || mentions.length === 0 ? (
-            <InsufficientData reason="Belum ada konten yang bisa ditelusuri untuk proyek ini." />
+            <InsufficientData
+              reason={
+                search || labelFilter || page > 1
+                  ? "Tidak ada konten yang cocok dengan saringan ini pada periode tampil."
+                  : "Belum ada konten yang bisa ditelusuri untuk proyek ini."
+              }
+            />
           ) : (
             <table className="tbl">
               <thead>
@@ -347,6 +895,7 @@ export default async function SinyalPage() {
                   <th>Konten</th>
                   <th>Sumber</th>
                   <th>Tanggal</th>
+                  <th>Sentimen</th>
                   <th>Sumber asli</th>
                 </tr>
               </thead>
@@ -362,6 +911,16 @@ export default async function SinyalPage() {
                       </span>
                     </td>
                     <td className="mono">{m.published_at.slice(0, 16).replace("T", " ")}</td>
+                    <td>
+                      <SentimentCorrector
+                        key={`${m.id}:${m.sentiment}:${m.sentiment_manual ? 1 : 0}`}
+                        projectId={projectId}
+                        mentionId={m.id}
+                        sentiment={m.sentiment}
+                        manual={m.sentiment_manual ?? false}
+                        canEdit={canManage}
+                      />
+                    </td>
                     <td>
                       {m.source_url ? (
                         <>
@@ -397,13 +956,53 @@ export default async function SinyalPage() {
               </tbody>
             </table>
           )}
+          {(page > 1 || (mentions?.length ?? 0) === MENTIONS_PER_PAGE) && (
+            <div className="pager">
+              {page > 1 ? (
+                <a className="btn btn-ghost btn-sm" href={mentionsHref(page - 1)}>
+                  ← Lebih baru
+                </a>
+              ) : (
+                <span />
+              )}
+              <span className="proj-s">Halaman {page}</span>
+              {(mentions?.length ?? 0) === MENTIONS_PER_PAGE ? (
+                <a className="btn btn-ghost btn-sm" href={mentionsHref(page + 1)}>
+                  Lebih lama →
+                </a>
+              ) : (
+                <span />
+              )}
+            </div>
+          )}
+          {corrections && corrections.length > 0 && (
+            <p className="note">
+              <Info size={13} />
+              <span>
+                <b>Koreksi manual sebagai alat ukur.</b>{" "}
+                {corrections
+                  .map((c) =>
+                    c.agreement === null
+                      ? `${SOURCE[c.source].label}: ${c.n} konten berlabel manusia, belum cukup untuk angka kesepakatan (perlu 30 yang dinilai mesin).`
+                      : `${SOURCE[c.source].label}: dari ${c.n} konten berlabel manusia, penilai otomatis menilai ${c.n - c.machine_abstained} dan sepakat pada ${pct(c.agreement)}.`,
+                  )
+                  .join(" ")}{" "}
+                {corrections[0]?.caveat}
+              </span>
+            </p>
+          )}
           {/* Isi catatan dibungkus SATU span: `.note` itu display:flex, jadi
               elemen apa pun yang disisipkan di tengah teks akan jadi flex
               item tersendiri dan terperas jadi kolom sempit. */}
           <p className="note">
             <Info size={13} />
             <span>
-              20 item terbaru, bukan seluruh dataset. Tautan bertanda{" "}
+              {MENTIONS_PER_PAGE} konten per halaman, terbaru dulu, pada periode tampil. Label
+              yang ditetapkan manusia (bertanda{" "}
+              <span className="mono" style={{ fontSize: 10 }}>
+                manual
+              </span>
+              ) menang atas penilai otomatis dan tercatat di audit log. Tautan bertanda{" "}
               <span className="mono" style={{ fontSize: 10 }}>
                 dari guid feed
               </span>{" "}
