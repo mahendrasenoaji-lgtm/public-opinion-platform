@@ -60,18 +60,20 @@ class EmotionSummary:
         return self.n_with_emotion / self.n_total if self.n_total else 0.0
 
 
-def summarize_emotions(rows: Iterable[Mapping[str, float] | None]) -> EmotionSummary:
+def summarize_emotions(
+    rows: Iterable[Mapping[str, float] | None], *, keys: Sequence[str] = EMOTION_KEYS
+) -> EmotionSummary:
     """Gabungkan nilai kolom `mentions.emotion` menjadi satu sebaran.
 
     Baris `None` atau `{}` berarti leksikon tidak menemukan penanda; baris itu
     ikut `n_total` tetapi tidak ikut penyebut `share`. Kunci di luar
-    `EMOTION_KEYS` diabaikan, supaya data lama dengan kunci lain tidak
+    `keys` diabaikan, supaya data lama dengan kunci lain tidak
     menggeser porsi.
     """
     n_total = 0
     n_with = 0
-    sums: dict[str, float] = dict.fromkeys(EMOTION_KEYS, 0.0)
-    dominant: dict[str, int] = dict.fromkeys(EMOTION_KEYS, 0)
+    sums: dict[str, float] = dict.fromkeys(keys, 0.0)
+    dominant: dict[str, int] = dict.fromkeys(keys, 0)
 
     for row in rows:
         n_total += 1
