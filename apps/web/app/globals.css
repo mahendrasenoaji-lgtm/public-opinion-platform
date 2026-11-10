@@ -531,6 +531,8 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .corr-btns { display:flex; flex-wrap:wrap; gap:4px; }
 .corr-btns .btn { padding:2px 7px; font-size:11px; }
 .corr-on { border-color:var(--pos) !important; color:var(--pos) !important; }
+.quotes { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:13px; }
+.quotes li { padding-left:12px; border-left:2px solid var(--line-2); }
 .pager { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
 .auth-alt { font-size:12.5px; color:var(--txt2); margin-top:16px; text-align:center; }
 .auth-alt a { color:var(--survey); }

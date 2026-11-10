@@ -6,12 +6,12 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 10 November 2026: emosi, jam ramai, periode tetap, koreksi manual
+# 🟢 MULAI DARI SINI — 10 November 2026: emosi, jam ramai, periode tetap, koreksi manual, aktor
 
 **Baca blok ini dulu.** Blok 8 November dan 30 Oktober di bawahnya tetap berlaku
 (penilai `informal-4`; pengumpulan terjadwal mati).
 
-Pekerjaan dari `docs/benchmark-nolimit.md`: **P1, P3, P4** dikerjakan, **P2** ternyata sudah
+Pekerjaan dari `docs/benchmark-nolimit.md`: **P1, P3, P4, P6** dikerjakan, **P2** ternyata sudah
 ada sejak Oktober (kartu sentimen per sumber + komposisi sumber). Semuanya di halaman
 **Sinyal & Sentimen**, **tanpa migrasi basis data**.
 
@@ -21,6 +21,7 @@ ada sejak Oktober (kartu sentimen per sumber + komposisi sumber). Semuanya di ha
 | Kartu emosi (P1) | `GET /signals/emotions`, `services/signal_stats.py` | Per sumber, tidak digabung. Sebaran ditahan bila konten berpenanda < 30. Cakupan leksikonnya kecil: pada 2.985 komentar contoh BBM Bali hanya 5,0% yang memuat penanda |
 | Engagement dan jam ramai (P3) | `GET /signals/activity?tz=WIB\|WITA\|WIT` | Peta jam terbit 7×24, engagement per hari, 5 konten paling ramai. Engagement = angka saat konten diambil |
 | Koreksi sentimen manual (P4) | `PUT/DELETE /mentions/{id}/sentiment`, `POST /mentions/sentiment-bulk`, `GET /signals/correction-quality`; tombol di tabel "Konten" `/sinyal` | Lihat di bawah |
+| Aktor dan kutipan (P6) | `GET /signals/actors`, `services/actors.py:summarize`, `services/news_quotes.py`; panel "Siapa yang disebut" | Peta aktor yang selama ini hanya dipakai skrip BBM Bali kini tampil di platform, per sumber: jumlah sebutan, nada konten (ditahan < 30), tingkat kekuasaan. Kutipan langsung + penutur hanya dari liputan. Daftar aktor masih daftar tetap per Okt 2026 (isu energi/pemerintahan) |
 | Saring konten | `mentions?q=…&label=negatif\|netral\|positif\|abstain`; kolom "Cari teks" + "Nada" + halaman | 20 konten per halaman |
 
 **Cara kerja koreksi manual (keputusan desain, supaya tidak dirombak tanpa sengaja):**
@@ -38,7 +39,7 @@ ada sejak Oktober (kartu sentimen per sumber + komposisi sumber). Semuanya di ha
 - `correction-quality` membandingkan penilai otomatis TERKINI dengan label manusia. Angkanya baru
   terbit pada ≥ 30 konten, dan selalu membawa peringatan bahwa ini bukan sampel acak.
 
-**Bukti:** 850 tes backend lulus terhadap Postgres lokal dengan RLS aktif (role `pop_app`),
+**Bukti:** 859 tes backend lulus terhadap Postgres lokal dengan RLS aktif (role `pop_app`),
 termasuk tes isolasi tenant untuk semua endpoint baru; `ruff`, `mypy --strict`, `tsc`, `vitest`
 (42), dan `next build` bersih. Dicoba langsung di browser terhadap API lokal berisi 2.985 komentar
 contoh BBM Bali: periode 11–20 Okt, zona WITA, kartu emosi, peta jam (puncak Kamis 19.00 WITA),
@@ -66,7 +67,10 @@ memblokir sumber daya dev lintas-origin, jadi di `127.0.0.1` halaman tampil teta
    `?dari=2026-10-11&sampai=2026-10-20&zona=WITA`.
 2. P5 evaluasi leksikon emosi: butuh label manusia. Cakupan 5% menunjukkan leksikon emosi perlu
    diperluas ke ragam informal lebih dulu.
-3. P6 tokoh/organisasi/kutipan dari berita; P11 estimasi gender/umur/minat (sudah diizinkan).
+3. P6 lanjutan: daftar aktor per proyek (sekarang satu daftar tetap di kode), dan tokoh di luar
+   daftar. Pada 36.319 komentar BBM Bali ringkasan aktor butuh ±1,2 detik di Mac; amati waktunya
+   di Render. Hasil kutipan pada feed nyata belum diukur (feed hanya judul + ringkasan).
+   P11 estimasi gender/umur/minat (sudah diizinkan) belum dimulai.
 4. Jendela tanggal tetap untuk halaman selain `/sinyal`.
 5. Menunggu pengguna: P0 `ANTHROPIC_API_KEY` di Render, P8 kanal alert, P9 format laporan, P10 X API.
 

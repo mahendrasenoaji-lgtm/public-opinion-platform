@@ -24,6 +24,7 @@ siapa yang paling banyak disorot, di tingkat mana, dan dengan nada apa.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from app.services.ingestion import normalize_text
@@ -183,3 +184,71 @@ def levels(text: str) -> list[str]:
 
 def actor(key: str) -> Actor:
     return _BY_KEY[key]
+
+
+@dataclass(frozen=True, slots=True)
+class Tally:
+    """Berapa konten menyebut sesuatu, dan nada konten-konten itu."""
+
+    key: str
+    n: int
+    scored: int
+    #: Rata-rata nada konten yang menyebutnya dan bisa dinilai; None bila tidak ada.
+    mean: float | None
+
+
+@dataclass(frozen=True, slots=True)
+class ActorSummary:
+    n_total: int
+    #: Konten yang menyebut minimal satu aktor bernama.
+    n_with_actor: int
+    actors: list[Tally]
+    levels: list[Tally]
+
+
+def summarize(rows: Iterable[tuple[str, float | None]]) -> ActorSummary:
+    """Hitung penyebutan aktor dan tingkat kekuasaan atas `(teks, sentimen)`.
+
+    Nada yang dilaporkan adalah nada KONTEN yang menyebut aktor itu, bukan
+    nada terhadap aktornya: komentar yang membela Gubernur sambil memaki
+    Menteri terhitung untuk keduanya dengan skor yang sama. Konten yang
+    menyebut dua aktor dihitung untuk keduanya, jadi jumlah per aktor bisa
+    melebihi `n_with_actor`.
+    """
+    n_total = n_with = 0
+    counts: dict[str, list[float]] = {}
+    seen: dict[str, int] = {}
+    level_counts: dict[str, list[float]] = {}
+    level_seen: dict[str, int] = {}
+
+    for text, sentiment in rows:
+        n_total += 1
+        grams = _phrases(text)
+        keys = [a.key for a in ACTORS if any(alias in grams for alias in a.aliases)]
+        found_levels = {_BY_KEY[k].level for k in keys}
+        found_levels.update(level for word, level in GENERIC.items() if word in grams)
+        if keys:
+            n_with += 1
+        for key in keys:
+            seen[key] = seen.get(key, 0) + 1
+            if sentiment is not None:
+                counts.setdefault(key, []).append(sentiment)
+        for level in found_levels:
+            level_seen[level] = level_seen.get(level, 0) + 1
+            if sentiment is not None:
+                level_counts.setdefault(level, []).append(sentiment)
+
+    def _tally(key: str, n: int, values: list[float]) -> Tally:
+        mean = round(sum(values) / len(values), 3) if values else None
+        return Tally(key=key, n=n, scored=len(values), mean=mean)
+
+    actor_rows = sorted(
+        (_tally(k, n, counts.get(k, [])) for k, n in seen.items()),
+        key=lambda t: (-t.n, t.key),
+    )
+    level_rows = [
+        _tally(lv, level_seen[lv], level_counts.get(lv, [])) for lv in LEVELS if lv in level_seen
+    ]
+    return ActorSummary(
+        n_total=n_total, n_with_actor=n_with, actors=actor_rows, levels=level_rows
+    )

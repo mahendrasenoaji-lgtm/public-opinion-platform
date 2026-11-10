@@ -100,6 +100,38 @@ interface Activity {
   limitations: string[];
 }
 
+interface ActorTally {
+  key: string;
+  name: string;
+  role: string | null;
+  level: string;
+  n: number;
+  scored: number;
+  sentiment: number | null;
+}
+
+/** Peta aktor + kutipan liputan; lihat GET .../signals/actors. */
+interface ActorsBySource {
+  source: SignalSource;
+  method: string;
+  n_total: number;
+  n_with_actor: number;
+  actors: ActorTally[];
+  levels: ActorTally[];
+  quotes: {
+    text: string;
+    speaker: string | null;
+    published_at: string;
+    source_url: string | null;
+  }[];
+  quotes_total: number;
+}
+
+interface Actors {
+  by_source: ActorsBySource[];
+  limitations: string[];
+}
+
 interface ClassMetrics {
   precision: number;
   recall: number;
@@ -262,6 +294,7 @@ export default async function SinyalPage({
     emotions,
     activity,
     corrections,
+    actors,
   ] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q()}`),
     // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
@@ -280,6 +313,7 @@ export default async function SinyalPage({
     apiOrNullLenient<EmotionSummary>(`/projects/${projectId}/signals/emotions${q()}`),
     apiOrNullLenient<Activity>(`/projects/${projectId}/signals/activity${q({ tz: win.zone })}`),
     apiOrNullLenient<CorrectionQuality[]>(`/projects/${projectId}/signals/correction-quality`),
+    apiOrNullLenient<Actors>(`/projects/${projectId}/signals/actors${q()}`),
   ]);
 
   /** Tautan halaman daftar konten yang mempertahankan periode dan filter. */
@@ -683,6 +717,134 @@ export default async function SinyalPage({
               })}
               <ul className="nolist" style={{ marginTop: 14 }}>
                 {activity.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <Panel kicker="Aktor & kutipan" title="Siapa yang disebut">
+          {!actors ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : actors.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              {actors.by_source.map((a) => {
+                const color = SOURCE[a.source].color;
+                const top = Math.max(1, ...a.actors.map((t) => t.n));
+                return (
+                  <div key={a.source} className="act-block">
+                    <div className="kicker" style={{ marginBottom: 10 }}>
+                      <span className="pill" style={{ color }}>{SOURCE[a.source].label}</span>{" "}
+                      {a.n_with_actor.toLocaleString("id-ID")} dari{" "}
+                      {a.n_total.toLocaleString("id-ID")} konten menyebut aktor bernama
+                    </div>
+                    {a.actors.length === 0 ? (
+                      <InsufficientData reason="Tidak ada aktor dari daftar yang disebut pada periode ini." />
+                    ) : (
+                      <div className="grid-2">
+                        <table className="tbl">
+                          <thead>
+                            <tr>
+                              <th>Aktor</th>
+                              <th>Disebut</th>
+                              <th>Nada konten</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {a.actors.slice(0, 10).map((t) => (
+                              <tr key={t.key}>
+                                <td>
+                                  {t.name}
+                                  <div className="proj-s">{t.role}</div>
+                                  <div className="bar100" style={{ marginTop: 5 }}>
+                                    <div style={{ width: `${(t.n / top) * 100}%`, background: color }} />
+                                  </div>
+                                </td>
+                                <td className="mono">{t.n.toLocaleString("id-ID")}</td>
+                                <td className="mono">
+                                  {t.sentiment === null
+                                    ? `belum cukup (n ${t.scored})`
+                                    : `${formatSentiment(t.sentiment)} (n ${t.scored})`}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <table className="tbl">
+                          <thead>
+                            <tr>
+                              <th>Tingkat kekuasaan</th>
+                              <th>Disebut</th>
+                              <th>Nada konten</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {a.levels.map((t) => (
+                              <tr key={t.key}>
+                                <td>{t.name}</td>
+                                <td className="mono">{t.n.toLocaleString("id-ID")}</td>
+                                <td className="mono">
+                                  {t.sentiment === null
+                                    ? `belum cukup (n ${t.scored})`
+                                    : `${formatSentiment(t.sentiment)} (n ${t.scored})`}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                    {a.source === "MEDIA" && (
+                      <div style={{ marginTop: 16 }}>
+                        <div className="kicker" style={{ marginBottom: 8 }}>
+                          Kutipan langsung di liputan ({a.quotes_total})
+                        </div>
+                        {a.quotes.length === 0 ? (
+                          <div className="proj-s">
+                            Tidak ada kutipan bertanda petik di judul atau ringkasan pada periode ini.
+                          </div>
+                        ) : (
+                          <ul className="quotes">
+                            {a.quotes.map((qt, i) => (
+                              <li key={i}>
+                                “{qt.text}”
+                                <div className="proj-s">
+                                  {qt.speaker ?? "penutur tidak disebut di ringkasan"} ·{" "}
+                                  {qt.published_at.slice(0, 10)}
+                                  {qt.source_url && (
+                                    <>
+                                      {" · "}
+                                      <a
+                                        href={qt.source_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ color }}
+                                      >
+                                        sumber ↗
+                                      </a>
+                                    </>
+                                  )}
+                                </div>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                    <Provenance
+                      method={a.method}
+                      n={a.n_total}
+                      confidence="Rendah"
+                      limits="Nada konten yang menyebut aktor, bukan nada terhadap aktornya."
+                    />
+                  </div>
+                );
+              })}
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {actors.limitations.map((l) => (
                   <li key={l}>{l}</li>
                 ))}
               </ul>

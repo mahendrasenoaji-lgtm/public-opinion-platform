@@ -65,7 +65,8 @@ from app.models.measurement import SignalSource as ModelSignalSource
 from app.models.project import Project
 from app.models.signal import DataSource, Mention
 from app.schemas.common import Metric, SignalSource
-from app.services import rescoring, signal_stats
+from app.services import actors as actors_svc
+from app.services import news_quotes, rescoring, signal_stats
 from app.services import sentiment as sentiment_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
@@ -490,6 +491,44 @@ class ActivityOut(BaseModel):
     timezone: str
     weekdays: list[str]
     by_source: list[ActivityBySource]
+    limitations: list[str]
+
+
+class ActorTallyOut(BaseModel):
+    key: str
+    name: str
+    #: Jabatan publik (aktor bernama) atau None (tingkat kekuasaan).
+    role: str | None
+    level: str
+    n: int
+    scored: int
+    #: Rata-rata nada KONTEN yang menyebutnya; None di bawah ambang publikasi.
+    sentiment: float | None
+
+
+class QuoteOut(BaseModel):
+    text: str
+    speaker: str | None
+    published_at: datetime
+    source_url: str | None
+
+
+class ActorsBySource(BaseModel):
+    source: SignalSource
+    method: str
+    n_total: int
+    n_with_actor: int
+    actors: list[ActorTallyOut]
+    levels: list[ActorTallyOut]
+    #: Hanya liputan: kutipan langsung yang tertulis di judul/ringkasan.
+    quotes: list[QuoteOut]
+    quotes_total: int
+
+
+class ActorsOut(BaseModel):
+    period_start: date
+    period_end: date
+    by_source: list[ActorsBySource]
     limitations: list[str]
 
 
@@ -2351,6 +2390,116 @@ async def emotion_summary(
         period_end=until.date(),
         by_source=by_source,
         limitations=_EMOTION_LIMITATIONS,
+    )
+
+
+#: Kutipan terbanyak yang dikembalikan (terbaru dulu).
+MAX_QUOTES = 20
+
+_ACTOR_METHOD = (
+    "pencocokan nama dan julukan pejabat publik, lembaga, dan partai dari daftar tetap "
+    "(services/actors.py, jabatan per Oktober 2026); nada = rata-rata skor konten yang "
+    "menyebutnya"
+)
+
+_ACTOR_LIMITATIONS = [
+    "Menyebut tidak sama dengan menyalahkan. Nada yang tampil adalah nada konten yang "
+    "menyebut aktor itu, bukan nada terhadap aktornya; konten yang menyebut dua aktor "
+    "dihitung untuk keduanya.",
+    "Daftar aktor disusun untuk isu energi dan pemerintahan per Oktober 2026. Tokoh di luar "
+    "daftar tidak terhitung, dan jabatan bisa sudah berganti.",
+    "Hanya pejabat publik, lembaga, dan partai yang dipetakan. Tidak ada penilaian tentang "
+    "akun yang menulis.",
+    "Kutipan diambil dari tanda petik di judul dan ringkasan feed, bukan dari badan artikel; "
+    "penutur dicatat hanya bila teksnya menyebutkannya.",
+]
+
+
+@router.get("/projects/{project_id}/signals/actors", response_model=ActorsOut)
+async def actor_summary(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+) -> ActorsOut:
+    """Siapa yang disebut, di tingkat kekuasaan mana, dan kutipan dari liputan."""
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(
+                select(
+                    Mention.source,
+                    Mention.text,
+                    Mention.sentiment,
+                    Mention.published_at,
+                    Mention.url,
+                    Mention.external_id,
+                ),
+                project_id,
+                since,
+                until,
+            )
+            .where(Mention.source.in_(_SENTIMENT_SOURCES))
+            .order_by(Mention.published_at.desc())
+        )
+    ).all()
+
+    def _out(tally: actors_svc.Tally, *, named: bool) -> ActorTallyOut:
+        actor = actors_svc.actor(tally.key) if named else None
+        return ActorTallyOut(
+            key=tally.key,
+            name=actor.name if actor else tally.key,
+            role=actor.role if actor else None,
+            level=actor.level if actor else tally.key,
+            n=tally.n,
+            scored=tally.scored,
+            sentiment=tally.mean if tally.scored >= MIN_MENTIONS_FOR_AGGREGATE else None,
+        )
+
+    by_source: list[ActorsBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        mine = [r for r in rows if r.source is src]
+        if not mine:
+            continue
+        stats = actors_svc.summarize(
+            (r.text, None if r.sentiment is None else float(r.sentiment)) for r in mine
+        )
+        quotes: list[QuoteOut] = []
+        quotes_total = 0
+        if src is ModelSignalSource.MEDIA:
+            for r in mine:
+                for quote in news_quotes.extract_quotes(r.text):
+                    quotes_total += 1
+                    if len(quotes) < MAX_QUOTES:
+                        source_url, _ = _recover_source_url(r.url, r.external_id)
+                        quotes.append(
+                            QuoteOut(
+                                text=quote.text,
+                                speaker=quote.speaker,
+                                published_at=r.published_at,
+                                source_url=source_url,
+                            )
+                        )
+        by_source.append(
+            ActorsBySource(
+                source=SignalSource(src.value),
+                method=_ACTOR_METHOD,
+                n_total=stats.n_total,
+                n_with_actor=stats.n_with_actor,
+                actors=[_out(t, named=True) for t in stats.actors],
+                levels=[_out(t, named=False) for t in stats.levels],
+                quotes=quotes,
+                quotes_total=quotes_total,
+            )
+        )
+
+    return ActorsOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        by_source=by_source,
+        limitations=_ACTOR_LIMITATIONS,
     )
 
 
