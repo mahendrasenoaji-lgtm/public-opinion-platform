@@ -43,7 +43,7 @@ ada sejak Oktober (kartu sentimen per sumber + komposisi sumber). Semuanya di ha
 termasuk tes isolasi tenant untuk semua endpoint baru; `ruff`, `mypy --strict`, `tsc`, `vitest`
 (42), dan `next build` bersih. Dicoba langsung di browser terhadap API lokal berisi 2.985 komentar
 contoh BBM Bali: periode 11–20 Okt, zona WITA, kartu emosi, peta jam (puncak Kamis 19.00 WITA),
-dan satu koreksi manual (positif +0,60 → negatif, bertanda `manual`, lalu terbaca di ringkasan).
+dan satu koreksi manual (positif +0,60 → negatif, bertanda `manual`, lalu terbaca di ringkasan). Panel aktor juga dilihat di browser (547 dari 2.985 komentar contoh menyebut aktor; tiga berita contoh buatan untuk kutipan).
 **Belum diverifikasi di production** sampai PR-nya digabung dan Render selesai deploy.
 
 **Basis data uji lokal tanpa Docker dan tanpa pgvector** (dipakai sesi ini, bisa diulang):

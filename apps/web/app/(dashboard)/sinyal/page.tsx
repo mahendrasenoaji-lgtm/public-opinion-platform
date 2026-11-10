@@ -744,7 +744,7 @@ export default async function SinyalPage({
                     {a.actors.length === 0 ? (
                       <InsufficientData reason="Tidak ada aktor dari daftar yang disebut pada periode ini." />
                     ) : (
-                      <div className="grid-2">
+                      <div className="grid-2" style={{ alignItems: "start" }}>
                         <table className="tbl">
                           <thead>
                             <tr>
