@@ -12,6 +12,14 @@ import { getCurrentProject } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import type { CollectorTokenStatus } from "./actions";
 import { SENTIMENT_LIMITS, formatSentiment, sentimentCards } from "./sentiment";
+import {
+  EMOTION_LABELS,
+  ZONES,
+  heatOpacity,
+  hourLabel,
+  parseWindow,
+  windowQuery,
+} from "./window";
 
 //: Cermin RANK[RESEARCHER]/RANK[RESEARCH_DIRECTOR] di app/deps.py + tiap
 //: dependencies=[Depends(require_role(...))] di app/routers/signals.py.
@@ -41,6 +49,54 @@ interface TrendPoint {
   volume: number;
   sentiment: number | null;
   scored: number;
+}
+
+/** Sebaran penanda emosi satu sumber; lihat GET .../signals/emotions. */
+interface EmotionBySource {
+  source: SignalSource;
+  method: string;
+  n_total: number;
+  n_with_emotion: number;
+  coverage: number;
+  share: Record<string, number> | null;
+  dominant: Record<string, number> | null;
+  insufficient_data: boolean;
+  note: string | null;
+}
+
+interface EmotionSummary {
+  by_source: EmotionBySource[];
+  limitations: string[];
+}
+
+interface ActivityBySource {
+  source: SignalSource;
+  method: string;
+  n: number;
+  engagement_total: number;
+  n_with_engagement: number;
+  by_day: { day: string; volume: number; engagement: number }[];
+  /** heatmap[hari][jam]; hari 0 = Senin. */
+  heatmap: number[][];
+  by_hour: number[];
+  peak_weekday: number | null;
+  peak_hour: number | null;
+  peak_count: number | null;
+  top: {
+    id: string;
+    text: string;
+    published_at: string;
+    engagement: number;
+    sentiment: number | null;
+    source_url: string | null;
+  }[];
+}
+
+interface Activity {
+  timezone: string;
+  weekdays: string[];
+  by_source: ActivityBySource[];
+  limitations: string[];
 }
 
 interface ClassMetrics {
@@ -145,8 +201,14 @@ const BACKEND_TERTINGGAL =
   "backend belum selesai dideploy setelah rilis frontend — coba lagi beberapa " +
   "menit lagi.";
 
-export default async function SinyalPage() {
+export default async function SinyalPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
+  const win = parseWindow(await searchParams);
+  const q = (extra: Record<string, string> = {}) => windowQuery(win, extra);
 
   // SEMUA panggilan pakai apiOrNullLenient, termasuk dua yang secara logika "selalu
   // ada" (sentiment-quality dan daftar konektor tidak bergantung pada data
@@ -168,18 +230,25 @@ export default async function SinyalPage() {
     connectors,
     mentions,
     tokenStatus,
+    emotions,
+    activity,
   ] = await Promise.all([
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q()}`),
     // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
     // hanya dipakai untuk volume, komposisi, dan sebaran akun.
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=SOCIAL`),
-    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary?source=MEDIA`),
-    apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend`),
+    apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q({ source: "SOCIAL" })}`,
+    ),
+    apiOrNullLenient<SignalSummary>(
+      `/projects/${projectId}/signals/summary${q({ source: "MEDIA" })}`,
+    ),
+    apiOrNullLenient<TrendPoint[]>(`/projects/${projectId}/signals/trend${q()}`),
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
     apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
-    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions?limit=20`),
+    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions${q({ limit: "20" })}`),
     apiOrNullLenient<CollectorTokenStatus>(`/projects/${projectId}/signals/collector-token`),
+    apiOrNullLenient<EmotionSummary>(`/projects/${projectId}/signals/emotions${q()}`),
+    apiOrNullLenient<Activity>(`/projects/${projectId}/signals/activity${q({ tz: win.zone })}`),
   ]);
 
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -198,6 +267,45 @@ export default async function SinyalPage() {
     <>
       <PageHeader kicker="Sinyal & Sentimen" title={name} isDemo={isDemo} />
       <div className="body">
+        {/* Form GET polos: periode hidup di URL, jadi bisa dibagikan dan
+            tidak butuh komponen klien. Kosongkan kedua tanggal = 30 hari
+            terakhir (perilaku bawaan backend). */}
+        <form method="get" className="period-bar">
+          <label className="field">
+            <span className="kicker">Dari</span>
+            <input type="date" name="dari" defaultValue={win.start ?? ""} />
+          </label>
+          <label className="field">
+            <span className="kicker">Sampai</span>
+            <input type="date" name="sampai" defaultValue={win.end ?? ""} />
+          </label>
+          <label className="field">
+            <span className="kicker">Zona jam ramai</span>
+            <select name="zona" defaultValue={win.zone}>
+              {ZONES.map((z) => (
+                <option key={z} value={z}>
+                  {z}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" className="btn btn-sm">
+            Terapkan
+          </button>
+          {(win.start || win.error) && (
+            <a className="btn btn-ghost btn-sm" href={`?zona=${win.zone}`}>
+              30 hari terakhir
+            </a>
+          )}
+          <span className="proj-s period-now">
+            {win.error
+              ? `${win.error} Menampilkan 30 hari terakhir.`
+              : summary
+                ? `Periode tampil: ${summary.period_start} s.d. ${summary.period_end} (UTC)`
+                : ""}
+          </span>
+        </form>
+
         <section className="stat-row">
           <div className="stat stat-big">
             <div className="kicker">Volume percakapan</div>
@@ -337,6 +445,206 @@ export default async function SinyalPage() {
           </Panel>
         </div>
 
+        <Panel kicker="Emosi" title="Penanda emosi per sumber">
+          {!emotions ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : emotions.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              <div className="grid-2">
+                {emotions.by_source.map((e) => {
+                  const color = SOURCE[e.source].color;
+                  return (
+                    <div key={e.source}>
+                      <div className="kicker" style={{ marginBottom: 10 }}>
+                        <span className="pill" style={{ color }}>{SOURCE[e.source].label}</span>{" "}
+                        {e.n_with_emotion.toLocaleString("id-ID")} dari{" "}
+                        {e.n_total.toLocaleString("id-ID")} konten memuat penanda (
+                        {(e.coverage * 100).toFixed(1)}%)
+                      </div>
+                      {e.share === null ? (
+                        <InsufficientData reason={e.note ?? "Belum cukup konten berpenanda emosi."} />
+                      ) : (
+                        <div className="dq">
+                          {EMOTION_LABELS.map(([key, label]) => {
+                            const share = e.share?.[key] ?? 0;
+                            return (
+                              <div key={key} className="dq-row dq-row-wide">
+                                <span>{label}</span>
+                                <div className="bar100">
+                                  <div style={{ width: `${share * 100}%`, background: color }} />
+                                </div>
+                                <b>{(share * 100).toFixed(1)}%</b>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <Provenance
+                        method={e.method}
+                        n={e.n_with_emotion}
+                        confidence="Rendah"
+                        limits="Porsi di antara konten berpenanda saja, bukan seluruh konten."
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {emotions.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
+        <Panel
+          kicker="Engagement & jam ramai"
+          title="Kapan percakapan terjadi"
+          right={activity && <span className="pill pill-warn">{activity.timezone}</span>}
+        >
+          {!activity ? (
+            <InsufficientData reason={BACKEND_TERTINGGAL} />
+          ) : activity.by_source.length === 0 ? (
+            <InsufficientData reason="Belum ada konten pada periode ini." />
+          ) : (
+            <>
+              {activity.by_source.map((a) => {
+                const color = SOURCE[a.source].color;
+                const max = Math.max(1, ...a.heatmap.flat());
+                const peakDay = Math.max(1, ...a.by_day.map((d) => d.engagement));
+                return (
+                  <div key={a.source} className="act-block">
+                    <div className="fc-out" style={{ marginTop: 0, borderTop: 0, paddingTop: 0 }}>
+                      <div>
+                        <span className="kicker">
+                          <span className="pill" style={{ color }}>{SOURCE[a.source].label}</span>{" "}
+                          Konten
+                        </span>
+                        <b>{a.n.toLocaleString("id-ID")}</b>
+                      </div>
+                      <div>
+                        <span className="kicker">Total engagement</span>
+                        <b>
+                          {a.n_with_engagement === 0
+                            ? "tidak dilaporkan"
+                            : a.engagement_total.toLocaleString("id-ID")}
+                        </b>
+                      </div>
+                      <div>
+                        <span className="kicker">Konten dengan engagement</span>
+                        <b>{a.n_with_engagement.toLocaleString("id-ID")}</b>
+                      </div>
+                      <div>
+                        <span className="kicker">Jam paling ramai</span>
+                        <b>
+                          {a.peak_hour === null || a.peak_weekday === null
+                            ? "-"
+                            : `${activity.weekdays[a.peak_weekday]} ${hourLabel(a.peak_hour)}`}
+                        </b>
+                      </div>
+                    </div>
+
+                    <div className="heat" role="img" aria-label={`Peta jam terbit konten ${SOURCE[a.source].label}, ${activity.timezone}`}>
+                      <div className="heat-row heat-head">
+                        <span />
+                        {a.by_hour.map((_, h) => (
+                          <span key={h}>{h % 3 === 0 ? String(h).padStart(2, "0") : ""}</span>
+                        ))}
+                      </div>
+                      {a.heatmap.map((hours, d) => (
+                        <div className="heat-row" key={d}>
+                          <span className="heat-day">{activity.weekdays[d]}</span>
+                          {hours.map((count, h) => (
+                            <span
+                              key={h}
+                              className="heat-cell"
+                              title={`${activity.weekdays[d]} ${hourLabel(h)} ${activity.timezone}: ${count} konten`}
+                            >
+                              <i style={{ background: color, opacity: heatOpacity(count, max) }} />
+                            </span>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+
+                    {a.n_with_engagement > 0 && (
+                      <div className="grid-2" style={{ marginTop: 16 }}>
+                        <div>
+                          <div className="kicker" style={{ marginBottom: 8 }}>
+                            Engagement per hari ({activity.timezone})
+                          </div>
+                          <div className="dq">
+                            {a.by_day.slice(-14).map((d) => (
+                              <div key={d.day} className="dq-row dq-row-wide">
+                                <span className="mono">{d.day}</span>
+                                <div className="bar100">
+                                  <div
+                                    style={{
+                                      width: `${(d.engagement / peakDay) * 100}%`,
+                                      background: color,
+                                    }}
+                                  />
+                                </div>
+                                <b>{d.engagement.toLocaleString("id-ID")}</b>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="kicker" style={{ marginBottom: 8 }}>
+                            Konten paling ramai
+                          </div>
+                          <table className="tbl">
+                            <tbody>
+                              {a.top.map((t) => (
+                                <tr key={t.id}>
+                                  <td>
+                                    {t.text.length > 120 ? `${t.text.slice(0, 120)}…` : t.text}
+                                    {t.source_url && (
+                                      <>
+                                        {" "}
+                                        <a
+                                          href={t.source_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{ color }}
+                                        >
+                                          sumber ↗
+                                        </a>
+                                      </>
+                                    )}
+                                  </td>
+                                  <td className="mono" style={{ textAlign: "right" }}>
+                                    {t.engagement.toLocaleString("id-ID")}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+                    <Provenance
+                      method={a.method}
+                      n={a.n}
+                      confidence="Tinggi"
+                      limits="Hitungan jam terbit, bukan jam dibaca. Engagement dicatat saat konten diambil."
+                    />
+                  </div>
+                );
+              })}
+              <ul className="nolist" style={{ marginTop: 14 }}>
+                {activity.limitations.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </Panel>
+
         <Panel kicker="Akuntabilitas riset" title="Item terbaru (untuk validasi manual)">
           {!mentions || mentions.length === 0 ? (
             <InsufficientData reason="Belum ada konten yang bisa ditelusuri untuk proyek ini." />
@@ -403,7 +711,7 @@ export default async function SinyalPage() {
           <p className="note">
             <Info size={13} />
             <span>
-              20 item terbaru, bukan seluruh dataset. Tautan bertanda{" "}
+              20 item terbaru pada periode tampil, bukan seluruh dataset. Tautan bertanda{" "}
               <span className="mono" style={{ fontSize: 10 }}>
                 dari guid feed
               </span>{" "}

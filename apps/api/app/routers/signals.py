@@ -66,6 +66,7 @@ from app.models.project import Project
 from app.models.signal import DataSource, Mention
 from app.schemas.common import Metric, SignalSource
 from app.services import sentiment as sentiment_svc
+from app.services import signal_stats
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
@@ -385,6 +386,69 @@ class SignalTrendPoint(BaseModel):
     volume: int
     sentiment: float | None
     scored: int
+
+
+class EmotionBySource(BaseModel):
+    """Sebaran penanda emosi satu sumber. Bukan klasifikasi per konten."""
+
+    source: SignalSource
+    method: str
+    n_total: int
+    #: Konten yang memuat minimal satu penanda emosi; penyebut `share`.
+    n_with_emotion: int
+    coverage: float
+    #: None bila `n_with_emotion` di bawah ambang publikasi.
+    share: dict[str, float] | None
+    dominant: dict[str, int] | None
+    insufficient_data: bool
+    note: str | None = None
+
+
+class EmotionSummaryOut(BaseModel):
+    period_start: date
+    period_end: date
+    by_source: list[EmotionBySource]
+    limitations: list[str]
+
+
+class DayActivityOut(BaseModel):
+    day: date
+    volume: int
+    engagement: int
+
+
+class TopMentionOut(BaseModel):
+    id: UUID
+    text: str
+    published_at: datetime
+    engagement: int
+    sentiment: float | None
+    source_url: str | None
+
+
+class ActivityBySource(BaseModel):
+    source: SignalSource
+    method: str
+    n: int
+    engagement_total: int
+    n_with_engagement: int
+    by_day: list[DayActivityOut]
+    #: heatmap[hari][jam]; hari 0 = Senin, jam lokal 0..23.
+    heatmap: list[list[int]]
+    by_hour: list[int]
+    peak_weekday: int | None
+    peak_hour: int | None
+    peak_count: int | None
+    top: list[TopMentionOut]
+
+
+class ActivityOut(BaseModel):
+    period_start: date
+    period_end: date
+    timezone: str
+    weekdays: list[str]
+    by_source: list[ActivityBySource]
+    limitations: list[str]
 
 
 class SentimentQuality(BaseModel):
@@ -1584,9 +1648,22 @@ async def rescore(
 # ------------------------------------------------------------- agregasi ----
 
 
-def _window(days: int) -> tuple[datetime, datetime]:
-    end = datetime.now(UTC)
-    return end - timedelta(days=days), end
+def _window(
+    days: int, start: date | None = None, end: date | None = None
+) -> tuple[datetime, datetime]:
+    """Jendela relatif (`days`) atau mutlak (`start` + `end`, keduanya inklusif)."""
+    try:
+        return signal_stats.resolve_window(
+            days=days, start=start, end=end, now=datetime.now(UTC)
+        )
+    except signal_stats.WindowError as e:
+        raise HTTPException(422, str(e)) from e
+
+
+#: Tanggal mutlak untuk data historis. Dipakai berpasangan; bila keduanya
+#: kosong, `days` yang berlaku.
+StartDate = Query(default=None, description="Tanggal awal (UTC, inklusif), bersama `end`")
+EndDate = Query(default=None, description="Tanggal akhir (UTC, inklusif), bersama `start`")
 
 
 def _scoped(query: Select, project_id: UUID, since: datetime, until: datetime) -> Select:
@@ -1604,6 +1681,8 @@ async def summary(
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
     source: SignalSource | None = None,
+    start: date | None = StartDate,
+    end: date | None = EndDate,
 ) -> SignalSummary:
     """Volume dan sentimen agregat untuk satu jendela waktu.
 
@@ -1612,7 +1691,7 @@ async def summary(
     dengan skor provinsi n<250 di opinion.py. Volume tetap ditampilkan: berapa
     banyak yang bicara adalah fakta perhitungan, bukan estimasi.
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
 
     base = _scoped(select(Mention), project_id, since, until)
     if source is not None:
@@ -1764,6 +1843,8 @@ async def trend(
     session: TenantSession,
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=2, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
 ) -> list[SignalTrendPoint]:
     """Volume dan sentimen harian.
 
@@ -1771,7 +1852,7 @@ async def trend(
     konten bernilai — bukan 0.0, yang akan terbaca sebagai "netral hari itu"
     padahal artinya "tidak terukur hari itu".
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
     day = func.date_trunc("day", Mention.published_at).label("day")
     query = (
         _scoped(
@@ -1808,6 +1889,8 @@ async def list_mentions(
     source: SignalSource | None = None,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
 ) -> list[MentionOut]:
     """Daftar item mentah, satu per satu, untuk validasi manual.
 
@@ -1826,7 +1909,7 @@ async def list_mentions(
     dan itu dipulihkan di sini. Kalau keduanya kosong, tetap tampilkan
     "tidak ada URL sumber"; jangan ditebak dari field lain.
     """
-    since, until = _window(days)
+    since, until = _window(days, start, end)
     query = _scoped(select(Mention), project_id, since, until)
     if source is not None:
         query = query.where(Mention.source == ModelSignalSource(source.value))
@@ -1850,6 +1933,175 @@ async def list_mentions(
             )
         )
     return out
+
+
+_SENTIMENT_SOURCES = (ModelSignalSource.SOCIAL, ModelSignalSource.MEDIA)
+
+_EMOTION_LIMITATIONS = [
+    "Porsi penanda kata emosi, bukan klasifikasi emosi. Leksikonnya kecil dan "
+    "berejaan baku, tidak melihat negasi (\"tidak marah\" tetap terhitung marah), "
+    "dan belum dievaluasi terhadap label manusia.",
+    "Porsi dihitung hanya di antara konten yang memuat penanda. Lihat cakupan: "
+    "bila hanya sebagian kecil konten berpenanda, sebaran ini mewakili sebagian "
+    "kecil itu saja.",
+]
+
+
+@router.get("/projects/{project_id}/signals/emotions", response_model=EmotionSummaryOut)
+async def emotion_summary(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+) -> EmotionSummaryOut:
+    """Sebaran penanda emosi per sumber, dari kolom `mentions.emotion`.
+
+    Liputan dan percakapan TIDAK digabung (R1). Sebaran tidak diterbitkan
+    bila konten berpenanda di bawah MIN_MENTIONS_FOR_AGGREGATE; hitungannya
+    tetap dikembalikan supaya pembaca tahu seberapa tipis datanya.
+    """
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(select(Mention.source, Mention.emotion), project_id, since, until).where(
+                Mention.source.in_(_SENTIMENT_SOURCES)
+            )
+        )
+    ).all()
+
+    grouped: dict[ModelSignalSource, list[dict[str, float] | None]] = {}
+    for src, emotion in rows:
+        grouped.setdefault(src, []).append(emotion if isinstance(emotion, dict) else None)
+
+    by_source: list[EmotionBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        if src not in grouped:
+            continue
+        stats = signal_stats.summarize_emotions(grouped[src])
+        enough = stats.n_with_emotion >= MIN_MENTIONS_FOR_AGGREGATE
+        by_source.append(
+            EmotionBySource(
+                source=SignalSource(src.value),
+                method=signal_stats.EMOTION_METHOD,
+                n_total=stats.n_total,
+                n_with_emotion=stats.n_with_emotion,
+                coverage=round(stats.coverage, 4),
+                share=stats.share if enough else None,
+                dominant=stats.dominant if enough else None,
+                insufficient_data=not enough,
+                note=(
+                    None
+                    if enough
+                    else f"Perlu minimal {MIN_MENTIONS_FOR_AGGREGATE} konten berpenanda "
+                    f"emosi; tersedia {stats.n_with_emotion}."
+                ),
+            )
+        )
+
+    return EmotionSummaryOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        by_source=by_source,
+        limitations=_EMOTION_LIMITATIONS,
+    )
+
+
+#: Jumlah konten paling ramai yang dikembalikan per sumber.
+TOP_ENGAGING = 5
+
+_ACTIVITY_LIMITATIONS = [
+    "Engagement adalah angka yang dilaporkan sumbernya saat konten diambil "
+    "(komentar YouTube: suka + balasan). Ia tidak diperbarui sesudahnya dan "
+    "tidak sebanding antarsumber; feed berita umumnya tidak melaporkannya.",
+    "Jam ramai adalah jam TERBIT konten menurut zona waktu yang dipilih, bukan "
+    "jam orang membacanya, dan bukan zona waktu penulisnya.",
+]
+
+
+@router.get("/projects/{project_id}/signals/activity", response_model=ActivityOut)
+async def activity(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+    tz: Literal["WIB", "WITA", "WIT"] = "WIB",
+) -> ActivityOut:
+    """Engagement harian, peta jam ramai, dan konten paling ramai, per sumber."""
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(
+                select(Mention.source, Mention.published_at, Mention.engagement),
+                project_id,
+                since,
+                until,
+            ).where(Mention.source.in_(_SENTIMENT_SOURCES))
+        )
+    ).all()
+
+    grouped: dict[ModelSignalSource, list[tuple[datetime, int]]] = {}
+    for src, published_at, engagement in rows:
+        grouped.setdefault(src, []).append((published_at, engagement))
+
+    by_source: list[ActivityBySource] = []
+    for src in _SENTIMENT_SOURCES:
+        if src not in grouped:
+            continue
+        stats = signal_stats.summarize_activity(grouped[src], tz=tz)
+        top: list[TopMentionOut] = []
+        if stats.n_with_engagement:
+            top_rows = (
+                await session.execute(
+                    _scoped(select(Mention), project_id, since, until)
+                    .where(Mention.source == src, Mention.engagement > 0)
+                    .order_by(Mention.engagement.desc(), Mention.published_at.desc())
+                    .limit(TOP_ENGAGING)
+                )
+            ).scalars()
+            for m in top_rows:
+                source_url, _ = _recover_source_url(m.url, m.external_id)
+                top.append(
+                    TopMentionOut(
+                        id=m.id,
+                        text=m.text,
+                        published_at=m.published_at,
+                        engagement=m.engagement,
+                        sentiment=float(m.sentiment) if m.sentiment is not None else None,
+                        source_url=source_url,
+                    )
+                )
+        by_source.append(
+            ActivityBySource(
+                source=SignalSource(src.value),
+                method=f"hitungan konten dan jumlah engagement per jam terbit ({tz})",
+                n=stats.n,
+                engagement_total=stats.engagement_total,
+                n_with_engagement=stats.n_with_engagement,
+                by_day=[
+                    DayActivityOut(day=d.day, volume=d.volume, engagement=d.engagement)
+                    for d in stats.by_day
+                ],
+                heatmap=stats.heatmap,
+                by_hour=signal_stats.hourly_totals(stats.heatmap),
+                peak_weekday=stats.peak[0] if stats.peak else None,
+                peak_hour=stats.peak[1] if stats.peak else None,
+                peak_count=stats.peak[2] if stats.peak else None,
+                top=top,
+            )
+        )
+
+    return ActivityOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        timezone=tz,
+        weekdays=list(signal_stats.WEEKDAYS),
+        by_source=by_source,
+        limitations=_ACTIVITY_LIMITATIONS,
+    )
 
 
 @router.get(
