@@ -6,6 +6,70 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 10 November 2026: emosi, jam ramai, periode tetap, koreksi manual
+
+**Baca blok ini dulu.** Blok 8 November dan 30 Oktober di bawahnya tetap berlaku
+(penilai `informal-4`; pengumpulan terjadwal mati).
+
+Pekerjaan dari `docs/benchmark-nolimit.md`: **P1, P3, P4** dikerjakan, **P2** ternyata sudah
+ada sejak Oktober (kartu sentimen per sumber + komposisi sumber). Semuanya di halaman
+**Sinyal & Sentimen**, **tanpa migrasi basis data**.
+
+| Apa | Di mana | Catatan |
+|---|---|---|
+| Periode tanggal tetap | bilah di atas `/sinyal` (`?dari=…&sampai=…&zona=…`); API: `start` + `end` di `summary`, `trend`, `mentions`, `emotions`, `activity` | Menjawab celah 5 Nov: data BBM Bali (11–20 Okt) tidak lagi hilang dari tampilan sesudah 30 hari. Tanggal dalam UTC. Halaman lain (Tema, Command Center, dst.) MASIH jendela relatif |
+| Kartu emosi (P1) | `GET /signals/emotions`, `services/signal_stats.py` | Per sumber, tidak digabung. Sebaran ditahan bila konten berpenanda < 30. Cakupan leksikonnya kecil: pada 2.985 komentar contoh BBM Bali hanya 5,0% yang memuat penanda |
+| Engagement dan jam ramai (P3) | `GET /signals/activity?tz=WIB\|WITA\|WIT` | Peta jam terbit 7×24, engagement per hari, 5 konten paling ramai. Engagement = angka saat konten diambil |
+| Koreksi sentimen manual (P4) | `PUT/DELETE /mentions/{id}/sentiment`, `POST /mentions/sentiment-bulk`, `GET /signals/correction-quality`; tombol di tabel "Konten" `/sinyal` | Lihat di bawah |
+| Saring konten | `mentions?q=…&label=negatif\|netral\|positif\|abstain`; kolom "Cari teks" + "Nada" + halaman | 20 konten per halaman |
+
+**Cara kerja koreksi manual (keputusan desain, supaya tidak dirombak tanpa sengaja):**
+
+- Manusia memberi LABEL (negatif / netral / positif). Label disimpan di kolom yang sudah ada:
+  `sentiment` = nilai wakil (−0,5 / 0 / +0,5) dan `sentiment_model = "manual-1"`. Karena itu
+  **tidak ada kolom baru dan tidak ada migrasi** (kolom versi penilai sudah masuk 12 Okt).
+- Label manual **menang atas penilaian ulang**: `rescore` melewatinya dan `remaining` tetap bisa nol.
+- Skor mesin yang digantikan: untuk komentar diarsipkan di `sentiment_alt` (aturan yang sama dengan
+  rescore); untuk liputan `sentiment_alt` tetap skor ragam berita. "Batal" menghitung ulang skor
+  mesin dari teks.
+- Setiap koreksi dan pembatalan masuk `audit_logs` (`sentiment_correct` / `sentiment_revert`,
+  dengan skor asal dan pelakunya). Peran minimal: RESEARCHER.
+- Ringkasan sentimen menyebut jumlah konten berlabel manual di daftar batasannya.
+- `correction-quality` membandingkan penilai otomatis TERKINI dengan label manusia. Angkanya baru
+  terbit pada ≥ 30 konten, dan selalu membawa peringatan bahwa ini bukan sampel acak.
+
+**Bukti:** 850 tes backend lulus terhadap Postgres lokal dengan RLS aktif (role `pop_app`),
+termasuk tes isolasi tenant untuk semua endpoint baru; `ruff`, `mypy --strict`, `tsc`, `vitest`
+(42), dan `next build` bersih. Dicoba langsung di browser terhadap API lokal berisi 2.985 komentar
+contoh BBM Bali: periode 11–20 Okt, zona WITA, kartu emosi, peta jam (puncak Kamis 19.00 WITA),
+dan satu koreksi manual (positif +0,60 → negatif, bertanda `manual`, lalu terbaca di ringkasan).
+**Belum diverifikasi di production** sampai PR-nya digabung dan Render selesai deploy.
+
+**Basis data uji lokal tanpa Docker dan tanpa pgvector** (dipakai sesi ini, bisa diulang):
+
+```bash
+createdb pop_local_test
+sed -e '/CREATE EXTENSION.*vector/d' -e 's/vector(1024)/text/g' db/schema.sql \
+  | grep -v "ivfflat\|vector_cosine_ops" | psql -d pop_local_test -v ON_ERROR_STOP=1 -q
+psql -d pop_local_test -v ON_ERROR_STOP=1 -q -f db/rls.sql
+cd apps/api && TEST_DATABASE_URL_APP=postgresql+asyncpg://pop_app:change-me@localhost:5432/pop_local_test \
+  JWT_SECRET=test-secret-for-unit-tests .venv-test/bin/python -m pytest -q
+```
+
+Untuk melihat halaman secara lokal pakai `http://localhost:…`, bukan `127.0.0.1`: Next dev
+memblokir sumber daya dev lintas-origin, jadi di `127.0.0.1` halaman tampil tetapi tombol
+(komponen klien) tidak hidup.
+
+**Yang masih terbuka sesudah sesi ini** (urut; rincian di `docs/benchmark-nolimit.md` bagian 3):
+
+1. Verifikasi production sesudah merge: buka `/sinyal` proyek BBM Bali dengan
+   `?dari=2026-10-11&sampai=2026-10-20&zona=WITA`.
+2. P5 evaluasi leksikon emosi: butuh label manusia. Cakupan 5% menunjukkan leksikon emosi perlu
+   diperluas ke ragam informal lebih dulu.
+3. P6 tokoh/organisasi/kutipan dari berita; P11 estimasi gender/umur/minat (sudah diizinkan).
+4. Jendela tanggal tetap untuk halaman selain `/sinyal`.
+5. Menunggu pengguna: P0 `ANTHROPIC_API_KEY` di Render, P8 kanal alert, P9 format laporan, P10 X API.
+
 # 🟢 MULAI DARI SINI — 8 November 2026: kamus informal-4, peta aktor, BBM Bali dinilai ulang
 
 - Penilai SOCIAL kini `lexicon-id-1+informal-4`: bahasa daerah (`services/regional.py`, PR #48) dan
@@ -13,7 +77,7 @@
   Pembaca komentar LLM: `app/ai/comment_reader.py` (belum aktif; `ANTHROPIC_API_KEY` belum di Render).
 - Proyek KELANGKAAN BBM BALI dinilai ulang ke informal-4 (19.828 dari 35.772 dinilai, rata-rata −0,35).
   Proyek lain sengaja tidak dinilai ulang (keputusan pengguna), jadi deret sosialnya campuran versi.
-- Semua PR (#48–#51) digabung; tidak ada PR terbuka. Rincian, cara membangun ulang laporan/deck/Excel,
+- Semua PR (#48–#51) digabung. Rincian, cara membangun ulang laporan/deck/Excel,
   dan daftar yang masih terbuka: `proyek/bbm-bali-youtube/PROGRESS.md`, blok "Mulai dari sini" butir 3.
 
 # 🟢 MULAI DARI SINI — 5 November 2026: proyek KELANGKAAN BBM BALI + unggah JSON

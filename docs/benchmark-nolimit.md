@@ -104,6 +104,13 @@ ambil yang memperkuat riset dan yang datanya sudah ada.
 Urutan berdasarkan: dampak untuk riset × seberapa banyak yang sudah ada ×
 risiko. Ukuran: **S** ≤ 1 sesi, **M** 2–3 sesi, **L** > 3 sesi.
 
+> **Status 2026-11-10.** P1, P3, dan P4 selesai dikerjakan; P2 ternyata sudah ada
+> (kartu sentimen per sumber sejak 12 Okt). Ditambah satu hal di luar daftar: periode
+> tanggal tetap di `/sinyal`. P4 dibuat **tanpa kolom baru** (label manual memakai
+> `sentiment_model = "manual-1"`), jadi catatan migrasi di baris P4 tidak berlaku lagi.
+> Rincian dan bukti: blok 10 November di `docs/deployment-status.md`. Berikutnya: P5
+> (butuh label manusia), P6, P11.
+
 ### Tahap A — data sudah ada, tinggal ditampilkan
 
 | # | Pekerjaan | Ukuran | Kenapa | Titik mulai | Selesai bila |
@@ -178,7 +185,7 @@ git pull
 open docs/benchmark-nolimit.md           # dokumen ini
 ```
 
-Mulai dari **P1** (paling kecil, data sudah ada), lalu P2 → P3. P4 adalah
-fitur terbesar di tahap B; baca catatan migrasinya dulu. Urutan kerja umum
+P1–P4 selesai (lihat status 10 November di bagian 3). Lanjut dari **P6** atau
+**P11**; P5 butuh label manusia lebih dulu. Urutan kerja umum
 tetap: `docs/deployment-status.md` (blok MULAI DARI SINI) → `CLAUDE.md` →
 dokumen ini.

@@ -11,7 +11,12 @@ pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 1. Komputer lain: clone/`git pull` repo `mahendrasenoaji-lgtm/public-opinion-platform` dan buka folder ini
    (`proyek/bbm-bali-youtube/`). Semua pekerjaan BBM Bali sudah ada di `main`.
 2. Sebelum kerja: `git pull`. Sesudah kerja: commit + push lewat PR, seperti bagian lain repo.
-3. **Status terkini — 8 Nov 2026 (akhir): semua di `main`, tidak ada PR terbuka.**
+3. **Tambahan 10 Nov 2026:** halaman Sinyal platform kini punya periode tanggal tetap. Untuk
+   proyek ini buka `/sinyal?dari=2026-10-11&sampai=2026-10-20&zona=WITA` (data Oktober tidak
+   lagi hilang sesudah 30 hari), plus kartu emosi, peta jam ramai, dan koreksi sentimen manual
+   per komentar. Rincian: blok 10 November di `docs/deployment-status.md`.
+
+   **Status 8 Nov 2026 (akhir): semua di `main`.**
    - Penilai platform: `lexicon-id-1+informal-4` = kamus baku + ragam informal + bahasa daerah
      (`apps/api/app/services/regional.py`) + pola frasa (`phrases.py`). Peta aktor: `actors.py`.
      Pembaca AI: `apps/api/app/ai/comment_reader.py` (BELUM jalan, butuh `ANTHROPIC_API_KEY` di Render).

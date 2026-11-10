@@ -1,7 +1,12 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-10-30: **pengumpulan sinyal terjadwal DIHENTIKAN**
+menahannya.** Diperbarui 2026-11-10: halaman Sinyal mendapat periode tanggal tetap,
+kartu emosi, engagement dan jam ramai, serta koreksi sentimen manual per konten (label
+manusia menang atas penilaian ulang, tercatat di audit log, tanpa migrasi). Teruji
+terhadap Postgres lokal dengan RLS aktif dan dicoba di browser lokal; **belum live
+production** sampai PR-nya digabung. Rincian: blok 10 November di kepala
+`docs/deployment-status.md`. Sebelumnya 2026-10-30: **pengumpulan sinyal terjadwal DIHENTIKAN**
 atas permintaan pengguna karena data sudah cukup untuk diolah. Workflow
 `collect-signals.yml` dan `keepalive.yml` dinonaktifkan lewat pengaturan GitHub
 Actions (`gh workflow disable`), kodenya tidak diubah. Data yang sudah masuk tetap
