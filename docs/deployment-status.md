@@ -6,7 +6,63 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 10 November 2026: emosi, jam ramai, periode tetap, koreksi manual, aktor
+# 🟢 MULAI DARI SINI — 10 November 2026 (sore): Laporan Percakapan + leksikon emosi `emosi-id-2`
+
+**Baca blok ini dulu.** Blok 10 November (pagi) di bawahnya tetap berlaku.
+
+Pemicu: pengguna meminta alur kerja laporan Drone Emprit
+(`pers.droneemprit.id/sentimen-publik-terhadap-salam-tiga-jari/`, 49 subbab tanya-jawab)
+ditiru di platform. Yang ditiru adalah ALUR dan JENIS KELUARANNYA. Artikel itu sendiri tidak
+menjelaskan metode, jumlah mention, atau persentase; platform ini tetap menampilkan n, metode,
+dan batasan di setiap jawaban. **Tanpa migrasi basis data.**
+
+| Apa | Di mana | Catatan |
+|---|---|---|
+| Halaman **Laporan Percakapan** | `/laporan` (menu Sinyal), `apps/web/app/(dashboard)/laporan/` | 11 pertanyaan berurutan: metode, lonjakan, sentimen, emosi, aktor, isu, media, konten teratas, kata/tagar/emoji, keterpusatan, batasan. Periode sama dengan `/sinyal` (`?dari=&sampai=&zona=`). Tombol "Cetak / simpan PDF" memakai dialog cetak peramban (ada CSS cetak) |
+| Bahan laporan | `GET /projects/{id}/signals/report?start=&end=&tz=`, `services/conversation_report.py` | Per sumber, tidak digabung (R1): kata, tagar, emoji teratas (jumlah KONTEN yang memuatnya); sentimen harian (ditahan < 30 konten bernilai); hari lonjakan; media per domain; tema dengan jumlah engagement |
+| Lonjakan | sama | Hari dengan volume minimal 1,5 kali median harian sumber itu, paling banyak tiga. Disertai konten paling banyak interaksi hari itu dan **liputan yang terbit pada hari yang sama**. Itu kebersamaan waktu, BUKAN penyebab (CLAUDE.md §3); kalimat itu tampil di halaman |
+| Isu dibicarakan vs berinteraksi | pertanyaan 6 | Memakai `topic_id` hasil penemuan tema terakhir. Kosong ("data tidak cukup") sampai tombol penemuan tema di `/tema` dijalankan untuk proyek itu |
+| Leksikon emosi `emosi-id-2` | `services/emotion.py`; dipakai `GET /signals/emotions` | Lihat di bawah |
+
+**Leksikon emosi baru (menjawab sebagian P5/P1):**
+
+- `lexicon-id-1` hanya mengenai 5,1% dari 36.319 komentar BBM Bali. `emosi-id-2` mengenai
+  **26,2%** (9.515 komentar): kosakata ragam cakap, emoji, frasa dua kata, kategori ketujuh
+  **Harapan** (`anticipation`), dan negasi satu kata ("tidak marah" tidak dihitung marah).
+- **Dihitung saat dibaca dari teks**, bukan dari kolom `mentions.emotion`. Kolom itu tetap
+  berisi hasil `lexicon-id-1` dari saat ingest dan sengaja tidak ditulis ulang. Tidak perlu
+  rescore.
+- Yang sengaja TIDAK dimasukkan karena ambigu di kolom komentar: emoji tertawa (😂 🤣, lebih
+  sering ejekan daripada gembira), "gila", "parah", "anjir", "mundur", "nanti", "minta", "susah".
+  Versi pertama yang memuatnya mencapai 40,8% tetapi "Senang" jadi emosi teratas pada data yang
+  73% negatif; itu dibuang.
+- API kini mengembalikan `markers` per emosi (penanda tersering + jumlah konten), supaya
+  pembaca melihat dari kata apa sebuah emosi terbaca.
+- **Belum dievaluasi terhadap label manusia.** P5 tetap terbuka; pemeriksaan sesi ini hanya
+  baca-acak ±25 komentar. Sarkasme tidak dikenali.
+
+**Yang sengaja tidak ditiru dari Drone Emprit:**
+
+- Nama akun pemengaruh per platform. Platform ini menyimpan akun sebagai hash dan tidak
+  menyebut akun (CLAUDE.md §3). Mengubahnya adalah keputusan pemilik produk, belum diminta.
+- Kesimpulan naratif. Halaman ini tidak memuat kalimat buatan model; jawaban naratif menunggu
+  kunci Anthropic di Render (P0) dan harus lewat `AIEnvelope` (R2).
+- "Narasi per klaster jaringan". Butuh relasi balasan/kutipan antar-akun; komentar YouTube
+  hasil unggah tidak membawanya (jaringan BBM Bali: 0 relasi). Pertanyaan 10 hanya melaporkan
+  keterpusatan dan menaut ke `/jaringan`.
+- Platform selain YouTube + RSS (P10, butuh API berbayar atau unggah JSON).
+
+**Verifikasi sesi ini:** 885 tes backend lulus (Postgres lokal, RLS aktif), `ruff` + `mypy`
+bersih, 47 tes vitest, `tsc` bersih. Halaman dibuka di browser lokal dengan 5.959 komentar
+contoh BBM Bali + 3 berita contoh buatan. **Belum diverifikasi di production** sampai PR-nya
+digabung dan Render selesai deploy. Basis data uji lokal sudah dihapus lagi.
+
+**Lanjutan yang masuk akal:** jalankan penemuan tema untuk BBM Bali supaya pertanyaan 6
+terisi; label manusia untuk emosi (P5); periode tanggal tetap di `/tema`.
+
+---
+
+# 10 November 2026 (pagi): emosi, jam ramai, periode tetap, koreksi manual, aktor
 
 **Baca blok ini dulu.** Blok 8 November dan 30 Oktober di bawahnya tetap berlaku
 (penilai `informal-4`; pengumpulan terjadwal mati).

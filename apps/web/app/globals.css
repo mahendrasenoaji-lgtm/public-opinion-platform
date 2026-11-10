@@ -553,3 +553,22 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .row-name { font-size:13.5px; font-weight:600; }
 .row-meta { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txt3); margin-top:3px; }
 .row-actions { display:flex; gap:7px; flex-wrap:wrap; margin-left:auto; }
+
+/* Laporan Percakapan */
+.qa-lead { font-size:13.5px; color:var(--txt2); margin:0 0 14px; max-width:78ch; }
+.qa-note { font-size:12.5px; color:var(--txt2); margin:12px 0 0; max-width:78ch; }
+.qa-block + .qa-block { margin-top:22px; padding-top:18px; border-top:1px solid var(--line-soft); }
+.peak { margin-bottom:16px; }
+.peak-h { font-size:13px; margin-bottom:8px; }
+.peak-k { margin:12px 0 6px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { font-size:12.5px; padding:3px 8px; border:1px solid var(--line); border-radius:var(--radius-sm); color:var(--txt2); }
+.chip b { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txt3); font-weight:500; margin-left:3px; }
+.report .tbl td { vertical-align:top; overflow-wrap:anywhere; }
+@media print {
+  .nav, .top-r, .no-print { display:none !important; }
+  .app { display:block; }
+  .body { max-width:none; padding:0; }
+  .panel { break-inside:avoid; border:0; border-bottom:1px solid #ccc; border-radius:0; }
+  .grid-2 { grid-template-columns:1fr; }
+}

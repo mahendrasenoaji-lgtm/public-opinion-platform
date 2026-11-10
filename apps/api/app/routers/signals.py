@@ -63,11 +63,14 @@ from app.deps import (
 from app.models.governance import AuditLog
 from app.models.measurement import SignalSource as ModelSignalSource
 from app.models.project import Project
-from app.models.signal import DataSource, Mention
+from app.models.signal import DataSource, Mention, Topic
 from app.schemas.common import Metric, SignalSource
 from app.services import actors as actors_svc
+from app.services import conversation_report as report_svc
+from app.services import emotion as emotion_svc
 from app.services import news_quotes, rescoring, signal_stats
 from app.services import sentiment as sentiment_svc
+from app.services import topics as topics_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
@@ -445,6 +448,72 @@ class EmotionBySource(BaseModel):
     dominant: dict[str, int] | None
     insufficient_data: bool
     note: str | None = None
+    #: Penanda paling sering per emosi: [kata/emoji, jumlah konten]. Kosong
+    #: bila sebarannya ditahan.
+    markers: dict[str, list[tuple[str, int]]] = Field(default_factory=dict)
+
+
+class ReportItemOut(BaseModel):
+    text: str
+    engagement: int
+    published_at: datetime
+    source_url: str | None
+
+
+class ReportPeakOut(BaseModel):
+    day: date
+    volume: int
+    ratio: float | None
+    is_spike: bool
+    top_content: list[ReportItemOut]
+    same_day_media: list[ReportItemOut]
+
+
+class ReportDayOut(BaseModel):
+    day: date
+    volume: int
+    scored: int
+    mean: float | None
+    negative_share: float | None
+
+
+class ReportSourceOut(BaseModel):
+    source: SignalSource
+    n: int
+    scored: int
+    labels: dict[str, int]
+    days: list[ReportDayOut]
+    peaks: list[ReportPeakOut]
+    words: list[tuple[str, int]]
+    hashtags: list[tuple[str, int]]
+    emoji: list[tuple[str, int]]
+
+
+class ReportOutletOut(BaseModel):
+    domain: str
+    n: int
+
+
+class ReportTopicOut(BaseModel):
+    topic_id: UUID
+    label: str
+    source: SignalSource
+    n: int
+    engagement: int
+    scored: int
+    sentiment: float | None
+
+
+class ConversationReportOut(BaseModel):
+    period_start: date
+    period_end: date
+    timezone: str
+    sources: list[ReportSourceOut]
+    outlets: list[ReportOutletOut]
+    outlets_total: int
+    topics: list[ReportTopicOut]
+    methods: dict[str, str]
+    limitations: list[str]
 
 
 class EmotionSummaryOut(BaseModel):
@@ -2323,9 +2392,9 @@ async def correction_quality(
 _SENTIMENT_SOURCES = (ModelSignalSource.SOCIAL, ModelSignalSource.MEDIA)
 
 _EMOTION_LIMITATIONS = [
-    "Porsi penanda kata emosi, bukan klasifikasi emosi. Leksikonnya kecil dan "
-    "berejaan baku, tidak melihat negasi (\"tidak marah\" tetap terhitung marah), "
-    "dan belum dievaluasi terhadap label manusia.",
+    "Porsi penanda kata dan emoji emosi, bukan klasifikasi emosi. Sarkasme tidak "
+    "dikenali, negasi hanya dilihat satu kata di depan penanda, dan leksikonnya "
+    "belum dievaluasi terhadap label manusia.",
     "Porsi dihitung hanya di antara konten yang memuat penanda. Lihat cakupan: "
     "bila hanya sebagian kecil konten berpenanda, sebaran ini mewakili sebagian "
     "kecil itu saja.",
@@ -2341,7 +2410,11 @@ async def emotion_summary(
     start: date | None = StartDate,
     end: date | None = EndDate,
 ) -> EmotionSummaryOut:
-    """Sebaran penanda emosi per sumber, dari kolom `mentions.emotion`.
+    """Sebaran penanda emosi per sumber, dihitung saat dibaca dari teksnya.
+
+    Memakai `services/emotion.py` (`emosi-id-2`), bukan kolom
+    `mentions.emotion`: kolom itu berisi hasil leksikon lama dari saat ingest
+    dan sengaja tidak ditulis ulang.
 
     Liputan dan percakapan TIDAK digabung (R1). Sebaran tidak diterbitkan
     bila konten berpenanda di bawah MIN_MENTIONS_FOR_AGGREGATE; hitungannya
@@ -2350,26 +2423,28 @@ async def emotion_summary(
     since, until = _window(days, start, end)
     rows = (
         await session.execute(
-            _scoped(select(Mention.source, Mention.emotion), project_id, since, until).where(
+            _scoped(select(Mention.source, Mention.text), project_id, since, until).where(
                 Mention.source.in_(_SENTIMENT_SOURCES)
             )
         )
     ).all()
 
-    grouped: dict[ModelSignalSource, list[dict[str, float] | None]] = {}
-    for src, emotion in rows:
-        grouped.setdefault(src, []).append(emotion if isinstance(emotion, dict) else None)
+    grouped: dict[ModelSignalSource, list[str]] = {}
+    for src, text in rows:
+        grouped.setdefault(src, []).append(text)
 
     by_source: list[EmotionBySource] = []
     for src in _SENTIMENT_SOURCES:
         if src not in grouped:
             continue
-        stats = signal_stats.summarize_emotions(grouped[src])
+        shares, top_markers = emotion_svc.analyse(grouped[src])
+        stats = signal_stats.summarize_emotions(shares, keys=emotion_svc.KEYS)
         enough = stats.n_with_emotion >= MIN_MENTIONS_FOR_AGGREGATE
         by_source.append(
             EmotionBySource(
                 source=SignalSource(src.value),
-                method=signal_stats.EMOTION_METHOD,
+                method=emotion_svc.METHOD,
+                markers=top_markers if enough else {},
                 n_total=stats.n_total,
                 n_with_emotion=stats.n_with_emotion,
                 coverage=round(stats.coverage, 4),
@@ -2390,6 +2465,158 @@ async def emotion_summary(
         period_end=until.date(),
         by_source=by_source,
         limitations=_EMOTION_LIMITATIONS,
+    )
+
+
+_SPIKE_RATIO_TEXT = str(report_svc.SPIKE_RATIO).replace(".", ",")
+
+_REPORT_METHODS = {
+    "kata": "jumlah konten yang memuat kata itu, tanpa kata umum (hitungan, bukan bobot)",
+    "tagar": "jumlah konten yang memuat tagar itu",
+    "emoji": "jumlah konten yang memuat emoji itu (pengulangan dihitung sekali)",
+    "lonjakan": (
+        f"hari dengan volume minimal {_SPIKE_RATIO_TEXT} kali median volume harian "
+        "sumber itu; paling banyak tiga hari"
+    ),
+    "sentimen_harian": (
+        "rata-rata skor konten per hari; ditahan bila konten bernilai kurang dari "
+        f"{report_svc.MIN_SCORED}"
+    ),
+    "media": "jumlah liputan per domain tautan",
+    "tema": "konten per tema hasil penemuan tema terakhir; engagement dijumlah per tema",
+}
+
+_REPORT_LIMITATIONS = [
+    "Liputan yang ditampilkan di samping sebuah lonjakan adalah yang terbit pada hari yang "
+    "sama. Itu kebersamaan waktu, bukan bukti bahwa liputan itu penyebab lonjakannya.",
+    "Kata, tagar, dan emoji dihitung apa adanya dari teks; kata yang sama bisa dipakai "
+    "untuk mendukung maupun menolak.",
+    "Akun penulis tidak ditampilkan. Yang disebut namanya hanya media, lewat domain tautannya.",
+]
+
+
+@router.get("/projects/{project_id}/signals/report", response_model=ConversationReportOut)
+async def conversation_report(
+    project_id: UUID,
+    session: TenantSession,
+    user: CurrentUser,
+    days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
+    tz: Literal["WIB", "WITA", "WIT"] = "WIB",
+) -> ConversationReportOut:
+    """Bahan laporan percakapan: kata, tagar, emoji, lonjakan, sentimen harian, media, tema."""
+    since, until = _window(days, start, end)
+    rows = (
+        await session.execute(
+            _scoped(
+                select(
+                    Mention.source,
+                    Mention.text,
+                    Mention.sentiment,
+                    Mention.published_at,
+                    Mention.engagement,
+                    Mention.url,
+                    Mention.external_id,
+                    Mention.topic_id,
+                ),
+                project_id,
+                since,
+                until,
+            ).where(Mention.source.in_(_SENTIMENT_SOURCES))
+        )
+    ).all()
+
+    report = report_svc.build(
+        (
+            report_svc.Row(
+                source=r.source.value,
+                text=r.text,
+                sentiment=None if r.sentiment is None else float(r.sentiment),
+                published_at=r.published_at,
+                engagement=r.engagement,
+                url=_recover_source_url(r.url, r.external_id)[0],
+                topic_id=None if r.topic_id is None else str(r.topic_id),
+            )
+            for r in rows
+        ),
+        tz=tz,
+    )
+
+    labels: dict[str, str] = {}
+    if report.topics:
+        topic_rows = (
+            await session.execute(select(Topic).where(Topic.project_id == project_id))
+        ).scalars()
+        labels = {
+            str(t.id): topics_svc.effective_label(
+                t.label, t.reviewed_label, t.review_status.value
+            )
+            for t in topic_rows
+        }
+
+    def _item(item: report_svc.Item) -> ReportItemOut:
+        return ReportItemOut(
+            text=item.text,
+            engagement=item.engagement,
+            published_at=item.published_at,
+            source_url=item.url,
+        )
+
+    return ConversationReportOut(
+        period_start=since.date(),
+        period_end=until.date(),
+        timezone=report.timezone,
+        sources=[
+            ReportSourceOut(
+                source=SignalSource(s.source),
+                n=s.n,
+                scored=s.scored,
+                labels=s.labels,
+                days=[
+                    ReportDayOut(
+                        day=d.day,
+                        volume=d.volume,
+                        scored=d.scored,
+                        mean=d.mean,
+                        negative_share=d.negative_share,
+                    )
+                    for d in s.days
+                ],
+                peaks=[
+                    ReportPeakOut(
+                        day=p.day,
+                        volume=p.volume,
+                        ratio=p.ratio,
+                        is_spike=p.is_spike,
+                        top_content=[_item(i) for i in p.top_content],
+                        same_day_media=[_item(i) for i in p.same_day_media],
+                    )
+                    for p in s.peaks
+                ],
+                words=s.words,
+                hashtags=s.hashtags,
+                emoji=s.emoji,
+            )
+            for s in report.sources
+        ],
+        outlets=[ReportOutletOut(domain=o.domain, n=o.n) for o in report.outlets],
+        outlets_total=report.outlets_total,
+        topics=[
+            ReportTopicOut(
+                topic_id=UUID(t.topic_id),
+                label=labels[t.topic_id],
+                source=SignalSource(t.source),
+                n=t.n,
+                engagement=t.engagement,
+                scored=t.scored,
+                sentiment=t.mean,
+            )
+            for t in report.topics
+            if t.topic_id in labels
+        ],
+        methods=_REPORT_METHODS,
+        limitations=_REPORT_LIMITATIONS,
     )
 
 

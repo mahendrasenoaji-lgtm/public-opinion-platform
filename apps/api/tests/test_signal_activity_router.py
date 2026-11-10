@@ -232,3 +232,81 @@ class TestIsolasiTenant:
         assert emo.status_code == 200 and act.status_code == 200
         assert emo.json()["by_source"] == [], "RLS bocor: org lain melihat emosi"
         assert act.json()["by_source"] == [], "RLS bocor: org lain melihat aktivitas"
+
+
+class TestLaporanPercakapan:
+    async def test_kata_lonjakan_dan_liputan_hari_yang_sama(self, client) -> None:
+        headers, pid = await _new_project(client)
+        base = (datetime.now(UTC) - timedelta(days=6)).replace(
+            hour=3, minute=0, second=0, microsecond=0
+        )
+        sepi = [
+            _item(d, f"antrean solar biasa saja hari ke {d}", at=base + timedelta(days=d))
+            for d in (0, 1, 3, 4)
+        ]
+        ramai = [
+            _item(
+                100 + i,
+                f"gubernur marah di spbu #BBMLangka 😡 nomor {i}",
+                at=base + timedelta(days=2),
+                engagement=i,
+            )
+            for i in range(8)
+        ]
+        await _ingest(client, headers, pid, sepi + ramai)
+        berita = [
+            {
+                **_item(
+                    200,
+                    "Gubernur sidak SPBU saat antrean memanjang",
+                    at=base + timedelta(days=2),
+                ),
+                "url": "https://www.kompas.com/sidak",
+            }
+        ]
+        await _ingest(client, headers, pid, berita, source="MEDIA")
+
+        r = await client.get(f"/v1/projects/{pid}/signals/report?tz=WITA", headers=headers)
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["timezone"] == "WITA"
+        by = {s["source"]: s for s in body["sources"]}
+        assert set(by) == {"SOCIAL", "MEDIA"}
+        social = by["SOCIAL"]
+        assert social["n"] == 12
+        assert ["gubernur", 8] in social["words"]
+        assert social["hashtags"] == [["#bbmlangka", 8]]
+        assert social["emoji"] == [["😡", 8]]
+        (peak,) = social["peaks"]
+        assert peak["volume"] == 8 and peak["is_spike"] is True
+        assert [i["engagement"] for i in peak["top_content"]] == [7, 6, 5]
+        assert [i["text"] for i in peak["same_day_media"]] == [berita[0]["text"]]
+        assert body["outlets"] == [{"domain": "kompas.com", "n": 1}]
+        assert body["topics"] == []
+        assert body["limitations"] and "lonjakan" in body["methods"]
+        # Akun penulis tidak pernah keluar dari laporan.
+        assert "author" not in r.text
+
+    async def test_jendela_tanggal_dan_proyek_kosong(self, client) -> None:
+        headers, pid = await _new_project(client)
+        r = await client.get(
+            f"/v1/projects/{pid}/signals/report?start=2026-10-11&end=2026-10-20", headers=headers
+        )
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert (body["period_start"], body["period_end"]) == ("2026-10-11", "2026-10-20")
+        assert body["sources"] == []
+        bad = await client.get(
+            f"/v1/projects/{pid}/signals/report?start=2026-10-11", headers=headers
+        )
+        assert bad.status_code == 422
+
+    async def test_proyek_org_lain_tidak_terbaca(self, client) -> None:
+        headers, pid = await _new_project(client)
+        await _ingest(
+            client, headers, pid, [_item(1, "rahasia tenant pertama soal solar", at=YESTERDAY)]
+        )
+        other_headers, _ = await _new_project(client)
+        r = await client.get(f"/v1/projects/{pid}/signals/report", headers=other_headers)
+        assert r.status_code in (200, 403, 404)
+        assert "rahasia" not in r.text

@@ -77,6 +77,7 @@ export const EMOTION_LABELS: [key: string, label: string][] = [
   ["disgust", "Jijik"],
   ["joy", "Senang"],
   ["trust", "Percaya"],
+  ["anticipation", "Harapan"],
 ];
 
 /** "09.00", jam lokal dua digit. */

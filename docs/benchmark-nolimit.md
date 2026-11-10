@@ -104,6 +104,10 @@ ambil yang memperkuat riset dan yang datanya sudah ada.
 Urutan berdasarkan: dampak untuk riset × seberapa banyak yang sudah ada ×
 risiko. Ukuran: **S** ≤ 1 sesi, **M** 2–3 sesi, **L** > 3 sesi.
 
+> **Tambahan 2026-11-10 (sore).** Halaman Laporan Percakapan (`/laporan`) dan leksikon emosi
+> `emosi-id-2` (cakupan 5% menjadi 26%) dikerjakan dari perbandingan dengan laporan Drone Emprit;
+> ini memajukan P1 dan P9 (kerangka laporan, tanpa narasi AI). P5 tetap terbuka.
+>
 > **Status 2026-11-10.** P1, P3, P4, dan P6 (tahap pertama) selesai dikerjakan; P2 ternyata sudah ada
 > (kartu sentimen per sumber sejak 12 Okt). Ditambah satu hal di luar daftar: periode
 > tanggal tetap di `/sinyal`. P4 dibuat **tanpa kolom baru** (label manual memakai

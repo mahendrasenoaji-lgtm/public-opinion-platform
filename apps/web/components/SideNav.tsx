@@ -39,6 +39,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
     title: "Sinyal",
     items: [
       ["/sinyal", "Sinyal & Sentimen"],
+      ["/laporan", "Laporan Percakapan"],
       ["/deret", "Deret Data Publik"],
       ["/tema", "Tema"],
       ["/narrative", "Peta Narasi"],
