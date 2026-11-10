@@ -65,8 +65,8 @@ from app.models.measurement import SignalSource as ModelSignalSource
 from app.models.project import Project
 from app.models.signal import DataSource, Mention
 from app.schemas.common import Metric, SignalSource
+from app.services import rescoring, signal_stats
 from app.services import sentiment as sentiment_svc
-from app.services import signal_stats
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
 from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
@@ -364,6 +364,48 @@ class MentionOut(BaseModel):
     connector: str
     engagement: int
     sentiment: float | None
+    #: True bila `sentiment` adalah label yang ditetapkan manusia
+    #: (nilai wakil, lihat services/rescoring.py:MANUAL_SCORES).
+    sentiment_manual: bool = False
+
+
+SentimentLabel = Literal["negatif", "netral", "positif"]
+
+
+class SentimentCorrectionIn(BaseModel):
+    label: SentimentLabel
+
+
+class SentimentBulkIn(BaseModel):
+    ids: list[UUID] = Field(min_length=1, max_length=200)
+    label: SentimentLabel
+
+
+class SentimentCorrectionOut(BaseModel):
+    id: UUID
+    sentiment: float | None
+    sentiment_manual: bool
+    changed: bool
+
+
+class SentimentBulkOut(BaseModel):
+    requested: int
+    changed: int
+    not_found: int
+
+
+class CorrectionQualityOut(BaseModel):
+    """Penilai otomatis vs label manusia pada konten yang dikoreksi."""
+
+    source: SignalSource
+    n: int
+    machine_abstained: int
+    agreed: int
+    #: None bila belum cukup konten berlabel yang dinilai mesin.
+    agreement: float | None
+    confusion: dict[str, dict[str, int]]
+    insufficient_data: bool
+    caveat: str
 
 
 class SignalSummary(BaseModel):
@@ -1510,6 +1552,9 @@ def _pending_rescore(project_id: UUID) -> Any:
     social = and_(
         Mention.source == ModelSignalSource.SOCIAL,
         Mention.sentiment_model.is_distinct_from(sentiment_svc.INFORMAL_MODEL_VERSION),
+        # Koreksi manual menang atas penilaian ulang; tanpa baris ini
+        # `remaining` tidak pernah nol begitu ada satu koreksi.
+        Mention.sentiment_model.is_distinct_from(rescoring.MANUAL_MODEL_VERSION),
     )
     other = and_(
         Mention.source != ModelSignalSource.SOCIAL,
@@ -1674,6 +1719,28 @@ def _scoped(query: Select, project_id: UUID, since: datetime, until: datetime) -
     )
 
 
+async def _manual_count(
+    session: Any,
+    project_id: UUID,
+    since: datetime,
+    until: datetime,
+    source: SignalSource | None,
+) -> int:
+    """Jumlah konten berlabel manual di jendela ini; 0 bila kolom versi belum ada."""
+    query = _scoped(select(func.count()).select_from(Mention), project_id, since, until).where(
+        Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION
+    )
+    if source is not None:
+        query = query.where(Mention.source == ModelSignalSource(source.value))
+    try:
+        async with session.begin_nested():
+            return int((await session.execute(query)).scalar_one())
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        return 0
+
+
 @router.get("/projects/{project_id}/signals/summary", response_model=SignalSummary)
 async def summary(
     project_id: UUID,
@@ -1737,6 +1804,14 @@ async def summary(
         limitations.append(
             f"{concentration:.0%} percakapan datang dari 10 akun paling aktif. "
             "Ini deskripsi sebaran, bukan indikasi koordinasi."
+        )
+
+    manual_n = await _manual_count(session, project_id, since, until, source)
+    if manual_n:
+        limitations.append(
+            f"{manual_n} konten memakai label sentimen koreksi manual. Label "
+            "manusia masuk rata-rata sebagai nilai wakil (negatif -0,5, netral 0, "
+            "positif +0,5), bukan skor leksikon."
         )
 
     revised: Metric | None = None
@@ -1891,6 +1966,8 @@ async def list_mentions(
     offset: int = Query(default=0, ge=0),
     start: date | None = StartDate,
     end: date | None = EndDate,
+    q: str | None = Query(default=None, min_length=2, max_length=80),
+    label: Literal["negatif", "netral", "positif", "abstain"] | None = None,
 ) -> list[MentionOut]:
     """Daftar item mentah, satu per satu, untuk validasi manual.
 
@@ -1913,9 +1990,45 @@ async def list_mentions(
     query = _scoped(select(Mention), project_id, since, until)
     if source is not None:
         query = query.where(Mention.source == ModelSignalSource(source.value))
-    query = query.order_by(Mention.published_at.desc()).limit(limit).offset(offset)
+    if q:
+        # Pencarian teks apa adanya; karakter pola LIKE di-escape supaya
+        # "100%" dicari sebagai teks, bukan sebagai wildcard.
+        needle = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        query = query.where(Mention.text.ilike(f"%{needle}%", escape="\\"))
+    if label == "abstain":
+        query = query.where(Mention.sentiment.is_(None))
+    elif label == "positif":
+        query = query.where(Mention.sentiment > sentiment_svc.POSITIVE_THRESHOLD)
+    elif label == "negatif":
+        query = query.where(Mention.sentiment < sentiment_svc.NEGATIVE_THRESHOLD)
+    elif label == "netral":
+        query = query.where(
+            Mention.sentiment >= sentiment_svc.NEGATIVE_THRESHOLD,
+            Mention.sentiment <= sentiment_svc.POSITIVE_THRESHOLD,
+        )
+    query = query.order_by(Mention.published_at.desc(), Mention.id).limit(limit).offset(offset)
+    mentions = (await session.execute(query)).scalars().all()
+
+    manual_ids: set[UUID] = set()
+    if mentions:
+        try:
+            async with session.begin_nested():
+                manual_ids = set(
+                    (
+                        await session.execute(
+                            select(Mention.id).where(
+                                Mention.id.in_([m.id for m in mentions]),
+                                Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                            )
+                        )
+                    ).scalars()
+                )
+        except ProgrammingError as e:
+            if sqlstate_of(e) != UNDEFINED_COLUMN:
+                raise
+
     out: list[MentionOut] = []
-    for m in (await session.execute(query)).scalars():
+    for m in mentions:
         source_url, origin = _recover_source_url(m.url, m.external_id)
         out.append(
             MentionOut(
@@ -1930,6 +2043,239 @@ async def list_mentions(
                 connector=m.connector,
                 engagement=m.engagement,
                 sentiment=float(m.sentiment) if m.sentiment is not None else None,
+                sentiment_manual=m.id in manual_ids,
+            )
+        )
+    return out
+
+
+# -------------------------------------------------------- koreksi manual ----
+
+
+async def _apply_correction(
+    session: Any, user: Any, project_id: UUID, ids: Sequence[UUID], label: str | None
+) -> list[SentimentCorrectionOut]:
+    """Tetapkan (`label`) atau batalkan (`label=None`) label manual sejumlah konten.
+
+    Mengembalikan satu hasil per konten yang DITEMUKAN di proyek ini; id milik
+    proyek atau org lain tidak terlihat (RLS) dan tidak menghasilkan apa pun.
+    """
+    try:
+        async with session.begin_nested():
+            rows = (
+                await session.execute(
+                    select(
+                        Mention.id,
+                        Mention.source,
+                        Mention.text,
+                        Mention.sentiment,
+                        Mention.sentiment_model,
+                        Mention.sentiment_alt,
+                        Mention.sentiment_alt_model,
+                    ).where(Mention.project_id == project_id, Mention.id.in_(list(ids)))
+                )
+            ).all()
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        raise HTTPException(status.HTTP_409_CONFLICT, _VERSION_COLUMNS_MISSING) from e
+
+    def _dec(value: float | None) -> Decimal | None:
+        return None if value is None else Decimal(str(value))
+
+    out: list[SentimentCorrectionOut] = []
+    params: list[dict[str, object]] = []
+    for r in rows:
+        state = {
+            "social": r.source is ModelSignalSource.SOCIAL,
+            "sentiment": None if r.sentiment is None else float(r.sentiment),
+            "sentiment_model": r.sentiment_model,
+            "sentiment_alt": None if r.sentiment_alt is None else float(r.sentiment_alt),
+            "sentiment_alt_model": r.sentiment_alt_model,
+        }
+        new = (
+            rescoring.apply_manual(label=label, **state)
+            if label is not None
+            else rescoring.revert_manual(text=r.text, **state)
+        )
+        out.append(
+            SentimentCorrectionOut(
+                id=r.id,
+                sentiment=new.sentiment,
+                sentiment_manual=new.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                changed=new.primary_changed,
+            )
+        )
+        if not new.primary_changed:
+            continue
+        params.append(
+            {
+                "b_id": r.id,
+                "b_sentiment": _dec(new.sentiment),
+                "b_model": new.sentiment_model or None,
+                "b_alt": _dec(new.sentiment_alt),
+                "b_alt_model": new.sentiment_alt_model,
+            }
+        )
+        session.add(
+            AuditLog(
+                org_id=user.org_id,
+                actor_id=user.user_id,
+                action="sentiment_correct" if label is not None else "sentiment_revert",
+                entity="mention",
+                entity_id=r.id,
+                metadata_={
+                    "project_id": str(project_id),
+                    "label": label,
+                    "from_sentiment": state["sentiment"],
+                    "from_model": r.sentiment_model,
+                    "to_sentiment": new.sentiment,
+                    "to_model": new.sentiment_model,
+                },
+            )
+        )
+
+    if params:
+        table = Mention.__table__
+        connection = await session.connection()
+        await connection.execute(
+            table.update()
+            .where(table.c.id == bindparam("b_id"))
+            .values(
+                sentiment=bindparam("b_sentiment"),
+                sentiment_model=bindparam("b_model"),
+                sentiment_alt=bindparam("b_alt"),
+                sentiment_alt_model=bindparam("b_alt_model"),
+            ),
+            params,
+        )
+    return out
+
+
+@router.put(
+    "/projects/{project_id}/mentions/{mention_id}/sentiment",
+    response_model=SentimentCorrectionOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def correct_sentiment(
+    project_id: UUID,
+    mention_id: UUID,
+    body: SentimentCorrectionIn,
+    session: TenantSession,
+    user: CurrentUser,
+) -> SentimentCorrectionOut:
+    """Tetapkan label sentimen satu konten secara manual.
+
+    Label manusia menang atas penilai otomatis dan atas penilaian ulang, dan
+    setiap koreksi tercatat di audit log (siapa, kapan, dari skor berapa).
+    Koreksi juga menjadi label emas untuk mengukur penilai otomatis: lihat
+    GET .../signals/correction-quality.
+    """
+    out = await _apply_correction(session, user, project_id, [mention_id], body.label)
+    if not out:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Konten tidak ditemukan.")
+    return out[0]
+
+
+@router.delete(
+    "/projects/{project_id}/mentions/{mention_id}/sentiment",
+    response_model=SentimentCorrectionOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def revert_sentiment(
+    project_id: UUID, mention_id: UUID, session: TenantSession, user: CurrentUser
+) -> SentimentCorrectionOut:
+    """Batalkan koreksi manual; konten kembali ke skor penilai otomatis terkini."""
+    out = await _apply_correction(session, user, project_id, [mention_id], None)
+    if not out:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Konten tidak ditemukan.")
+    return out[0]
+
+
+@router.post(
+    "/projects/{project_id}/mentions/sentiment-bulk",
+    response_model=SentimentBulkOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def correct_sentiment_bulk(
+    project_id: UUID, body: SentimentBulkIn, session: TenantSession, user: CurrentUser
+) -> SentimentBulkOut:
+    """Tetapkan satu label untuk banyak konten sekaligus (maks. 200 id).
+
+    Massal berdasarkan DAFTAR ID yang sudah dilihat pemanggil, bukan
+    berdasarkan filter: label manusia berarti seseorang membaca kontennya.
+    """
+    ids = list(dict.fromkeys(body.ids))
+    out = await _apply_correction(session, user, project_id, ids, body.label)
+    return SentimentBulkOut(
+        requested=len(ids),
+        changed=sum(o.changed for o in out),
+        not_found=len(ids) - len(out),
+    )
+
+
+_CORRECTION_CAVEAT = (
+    "Diukur hanya pada konten yang dipilih seseorang untuk diberi label, bukan "
+    "sampel acak: orang cenderung mengoreksi yang terlihat salah, jadi angka "
+    "ini condong lebih rendah daripada mutu sebenarnya. Untuk ukuran yang "
+    "tidak bias, labeli sampel acak (termasuk yang sudah benar)."
+)
+
+
+@router.get(
+    "/projects/{project_id}/signals/correction-quality",
+    response_model=list[CorrectionQualityOut],
+)
+async def correction_quality(
+    project_id: UUID, session: TenantSession, user: CurrentUser
+) -> list[CorrectionQualityOut]:
+    """Penilai otomatis terkini dibandingkan label manusia, per sumber.
+
+    Label mesin dihitung ulang dari teks dengan penilai TERKINI, jadi angka
+    ini ikut berubah setiap kamus diperbarui; itulah gunanya.
+    """
+    try:
+        async with session.begin_nested():
+            rows = (
+                await session.execute(
+                    select(Mention.source, Mention.text, Mention.sentiment).where(
+                        Mention.project_id == project_id,
+                        Mention.sentiment_model == rescoring.MANUAL_MODEL_VERSION,
+                    )
+                )
+            ).all()
+    except ProgrammingError as e:
+        if sqlstate_of(e) != UNDEFINED_COLUMN:
+            raise
+        return []
+
+    pairs: dict[ModelSignalSource, list[tuple[str, str | None]]] = {}
+    for src, text, value in rows:
+        if value is None:
+            continue
+        social = src is ModelSignalSource.SOCIAL
+        human = sentiment_svc.label_for(float(value))
+        pairs.setdefault(src, []).append(
+            (human, rescoring.machine_label(social=social, text=text))
+        )
+
+    out: list[CorrectionQualityOut] = []
+    for src, items in pairs.items():
+        stats = rescoring.correction_quality(items)
+        scored = stats.n - stats.machine_abstained
+        enough = scored >= MIN_MENTIONS_FOR_AGGREGATE
+        out.append(
+            CorrectionQualityOut(
+                source=SignalSource(src.value),
+                n=stats.n,
+                machine_abstained=stats.machine_abstained,
+                agreed=stats.agreed,
+                agreement=(
+                    round(stats.agreement, 3) if enough and stats.agreement is not None else None
+                ),
+                confusion=stats.confusion,
+                insufficient_data=not enough,
+                caveat=_CORRECTION_CAVEAT,
             )
         )
     return out

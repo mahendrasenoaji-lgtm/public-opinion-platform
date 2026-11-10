@@ -526,6 +526,12 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .heat-day { align-self:center; }
 .heat-cell { height:18px; background:var(--track); border-radius:2px; overflow:hidden; }
 .heat-cell i { display:block; width:100%; height:100%; }
+.corr { display:flex; flex-direction:column; gap:5px; min-width:150px; }
+.corr-v { display:flex; align-items:center; gap:6px; font-size:12px; }
+.corr-btns { display:flex; flex-wrap:wrap; gap:4px; }
+.corr-btns .btn { padding:2px 7px; font-size:11px; }
+.corr-on { border-color:var(--pos) !important; color:var(--pos) !important; }
+.pager { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
 .auth-alt { font-size:12.5px; color:var(--txt2); margin-top:16px; text-align:center; }
 .auth-alt a { color:var(--survey); }
 .form-err {

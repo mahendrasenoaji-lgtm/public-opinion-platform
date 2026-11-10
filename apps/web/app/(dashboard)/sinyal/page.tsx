@@ -4,6 +4,7 @@ import { Panel } from "@/components/Panel";
 import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { RescoreButton } from "@/components/RescoreButton";
+import { SentimentCorrector } from "@/components/SentimentCorrector";
 import { SourceManager } from "@/components/SourceManager";
 import { UploadData } from "@/components/UploadData";
 import { SOURCE } from "@/lib/tokens";
@@ -178,7 +179,23 @@ interface MentionRow {
   connector: string;
   engagement: number;
   sentiment: number | null;
+  /** Tidak ada kalau backend tertinggal. */
+  sentiment_manual?: boolean;
 }
+
+/** Penilai otomatis vs label manusia; lihat GET .../signals/correction-quality. */
+interface CorrectionQuality {
+  source: SignalSource;
+  n: number;
+  machine_abstained: number;
+  agreed: number;
+  agreement: number | null;
+  insufficient_data: boolean;
+  caveat: string;
+}
+
+const MENTION_LABELS = ["negatif", "netral", "positif", "abstain"] as const;
+const MENTIONS_PER_PAGE = 20;
 
 interface ConnectorRow {
   key: string;
@@ -207,7 +224,19 @@ export default async function SinyalPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const win = parseWindow(await searchParams);
+  const params = await searchParams;
+  const win = parseWindow(params);
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+  const search = one(params.cari).slice(0, 80);
+  const tone_ = one(params.nada);
+  const labelFilter = (MENTION_LABELS as readonly string[]).includes(tone_) ? tone_ : "";
+  const page = Math.max(1, Math.min(500, Number.parseInt(one(params.hal), 10) || 1));
+  const mentionQuery: Record<string, string> = {
+    limit: String(MENTIONS_PER_PAGE),
+    offset: String((page - 1) * MENTIONS_PER_PAGE),
+  };
+  if (search.length >= 2) mentionQuery.q = search;
+  if (labelFilter) mentionQuery.label = labelFilter;
   const q = (extra: Record<string, string> = {}) => windowQuery(win, extra);
 
   // SEMUA panggilan pakai apiOrNullLenient, termasuk dua yang secara logika "selalu
@@ -232,6 +261,7 @@ export default async function SinyalPage({
     tokenStatus,
     emotions,
     activity,
+    corrections,
   ] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q()}`),
     // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
@@ -245,11 +275,26 @@ export default async function SinyalPage({
     apiOrNullLenient<SentimentQuality>(`/projects/${projectId}/signals/sentiment-quality`),
     apiOrNullLenient<SourceRow[]>(`/projects/${projectId}/signals/sources`),
     apiOrNullLenient<ConnectorRow[]>(`/signals/connectors`),
-    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions${q({ limit: "20" })}`),
+    apiOrNullLenient<MentionRow[]>(`/projects/${projectId}/mentions${q(mentionQuery)}`),
     apiOrNullLenient<CollectorTokenStatus>(`/projects/${projectId}/signals/collector-token`),
     apiOrNullLenient<EmotionSummary>(`/projects/${projectId}/signals/emotions${q()}`),
     apiOrNullLenient<Activity>(`/projects/${projectId}/signals/activity${q({ tz: win.zone })}`),
+    apiOrNullLenient<CorrectionQuality[]>(`/projects/${projectId}/signals/correction-quality`),
   ]);
+
+  /** Tautan halaman daftar konten yang mempertahankan periode dan filter. */
+  const mentionsHref = (target: number) => {
+    const u = new URLSearchParams();
+    if (win.start && win.end) {
+      u.set("dari", win.start);
+      u.set("sampai", win.end);
+    }
+    u.set("zona", win.zone);
+    if (search) u.set("cari", search);
+    if (labelFilter) u.set("nada", labelFilter);
+    if (target > 1) u.set("hal", String(target));
+    return `?${u.toString()}#konten`;
+  };
 
   const sessionToken = (await cookies()).get(SESSION_COOKIE)?.value;
   const role = sessionToken ? decodeJwtPayload(sessionToken)?.role : undefined;
@@ -645,9 +690,42 @@ export default async function SinyalPage({
           )}
         </Panel>
 
-        <Panel kicker="Akuntabilitas riset" title="Item terbaru (untuk validasi manual)">
+        <div id="konten" />
+        <Panel kicker="Akuntabilitas riset" title="Konten (validasi dan koreksi manual)">
+          <form method="get" action="#konten" className="period-bar">
+            {win.start && win.end && (
+              <>
+                <input type="hidden" name="dari" value={win.start} />
+                <input type="hidden" name="sampai" value={win.end} />
+              </>
+            )}
+            <input type="hidden" name="zona" value={win.zone} />
+            <label className="field" style={{ flex: "1 1 220px" }}>
+              <span className="kicker">Cari teks</span>
+              <input type="search" name="cari" defaultValue={search} placeholder="mis. antre" />
+            </label>
+            <label className="field">
+              <span className="kicker">Nada</span>
+              <select name="nada" defaultValue={labelFilter}>
+                <option value="">semua</option>
+                <option value="negatif">negatif</option>
+                <option value="netral">netral</option>
+                <option value="positif">positif</option>
+                <option value="abstain">tidak dinilai</option>
+              </select>
+            </label>
+            <button type="submit" className="btn btn-sm">
+              Saring
+            </button>
+          </form>
           {!mentions || mentions.length === 0 ? (
-            <InsufficientData reason="Belum ada konten yang bisa ditelusuri untuk proyek ini." />
+            <InsufficientData
+              reason={
+                search || labelFilter || page > 1
+                  ? "Tidak ada konten yang cocok dengan saringan ini pada periode tampil."
+                  : "Belum ada konten yang bisa ditelusuri untuk proyek ini."
+              }
+            />
           ) : (
             <table className="tbl">
               <thead>
@@ -655,6 +733,7 @@ export default async function SinyalPage({
                   <th>Konten</th>
                   <th>Sumber</th>
                   <th>Tanggal</th>
+                  <th>Sentimen</th>
                   <th>Sumber asli</th>
                 </tr>
               </thead>
@@ -670,6 +749,16 @@ export default async function SinyalPage({
                       </span>
                     </td>
                     <td className="mono">{m.published_at.slice(0, 16).replace("T", " ")}</td>
+                    <td>
+                      <SentimentCorrector
+                        key={`${m.id}:${m.sentiment}:${m.sentiment_manual ? 1 : 0}`}
+                        projectId={projectId}
+                        mentionId={m.id}
+                        sentiment={m.sentiment}
+                        manual={m.sentiment_manual ?? false}
+                        canEdit={canManage}
+                      />
+                    </td>
                     <td>
                       {m.source_url ? (
                         <>
@@ -705,13 +794,53 @@ export default async function SinyalPage({
               </tbody>
             </table>
           )}
+          {(page > 1 || (mentions?.length ?? 0) === MENTIONS_PER_PAGE) && (
+            <div className="pager">
+              {page > 1 ? (
+                <a className="btn btn-ghost btn-sm" href={mentionsHref(page - 1)}>
+                  ← Lebih baru
+                </a>
+              ) : (
+                <span />
+              )}
+              <span className="proj-s">Halaman {page}</span>
+              {(mentions?.length ?? 0) === MENTIONS_PER_PAGE ? (
+                <a className="btn btn-ghost btn-sm" href={mentionsHref(page + 1)}>
+                  Lebih lama →
+                </a>
+              ) : (
+                <span />
+              )}
+            </div>
+          )}
+          {corrections && corrections.length > 0 && (
+            <p className="note">
+              <Info size={13} />
+              <span>
+                <b>Koreksi manual sebagai alat ukur.</b>{" "}
+                {corrections
+                  .map((c) =>
+                    c.agreement === null
+                      ? `${SOURCE[c.source].label}: ${c.n} konten berlabel manusia, belum cukup untuk angka kesepakatan (perlu 30 yang dinilai mesin).`
+                      : `${SOURCE[c.source].label}: dari ${c.n} konten berlabel manusia, penilai otomatis menilai ${c.n - c.machine_abstained} dan sepakat pada ${pct(c.agreement)}.`,
+                  )
+                  .join(" ")}{" "}
+                {corrections[0]?.caveat}
+              </span>
+            </p>
+          )}
           {/* Isi catatan dibungkus SATU span: `.note` itu display:flex, jadi
               elemen apa pun yang disisipkan di tengah teks akan jadi flex
               item tersendiri dan terperas jadi kolom sempit. */}
           <p className="note">
             <Info size={13} />
             <span>
-              20 item terbaru pada periode tampil, bukan seluruh dataset. Tautan bertanda{" "}
+              {MENTIONS_PER_PAGE} konten per halaman, terbaru dulu, pada periode tampil. Label
+              yang ditetapkan manusia (bertanda{" "}
+              <span className="mono" style={{ fontSize: 10 }}>
+                manual
+              </span>
+              ) menang atas penilai otomatis dan tercatat di audit log. Tautan bertanda{" "}
               <span className="mono" style={{ fontSize: 10 }}>
                 dari guid feed
               </span>{" "}

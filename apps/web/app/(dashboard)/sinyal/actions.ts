@@ -240,3 +240,37 @@ export async function ingestBatch(
 }
 
 export type SignalSourceKey = "SOCIAL" | "MEDIA";
+
+export interface SentimentCorrectionOut {
+  id: string;
+  sentiment: number | null;
+  sentiment_manual: boolean;
+  changed: boolean;
+}
+
+export type SentimentLabel = "negatif" | "netral" | "positif";
+
+/**
+ * Tetapkan label sentimen satu konten secara manual, atau batalkan
+ * (`label === null`) supaya kembali ke skor penilai otomatis. Label manusia
+ * menang atas penilaian ulang dan tercatat di audit log (backend).
+ */
+export async function correctSentiment(
+  projectId: string,
+  mentionId: string,
+  label: SentimentLabel | null,
+): Promise<Result<SentimentCorrectionOut>> {
+  try {
+    const result = await api<SentimentCorrectionOut>(
+      `/projects/${projectId}/mentions/${mentionId}/sentiment`,
+      label === null
+        ? { method: "DELETE" }
+        : { method: "PUT", body: JSON.stringify({ label }) },
+    );
+    revalidatePath("/sinyal");
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
