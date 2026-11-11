@@ -6,7 +6,18 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 10 November 2026 (sore): Laporan Percakapan + leksikon emosi `emosi-id-2`
+# 🟢 MULAI DARI SINI — 11 November 2026: rencana situs publikasi (belum ada kode)
+
+Pemilik produk ingin platform ini, seperti Drone Emprit (`pers.droneemprit.id`), punya
+**situs publik untuk hasil riset** di samping dashboard, dan arahnya "lebih baik dari Drone
+Emprit" sebagai versi riset (metode terbuka, survei vs sosial vs media, siap dikutip di paper).
+Analisis lengkap, status repo per 11 Nov, keputusan yang ditunggu, dan urutan kerja:
+**[`docs/rencana-situs-publikasi.md`](rencana-situs-publikasi.md)**. Belum ada kode;
+tahap 1 menunggu 5 keputusan di bagian 5 dokumen itu. Blok 10 November di bawah tetap berlaku.
+
+---
+
+# 10 November 2026 (sore): Laporan Percakapan + leksikon emosi `emosi-id-2`
 
 **Baca blok ini dulu.** Blok 10 November (pagi) di bawahnya tetap berlaku.
 
