@@ -24,6 +24,7 @@ from app.routers import (
     network,
     opinion,
     projects,
+    publications,
     reports,
     risk,
     segments,
@@ -124,3 +125,5 @@ for r in (
     comm_performance,
 ):
     app.include_router(r.router, prefix="/v1")
+app.include_router(publications.router, prefix="/v1")
+app.include_router(publications.public_router, prefix="/v1")

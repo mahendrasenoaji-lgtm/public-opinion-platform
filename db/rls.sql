@@ -16,7 +16,7 @@ BEGIN
     'users','projects','surveys','questions','respondents','respondent_identities',
     'responses','data_sources','mentions','topics','narratives','metric_snapshots',
     'segments','timeline_events','forecasts','ai_outputs','audit_logs',
-    'data_quality_scores','official_posts','comm_indicator_scores'
+    'data_quality_scores','official_posts','comm_indicator_scores','publications'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
@@ -119,6 +119,46 @@ END;
 $$;
 REVOKE ALL ON FUNCTION auth_register(text, text, text, text, text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION auth_register(text, text, text, text, text) TO pop_app;
+
+-- ============================================================================
+-- Situs publikasi: baca-saja, tanpa login, HANYA artikel berstatus 'published'.
+--
+-- Pembaca publik tidak punya organisasi, jadi current_org() NULL dan kebijakan
+-- publications_tenant menyaring semua baris. Seperti auth_lookup_user(): bukan
+-- kebijakannya yang dilonggarkan, melainkan dua fungsi SECURITY DEFINER sempit
+-- yang hanya mengembalikan kolom artikel terbit. Tidak ada kolom org_id,
+-- project_id, atau pengguna yang keluar, dan tidak ada tabel lain yang terbaca.
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public_publications(p_tag text, p_limit integer, p_offset integer)
+RETURNS TABLE (
+  slug text, title text, summary text, tags text[], author_name text,
+  published_at timestamptz, version integer, total bigint
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT slug, title, summary, tags, author_name, published_at, version,
+         count(*) OVER () AS total
+  FROM publications
+  WHERE status = 'published' AND (p_tag IS NULL OR p_tag = ANY (tags))
+  ORDER BY published_at DESC
+  LIMIT LEAST(GREATEST(p_limit, 1), 100) OFFSET GREATEST(p_offset, 0)
+$$;
+REVOKE ALL ON FUNCTION public_publications(text, integer, integer) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION public_publication(p_slug text)
+RETURNS TABLE (
+  slug text, title text, summary text, body text, tags text[], author_name text,
+  published_at timestamptz, updated_at timestamptz, version integer,
+  snapshot jsonb, corrections jsonb
+)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT slug, title, summary, body, tags, author_name, published_at, updated_at,
+         version, snapshot, corrections
+  FROM publications
+  WHERE status = 'published' AND slug = p_slug
+$$;
+REVOKE ALL ON FUNCTION public_publication(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public_publications(text, integer, integer) TO pop_app;
+GRANT EXECUTE ON FUNCTION public_publication(text) TO pop_app;
 
 -- PII hanya untuk peran tertentu. Ditegakkan lagi di lapisan aplikasi.
 REVOKE ALL ON respondent_identities FROM pop_app;

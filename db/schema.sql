@@ -421,3 +421,35 @@ CREATE TABLE IF NOT EXISTS comm_indicator_scores (
 );
 CREATE INDEX IF NOT EXISTS comm_indicator_scores_org_project_idx
     ON comm_indicator_scores (org_id, project_id, subject, period);
+
+-- ------------------------------------------------- publikasi hasil riset ----
+-- Artikel dengan snapshot angka yang dibekukan. Situs publik TIDAK membaca
+-- tabel proyek; ia hanya membaca baris berstatus 'published' lewat dua fungsi
+-- SECURITY DEFINER sempit di db/rls.sql.
+
+CREATE TABLE IF NOT EXISTS publications (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id        uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    project_id    uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    slug          text NOT NULL UNIQUE CHECK (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
+    title         text NOT NULL,
+    summary       text NOT NULL DEFAULT '',
+    body          text NOT NULL DEFAULT '',
+    tags          text[] NOT NULL DEFAULT '{}',
+    author_name   text NOT NULL,
+    status        text NOT NULL DEFAULT 'draft'
+                  CHECK (status IN ('draft', 'review', 'published')),
+    snapshot      jsonb NOT NULL,
+    version       integer NOT NULL DEFAULT 1 CHECK (version >= 1),
+    corrections   jsonb NOT NULL DEFAULT '[]',
+    created_by    uuid REFERENCES users(id),
+    published_by  uuid REFERENCES users(id),
+    published_at  timestamptz,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+    CHECK ((status = 'published') = (published_at IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS publications_org_project_idx
+    ON publications (org_id, project_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS publications_published_idx
+    ON publications (published_at DESC) WHERE status = 'published';
