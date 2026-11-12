@@ -8,7 +8,10 @@ import { SESSION_COOKIE, decodeJwtPayload, isExpired } from "@/lib/session";
 //    (lihat lib/auth.ts).
 // 2) Sesi user asli (JWT per-user dari backend, RBAC). Selalu hidup.
 const SITE_GATE_PUBLIC = ["/login", "/api/auth"];
-const APP_SESSION_PUBLIC = ["/login", "/api/auth", "/masuk", "/daftar", "/api/session"];
+// "/pers" = halaman publikasi publik: hanya membaca artikel berstatus terbit
+// lewat API publik backend, tanpa sesi. Gerbang password situs (lapis 1) tetap
+// berlaku untuknya bila SITE_GATE=on.
+const APP_SESSION_PUBLIC = ["/login", "/api/auth", "/masuk", "/daftar", "/api/session", "/pers"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

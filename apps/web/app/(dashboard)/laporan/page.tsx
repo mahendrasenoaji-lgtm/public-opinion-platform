@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import type { Route } from "next";
 import { PageHeader } from "@/components/PageHeader";
+import { DraftPublicationButton } from "@/components/DraftPublicationButton";
 import { PrintButton } from "@/components/PrintButton";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
@@ -214,6 +215,7 @@ export default async function LaporanPage({
             Terapkan
           </button>
           <PrintButton />
+          <DraftPublicationButton projectId={projectId} start={win.start} end={win.end} zone={win.zone} />
           {win.error && <span className="proj-s period-now">{win.error} Menampilkan 30 hari terakhir.</span>}
         </form>
 
