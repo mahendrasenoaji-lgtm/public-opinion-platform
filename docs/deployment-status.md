@@ -6,7 +6,63 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 11 November 2026: rencana situs publikasi (belum ada kode)
+# 🟢 MULAI DARI SINI — 12 November 2026: modul Kinerja Komunikasi Pemerintah
+
+**Baca blok ini dulu.** Blok 11 November di bawahnya (situs publikasi) tetap berlaku.
+
+Pemicu: pengguna menempelkan prompt "Analisis Performa Komunikasi Pemerintahan pada Kementerian
+Koordinator" dan meminta dimasukkan ke platform. Catatan percakapan + prompt asli:
+[`docs/sesi-2026-11-12-situs-publikasi-dan-kinerja-komunikasi.md`](sesi-2026-11-12-situs-publikasi-dan-kinerja-komunikasi.md).
+
+| Apa | Di mana | Catatan |
+|---|---|---|
+| Dokumen kerangka (12 bagian + 5 instrumen) | [`docs/kerangka-kinerja-komunikasi-pemerintah.md`](kerangka-kinerja-komunikasi-pemerintah.md) | 28 indikator Input/Process/Output/Outcome, arus informasi 11 tahap, model skor, 38 referensi ber-DOI yang dicek ke Crossref. **Rancangan, belum divalidasi, bukan standar resmi.** Tidak memuat penilaian terhadap kementerian mana pun |
+| Halaman **Kinerja Komunikasi** | `/kinerja` (menu Pengukuran), `apps/web/app/(dashboard)/kinerja/` | Kartu skor per dimensi, tabel akun resmi per platform, unggah berkas, formulir 28 indikator |
+| API | `routers/comm_performance.py`, prefix `/projects/{id}/comm-performance` | `GET framework`, `POST posts`, `GET posts/summary`, `GET assessments`, `GET/PUT scores` |
+| Logika | `services/comm_performance.py` (murni) | Katalog indikator, skor, ringkasan unggahan |
+| Tabel baru | `official_posts`, `comm_indicator_scores` (+ RLS) | **Butuh migrasi**, lihat di bawah |
+
+**Aturan yang ditanam di kode (jangan dilonggarkan tanpa keputusan pemilik produk):**
+
+- Skor diisi manusia, 1–5, **wajib dengan bukti**. Tanpa bukti ditolak (422).
+- Tiga keadaan dibedakan: belum diisi, **tidak tersedia** (wajib alasan), berskor. Data kosong
+  tidak pernah diisi nilai tengah.
+- Skor dimensi terbit hanya bila cakupan ≥ 60% indikator; skor total hanya bila keempat
+  dimensi terbit. Selain itu tertulis "tidak terbit (cakupan x%)".
+- Bobot usulan Input 15 / Process 30 / Output 20 / Outcome 35; skor dengan bobot rata selalu
+  ikut ditampilkan sebagai uji kepekaan.
+- Unggahan akun resmi disimpan di tabel sendiri, **bukan `mentions`**: pernyataan lembaga tidak
+  ikut terhitung dalam sentimen publik (R1). Enum `SignalSource` tidak diubah.
+- Ringkasan per akun per platform memakai median, ditahan bila < 5 unggahan memuat angkanya,
+  dan tidak dijumlah lintas platform. Angka yang tidak tampil tetap "tidak tersedia", bukan 0.
+- Tidak ada pengambilan otomatis dari Instagram/TikTok/X. Data masuk lewat unggah JSON/CSV.
+- Tidak ada keluaran model bahasa di modul ini, jadi tidak ada `AIEnvelope`.
+
+**Migrasi (tindakan pemilik produk):** jalankan
+`db/migrations/2026-11-12-kinerja-komunikasi.sql` di Supabase → SQL Editor, sekali. Hanya
+menambah dua tabel + RLS; tidak menyentuh tabel lama; idempoten. Boleh sebelum atau sesudah
+merge. Tanpa migrasi, hanya `/kinerja` yang menampilkan "Modul belum aktif di basis data" (API
+membalas 409); halaman lain tidak terpengaruh. Ini sudah diuji terhadap basis data berskema `main`.
+
+**Verifikasi sesi ini:** 945 tes backend lulus (Postgres lokal, peran `pop_app`, RLS aktif;
+60 di antaranya baru, termasuk isolasi tenant lewat API dan langsung di basis data), `ruff` +
+`mypy` bersih, 57 tes vitest, `tsc` bersih, `next build` lolos. Halaman dibuka di browser lokal
+dengan 61 unggahan **rekaan** berlabel "contoh": unggah, validasi "skor harus disertai bukti",
+simpan, dan kartu "tidak terbit (cakupan 33%)" berjalan. **Belum diverifikasi di production**
+(menunggu merge + migrasi). Basis data uji lokal sudah dihapus.
+
+**Anggapan kerja yang dipakai karena 4 pertanyaan belum dijawab** (semua bisa diganti):
+percontohan Kemenko Polkam; hanya data publik; tujuan kuliah/artikel + modul; kerangka dulu.
+
+**Belum dikerjakan dari modul ini:** coding konten per unggahan dan uji kesepakatan pengode;
+pasangan pernyataan untuk keselarasan pesan (C3); hitung otomatis waktu respons (C4) dan
+response rate (O8) — fungsi ambangnya sudah ada (`score_response_hours`, `score_response_rate`)
+tetapi belum disambungkan ke data; formulir audit T1–T4; kuintil terhadap kelompok pembanding;
+dashboard arus informasi. Urutannya ada di bagian 11 dokumen kerangka.
+
+---
+
+# 11 November 2026: rencana situs publikasi (belum ada kode)
 
 Pemilik produk ingin platform ini, seperti Drone Emprit (`pers.droneemprit.id`), punya
 **situs publik untuk hasil riset** di samping dashboard, dan arahnya "lebih baik dari Drone

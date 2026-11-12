@@ -509,6 +509,11 @@ sebagai `SOCIAL` dengan penanda "akun resmi", atau (b) menambah nilai enum `Sign
 sumber yang berbeda sifat, dan pernyataan lembaga tidak boleh ikut dihitung dalam sentimen
 publik.
 
+Yang dibangun 12 November 2026 memakai jalan ketiga yang tidak butuh keputusan itu: unggahan
+akun resmi disimpan di tabel tersendiri (`official_posts`), di luar `mentions`, sehingga tidak
+pernah ikut terhitung dalam sentimen publik. Pilihan (a) atau (b) baru perlu diputuskan bila
+unggahan resmi ingin ditampilkan berdampingan dengan percakapan di `/sinyal`.
+
 Urutan pembangunan yang disarankan: Dashboard 2 → 3 dan 5 → 4 → 1 → 6.
 
 ---
@@ -548,9 +553,9 @@ mendasarinya; saran berasal dari kerangka dan literatur.
 | Tahap | Isi | Bergantung pada |
 |---|---|---|
 | 1 | Dokumen ini | Selesai |
-| 2 | Tabel unggahan akun resmi (unggah berkas) + Dashboard 2 | Keputusan enum `SignalSource` |
+| 2 | Tabel unggahan akun resmi (unggah berkas) + Dashboard 2 | Selesai 12 Nov 2026 (`/kinerja`). Disimpan di tabel sendiri, enum `SignalSource` tidak diubah |
 | 3 | Coding konten + konsistensi pesan + waktu respons (Dashboard 3 dan 5) | Tahap 2 |
-| 4 | Formulir audit + skor + Dashboard 1 dan 4 | Akses dokumen dan wawancara |
+| 4 | Formulir audit + skor + Dashboard 1 dan 4 | Formulir skor 28 indikator dan kartu skor selesai 12 Nov 2026; formulir T1–T4 dan Dashboard 4 belum. Isinya menunggu akses dokumen dan wawancara |
 | 5 | Terbit di situs publikasi | Situs publikasi selesai |
 
 ---
