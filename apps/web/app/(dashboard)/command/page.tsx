@@ -6,7 +6,7 @@ import { Timeline, type TimelineEvent } from "@/components/Timeline";
 import { Info } from "lucide-react";
 import { TrendChart } from "@/components/TrendChart";
 import { apiOrNullLenient, repeatedQuery, type Metric } from "@/lib/api";
-import { riskColor } from "@/lib/tokens";
+import { SOURCE, riskColor } from "@/lib/tokens";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,8 @@ interface TrendPoint {
   source: string;
   value: number;
 }
+
+const SOURCE_ORDER = ["SURVEY", "MEDIA", "SOCIAL"] as const;
 
 const TREND_METRICS = ["survey_positive", "social_positive", "media_positive"] as const;
 const TREND_SERIES = [
@@ -117,6 +119,31 @@ export default async function CommandCenter() {
               </>
             )}
           </div>
+          {/* Satu ubin per sumber, tidak pernah dijumlahkan atau dirata-rata (R1).
+              Warna ubin adalah warna sumbernya. */}
+          {SOURCE_ORDER.map((src) => {
+            const r = divergence?.readings.find((x) => x.source === src);
+            if (!r) return null;
+            return (
+              <div className="stat stat-src" key={src}>
+                <div className="kicker">
+                  <span className="src-dot" style={{ background: SOURCE[src].color }} />
+                  Sentimen positif · {SOURCE[src].label}
+                </div>
+                <div className="stat-v">
+                  {r.value.toLocaleString("id-ID")}
+                  <span className="stat-u">%</span>
+                </div>
+                <div className="bar100" role="img" aria-label={`${r.value} dari 100`}>
+                  <div style={{ width: `${Math.max(0, Math.min(100, r.value))}%`, background: SOURCE[src].color }} />
+                </div>
+                <div className="stat-foot">
+                  <span className="proj-s">n {r.n.toLocaleString("id-ID")}</span>
+                  <span className="proj-s">{SOURCE[src].meaning}</span>
+                </div>
+              </div>
+            );
+          })}
         </section>
 
         {divergence === null ? (
