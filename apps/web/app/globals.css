@@ -1,5 +1,9 @@
 /* Sistem desain — tema terang sebagai default, tema gelap sebagai pilihan.
  *
+ * Tampilan "papan kendali" (2026-11-13): kartu membulat tanpa garis, angka
+ * besar tebal, huruf Plus Jakarta Sans; terang = kartu putih di atas abu
+ * hangat, gelap = navy. Yang berubah hanya chrome; warna sumber tetap.
+ *
  * SATU aturan yang menjaga file ini tetap bisa di-retema: tidak ada literal
  * warna di bawah blok token. Setiap `background`, `color`, dan `border`
  * mengambil dari var(--...). Kalau Anda tergoda menulis hex langsung di
@@ -15,29 +19,29 @@
  * berubah nilainya; "biru = survei" tetap berlaku di kedua tema.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ── Tema terang (default) ────────────────────────────────────────────── */
 :root {
   color-scheme: light;
 
-  --ink:#EDF1F6;            /* ground halaman */
+  --ink:#EAE4E6;            /* ground halaman */
   --panel:#FFFFFF;          /* permukaan kartu */
-  --panel2:#F4F7FB;         /* permukaan tersarang */
-  --panel3:#E9EFF5;         /* hover */
-  --line:#DAE3EC;           /* garis pemisah utama */
-  --line-2:#C3D0DE;         /* garis pemisah tegas */
-  --line-soft:#E8EEF4;      /* garis baris tabel */
-  --track:#E3EAF1;          /* dasar bar dan slider */
+  --panel2:#F6F2F3;         /* permukaan tersarang */
+  --panel3:#EEE8EA;         /* hover */
+  --line:#E2DADD;           /* garis pemisah utama */
+  --line-2:#CBBFC4;         /* garis pemisah tegas */
+  --line-soft:#EFE9EB;      /* garis baris tabel */
+  --track:#E7E0E3;          /* dasar bar dan slider */
 
-  --txt:#0E1D2B;
-  --txt2:#4A6076;
-  --txt3:#7B8FA3;
+  --txt:#27233A;
+  --txt2:#575268;
+  --txt3:#787286;
   --on-accent:#FFFFFF;      /* teks di atas isian berwarna */
   --on-survey:#FFFFFF;      /* teks di atas tombol primer (latar --survey) */
 
   --nav-bg:#FFFFFF;
-  --nav-hover:#F1F5F9;
+  --nav-hover:#F3EEF0;
   --nav-on-bg:#E4EFFC;
   --nav-on-txt:#0B6FD4;
   --top-bg:#FFFFFF;
@@ -76,12 +80,18 @@
   --paper-txt2:#33383E;
   --paper-txt3:#7A736A;
 
-  --sk-1:#E9EEF4;
-  --sk-2:#F5F9FD;
+  --sk-1:#EEE8EA;
+  --sk-2:#F8F5F6;
 
-  --shadow:0 1px 2px rgba(14,29,43,.06), 0 1px 3px rgba(14,29,43,.04);
-  --radius:8px;
-  --radius-sm:5px;
+  --shadow:0 1px 2px rgba(39,35,58,.06), 0 8px 24px rgba(39,35,58,.06);
+  --radius:14px;
+  --radius-sm:8px;
+
+  /* Chrome murni (bukan warna sumber R1): garis kartu, cahaya latar, garis bar atas. */
+  --panel-line:transparent;
+  --ground-img:none;
+  --top-line:linear-gradient(90deg, transparent, #CBBFC4 30%, #CBBFC4 70%, transparent);
+  --hero-bg:linear-gradient(135deg, #FFFFFF 0%, #F6F2F3 100%);
 }
 
 /* ── Tema gelap (pilihan eksplisit) ───────────────────────────────────────
@@ -93,45 +103,45 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --ink:#0A1017;
-  --panel:#0F1720;
-  --panel2:#131D28;
-  --panel3:#17222F;
-  --line:#1F2B3C;
-  --line-2:#34465C;
-  --line-soft:#16202C;
-  --track:#1A2634;
+  --ink:#0C1230;
+  --panel:#161D45;
+  --panel2:#1C2552;
+  --panel3:#232D60;
+  --line:#28336A;
+  --line-2:#3D4A8A;
+  --line-soft:#1E2755;
+  --track:#252F63;
 
-  --txt:#E6EDF6;
-  --txt2:#8FA0B5;
-  --txt3:#5C6E85;
-  --on-accent:#0A1017;
+  --txt:#EEF1FF;
+  --txt2:#A7B0D6;
+  --txt3:#7C88B8;
+  --on-accent:#0C1230;
   --on-survey:#04121F;
 
-  --nav-bg:#080D13;
-  --nav-hover:#0F1720;
-  --nav-on-bg:#11202F;
-  --nav-on-txt:#E6EDF6;
-  --top-bg:#080D13;
+  --nav-bg:#0A0F29;
+  --nav-hover:#141A3D;
+  --nav-on-bg:#1C2A5E;
+  --nav-on-txt:#EEF1FF;
+  --top-bg:#0A0F29;
 
   --survey:#4DA3FF;
   --social:#FF7A45;
   --media:#9B8AFB;
   --digital:#5FD4C4;
   --sensor:#C9B458;
-  --survey-bg:#11202F;
-  --social-bg:#2A1810;
-  --media-bg:#1C1830;
+  --survey-bg:#15285A;
+  --social-bg:#3A2030;
+  --media-bg:#2A2466;
 
   --pos:#2FBF71;
   --warn:#F5B301;
   --neg:#EF4B4B;
-  --pos-bg:#0E2419;
-  --warn-bg:#2A2008;
-  --neg-bg:#2B1213;
+  --pos-bg:#0F3340;
+  --warn-bg:#3A3020;
+  --neg-bg:#3E1B33;
   --pos-glow:rgba(47,191,113,.15);
   --pos-soft:#5FA98A;
-  --muted-fill:#41526B;
+  --muted-fill:#4A568C;
 
   --risk-0:#2FBF71;
   --risk-1:#7FB45C;
@@ -139,29 +149,34 @@
   --risk-3:#EF8A3C;
   --risk-4:#EF4B4B;
 
-  --sk-1:#141E2A;
-  --sk-2:#1A2634;
+  --sk-1:#1A2250;
+  --sk-2:#222B5E;
 
-  --shadow:none;
+  --shadow:0 10px 30px rgba(3,6,24,.35);
+
+  --panel-line:#222C5E;
+  --ground-img:radial-gradient(1100px 420px at 50% -120px, rgba(150,170,255,.16), transparent 70%);
+  --top-line:linear-gradient(90deg, transparent, #7C8CE0 30%, #7C8CE0 70%, transparent);
+  --hero-bg:linear-gradient(135deg, #1C2552 0%, #161D45 100%);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
 
 body {
   margin:0;
-  background:var(--ink);
+  background:var(--ink) var(--ground-img) no-repeat fixed;
   color:var(--txt);
-  font-family:'IBM Plex Sans', system-ui, sans-serif;
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
   font-size:14px;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
 }
 
 .app {
-  display:flex; min-height:100vh; background:var(--ink); color:var(--txt);
-  font-family:'IBM Plex Sans', system-ui, sans-serif; font-size:14px; line-height:1.5;
+  display:flex; min-height:100vh; background:transparent; color:var(--txt);
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif; font-size:14px; line-height:1.5;
 }
-.app h1,.app h2 { font-family:'Archivo', system-ui, sans-serif; margin:0; }
+.app h1,.app h2 { font-family:'Plus Jakarta Sans', system-ui, sans-serif; margin:0; }
 .kicker {
   font-family:'IBM Plex Mono', monospace; font-size:9.5px; letter-spacing:.14em;
   text-transform:uppercase; color:var(--txt3); font-weight:500;
@@ -180,7 +195,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
   display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
 }
 .brand { display:flex; gap:9px; align-items:center; padding:16px 14px; border-bottom:1px solid var(--line); color:var(--survey); }
-.brand-n { font-family:'Archivo',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--txt); }
+.brand-n { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--txt); }
 .brand-s { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--txt3); letter-spacing:.08em; text-transform:uppercase; }
 .nav nav { padding:8px 6px; display:flex; flex-direction:column; gap:1px; overflow-y:auto; }
 .nav-grp { display:flex; flex-direction:column; gap:1px; }
@@ -197,12 +212,12 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
    terakhir jadi harus di-scroll untuk terlihat sama sekali. 2px per butir
    mengembalikan ~68px dari itu tanpa membuat target klik terlalu kecil. */
 .nav-i {
-  display:flex; align-items:center; gap:9px; width:100%; padding:6px 9px; border:0; border-radius:var(--radius-sm);
+  display:flex; align-items:center; gap:9px; width:100%; padding:6px 11px; border:0; border-radius:var(--radius-sm);
   background:transparent; color:var(--txt2); font:inherit; font-size:12.5px; cursor:pointer; text-align:left;
   text-decoration:none;
 }
 .nav-i:hover { background:var(--nav-hover); color:var(--txt); }
-.nav-on { background:var(--nav-on-bg); color:var(--nav-on-txt); font-weight:600; box-shadow:inset 2px 0 0 var(--survey); }
+.nav-on { background:var(--nav-on-bg); color:var(--nav-on-txt); font-weight:700; }
 .nav-c { margin-left:auto; color:var(--survey); }
 .nav-foot { margin-top:auto; padding:14px; border-top:1px solid var(--line); }
 .proj { font-size:12.5px; font-weight:600; margin-top:4px; }
@@ -211,10 +226,12 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 /* main */
 .main { flex:1; min-width:0; }
 .top {
-  display:flex; align-items:center; gap:12px; padding:12px 20px;
+  display:flex; align-items:center; gap:12px; padding:14px 24px;
   border-bottom:1px solid var(--line); background:var(--top-bg); position:sticky; top:0; z-index:5;
 }
-.top-t { font-family:'Archivo',sans-serif; font-size:17px; font-weight:600; letter-spacing:-.015em; }
+/* Garis cahaya tipis di bawah bar atas: penanda chrome, bukan data. */
+.top::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px; background:var(--top-line); pointer-events:none; }
+.top-t { font-family:'Plus Jakarta Sans',sans-serif; font-size:21px; font-weight:800; letter-spacing:-.02em; }
 .top-r { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txt3); display:flex; align-items:center; gap:6px; }
 .dot { width:6px; height:6px; border-radius:50%; background:var(--pos); box-shadow:0 0 0 3px var(--pos-glow); }
 .burger { display:none; background:transparent; border:1px solid var(--line); color:var(--txt2); border-radius:var(--radius-sm); padding:4px 8px; cursor:pointer; }
@@ -228,16 +245,16 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 }
 .theme-btn:hover { background:var(--panel2); color:var(--txt); border-color:var(--line-2); }
 
-.body { padding:20px; display:flex; flex-direction:column; gap:16px; max-width:1400px; }
+.body { padding:24px; display:flex; flex-direction:column; gap:18px; max-width:1480px; }
 
 /* panels */
 .panel {
-  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-  padding:16px; box-shadow:var(--shadow);
+  background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius);
+  padding:20px 22px; box-shadow:var(--shadow);
 }
 .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
-.panel-title { font-size:16px; font-weight:600; letter-spacing:-.01em; margin-top:3px; }
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.panel-title { font-size:18px; font-weight:700; letter-spacing:-.015em; margin-top:3px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
 .chart { margin:0 -4px; }
 .note { display:flex; gap:7px; align-items:flex-start; font-size:12px; color:var(--txt2); margin:12px 0 0; }
 .note svg { flex:0 0 auto; margin-top:2px; color:var(--txt3); }
@@ -251,34 +268,40 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 .prov b { color:var(--txt2); font-weight:500; letter-spacing:.1em; margin-right:5px; }
 .prov-lim { color:var(--txt3); }
 
-/* stats — satu kartu yang dibagi garis rambut, bukan kartu-kartu terpisah.
- * gap:1px di atas background garis membuat pemisahnya selalu benar berapa
- * pun jumlah ubinnya, termasuk saat membungkus ke baris berikutnya. */
+/* stats — ubin terpisah berangka besar (gaya papan kendali): tiap angka
+ * punya kartunya sendiri supaya terbaca dari jauh. Kartu pertama yang
+ * ditandai .stat-big memakai latar bergradasi sebagai titik fokus. */
 .stat-row {
-  display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:1px;
-  background:var(--line); border:1px solid var(--line); border-radius:var(--radius);
-  overflow:hidden; box-shadow:var(--shadow);
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;
 }
-.stat { background:var(--panel); border:0; border-radius:0; padding:15px 18px 17px; min-width:0; }
-.stat-v { font-family:'Archivo',sans-serif; font-size:30px; font-weight:600; letter-spacing:-.025em; margin-top:6px; font-variant-numeric:tabular-nums; }
-.stat-big .stat-v { font-size:44px; color:var(--survey); }
+.stat {
+  background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius);
+  padding:18px 20px 20px; min-width:0; box-shadow:var(--shadow);
+}
+.stat-v { font-family:'Plus Jakarta Sans',sans-serif; font-size:40px; font-weight:800; line-height:1.1; letter-spacing:-.035em; margin-top:8px; font-variant-numeric:tabular-nums; }
+.stat-big { background:var(--hero-bg); }
+.stat-row > .stat-big { grid-column:span 2; }
+.stat-src .bar100 { margin-top:12px; }
+.stat-src .stat-foot { justify-content:space-between; margin-top:10px; }
+.src-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:7px; vertical-align:baseline; }
+.stat-big .stat-v { font-size:56px; color:var(--survey); }
 .stat-u { font-size:14px; color:var(--txt3); margin-left:4px; letter-spacing:0; }
 .stat-foot { display:flex; align-items:center; gap:8px; margin-top:6px; flex-wrap:wrap; }
 .delta { display:inline-flex; align-items:center; gap:2px; font-family:'IBM Plex Mono',monospace; font-size:11px; font-variant-numeric:tabular-nums; }
 .delta.up { color:var(--pos); } .delta.down { color:var(--neg); } .delta.flat { color:var(--txt3); }
-.pill { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:2.5px 6px; border-radius:3px; font-weight:600; }
+.pill { font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; padding:3px 9px; border-radius:999px; font-weight:600; }
 .pill-warn { background:var(--warn-bg); color:var(--warn); }
 .pill-ok { background:var(--pos-bg); color:var(--pos); }
 .pill-sim { background:var(--media-bg); color:var(--media); }
 
 /* divergence band — signature */
 .dvg {
-  background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
-  padding:18px 20px 16px; box-shadow:var(--shadow);
+  background:var(--panel); border:1px solid var(--panel-line); border-radius:var(--radius);
+  padding:22px 24px 20px; box-shadow:var(--shadow);
 }
 .dvg-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; }
 .dvg-gap { text-align:right; }
-.dvg-gap-n { font-family:'Archivo',sans-serif; font-size:38px; font-weight:700; letter-spacing:-.04em; color:var(--social); line-height:1; font-variant-numeric:tabular-nums; }
+.dvg-gap-n { font-family:'Plus Jakarta Sans',sans-serif; font-size:48px; font-weight:800; letter-spacing:-.04em; color:var(--social); line-height:1; font-variant-numeric:tabular-nums; }
 .dvg-track { position:relative; height:132px; margin:22px 0 6px; }
 .dvg-track::after { content:''; position:absolute; left:0; right:0; bottom:22px; height:1px; background:var(--line-2); }
 .dvg-span {
@@ -304,8 +327,8 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 .issue-name { font-weight:500; }
 .issue-share { font-family:'IBM Plex Mono',monospace; color:var(--txt2); font-variant-numeric:tabular-nums; }
 .issue-meta { display:flex; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--txt3); margin-top:5px; }
-.bar100 { height:8px; background:var(--track); border-radius:3px; overflow:hidden; }
-.bar100 > div { height:100%; border-radius:3px; }
+.bar100 { height:10px; background:var(--track); border-radius:999px; overflow:hidden; }
+.bar100 > div { height:100%; border-radius:999px; }
 
 /* timeline */
 .tl { list-style:none; margin:0; padding:0; border-left:1px solid var(--line); }
@@ -329,7 +352,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 
 /* POI */
 .poi-wrap { display:grid; grid-template-columns:220px 1fr; gap:26px; }
-.poi-n { font-family:'Archivo',sans-serif; font-size:66px; font-weight:700; letter-spacing:-.045em; line-height:1; color:var(--survey); font-variant-numeric:tabular-nums; }
+.poi-n { font-family:'Plus Jakarta Sans',sans-serif; font-size:66px; font-weight:700; letter-spacing:-.045em; line-height:1; color:var(--survey); font-variant-numeric:tabular-nums; }
 .poi-scale { font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--txt3); margin-top:2px; }
 .poi-meta { margin-top:16px; display:flex; flex-direction:column; gap:6px; font-size:12px; color:var(--txt2); }
 .poi-meta b { display:block; font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--txt3); font-weight:500; }
@@ -350,8 +373,8 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .cons { display:flex; flex-direction:column; gap:12px; margin-bottom:18px; }
 .cons-row { display:grid; grid-template-columns:64px 1fr 96px 130px; gap:14px; align-items:center; }
 .cons-label { font-family:'IBM Plex Mono',monospace; font-size:10px; letter-spacing:.12em; }
-.cons-v { font-family:'Archivo',sans-serif; font-size:22px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-.pct { font-family:'IBM Plex Sans',sans-serif; font-size:10.5px; color:var(--txt3); margin-left:4px; font-weight:400; }
+.cons-v { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; font-weight:600; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.pct { font-family:'Plus Jakarta Sans',sans-serif; font-size:10.5px; color:var(--txt3); margin-left:4px; font-weight:400; }
 .cons-n { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txt3); text-align:right; }
 .reads { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 .read { background:var(--panel2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 13px; }
@@ -364,7 +387,7 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
   text-align:left; font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.1em;
   text-transform:uppercase; color:var(--txt3); font-weight:500; padding:7px 10px 7px 0; border-bottom:1px solid var(--line);
 }
-.tbl td { padding:8px 10px 8px 0; border-bottom:1px solid var(--line-soft); }
+.tbl td { padding:10px 10px 10px 0; border-bottom:1px solid var(--line-soft); }
 .tbl tr:last-child td { border-bottom:0; }
 
 /* narrative */
@@ -397,13 +420,13 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .geo-t:hover { background:var(--panel3); }
 .geo-on { border-color:var(--survey); border-left-width:3px; }
 .geo-n { font-size:12.5px; }
-.geo-v { font-family:'Archivo',sans-serif; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
+.geo-v { font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; font-variant-numeric:tabular-nums; }
 .legend { display:flex; align-items:center; gap:4px; margin-top:14px; font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--txt3); }
 .legend i { width:22px; height:7px; border-radius:2px; }
 
 /* forecast */
 .fc-out { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line); }
-.fc-out b { display:block; font-family:'Archivo',sans-serif; font-size:20px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
+.fc-out b { display:block; font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; font-weight:600; margin-top:4px; font-variant-numeric:tabular-nums; }
 .sliders { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; }
 .slider-top { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:7px; }
 .slider-top label { font-size:12.5px; font-weight:500; }
@@ -420,11 +443,11 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .panel-light { background:var(--paper); border-color:var(--paper-line); color:var(--paper-txt); padding:34px 38px; }
 .brief-head { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding-bottom:20px; border-bottom:2px solid var(--paper-txt); }
 .panel-light .kicker { color:var(--paper-txt3); }
-.brief-h1 { font-family:'Archivo',sans-serif; font-size:26px; font-weight:700; letter-spacing:-.025em; margin-top:6px; max-width:24ch; }
+.brief-h1 { font-family:'Plus Jakarta Sans',sans-serif; font-size:26px; font-weight:700; letter-spacing:-.025em; margin-top:6px; max-width:24ch; }
 .brief-badge { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.08em; color:var(--paper-txt3); text-align:right; }
 .brief-list { margin:0; }
 .brief-list > div { display:grid; grid-template-columns:190px 1fr; gap:24px; padding:18px 0; border-bottom:1px solid var(--paper-line); }
-.brief-list dt { font-family:'Archivo',sans-serif; font-size:15px; font-weight:600; letter-spacing:-.01em; }
+.brief-list dt { font-family:'Plus Jakarta Sans',sans-serif; font-size:15px; font-weight:600; letter-spacing:-.01em; }
 .brief-list dd { margin:0; font-size:14px; line-height:1.6; color:var(--paper-txt2); max-width:70ch; }
 .brief-foot { margin-top:20px; font-family:'IBM Plex Mono',monospace; font-size:10px; line-height:1.7; color:var(--paper-txt3); max-width:80ch; }
 
@@ -452,7 +475,9 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 @media (max-width:560px) {
   .poi-dims { grid-template-columns:1fr; }
   .dvg-track { height:150px; }
-  .stat-big .stat-v { font-size:36px; }
+  .stat-big .stat-v { font-size:42px; }
+  .stat-row > .stat-big { grid-column:auto; }
+  .stat-v { font-size:32px; }
 }
 @media (prefers-reduced-motion:reduce) { * { transition:none !important; animation:none !important; } }
 
@@ -464,7 +489,7 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
   padding:11px 13px; border-left:2px solid var(--warn); background:var(--warn-bg);
   border-radius:0 var(--radius-sm) var(--radius-sm) 0; margin-top:8px;
 }
-.insufficient-t { font-family:'Archivo',sans-serif; font-size:16px; font-weight:600; color:var(--warn); }
+.insufficient-t { font-family:'Plus Jakarta Sans',sans-serif; font-size:16px; font-weight:600; color:var(--warn); }
 .insufficient-d { font-size:12px; color:var(--txt2); margin-top:4px; max-width:52ch; }
 
 /* --- error dan loading ---------------------------------------------------- */
@@ -479,16 +504,16 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
  * jadi tidak ikut berubah saat tema berubah. Sekarang punya kelas sendiri. */
 .auth-wrap {
   min-height:100vh; display:flex; align-items:center; justify-content:center;
-  background:var(--ink); color:var(--txt); padding:24px 16px;
-  font-family:'IBM Plex Sans', system-ui, sans-serif;
+  background:transparent; color:var(--txt); padding:24px 16px;
+  font-family:'Plus Jakarta Sans', system-ui, sans-serif;
 }
 .auth-card {
-  width:100%; max-width:400px; background:var(--panel); border:1px solid var(--line);
+  width:100%; max-width:400px; background:var(--panel); border:1px solid var(--panel-line);
   border-radius:var(--radius); padding:28px 26px; box-shadow:var(--shadow);
 }
 .auth-card.wide { max-width:480px; }
 .auth-brand { display:flex; align-items:center; gap:8px; color:var(--survey); margin-bottom:18px; }
-.auth-title { font-family:'Archivo',sans-serif; font-size:21px; font-weight:700; letter-spacing:-.02em; margin:0; }
+.auth-title { font-family:'Plus Jakarta Sans',sans-serif; font-size:24px; font-weight:800; letter-spacing:-.02em; margin:0; }
 .auth-sub { font-size:13px; color:var(--txt2); margin:6px 0 20px; }
 .field { display:flex; flex-direction:column; gap:5px; margin-bottom:14px; }
 .field label { font-family:'IBM Plex Mono',monospace; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--txt3); }
@@ -502,7 +527,7 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .btn {
   display:inline-flex; align-items:center; justify-content:center; gap:7px;
   background:var(--survey); color:var(--on-survey); border:1px solid var(--survey);
-  border-radius:var(--radius-sm); padding:9px 15px; font:inherit; font-size:13.5px;
+  border-radius:999px; padding:9px 18px; font:inherit; font-size:13.5px;
   font-weight:600; cursor:pointer; text-decoration:none;
 }
 .btn:hover:not(:disabled) { filter:brightness(1.08); }
@@ -512,7 +537,7 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .btn-ghost:hover:not(:disabled) { background:var(--panel2); color:var(--txt); border-color:var(--line-2); filter:none; }
 .btn-danger { background:transparent; color:var(--neg); border-color:var(--neg); font-weight:500; }
 .btn-danger:hover:not(:disabled) { background:var(--neg-bg); filter:none; }
-.btn-sm { padding:5px 10px; font-size:12px; }
+.btn-sm { padding:5px 13px; font-size:12px; }
 
 /* Sinyal: bilah periode, baris bar berlabel lebar, peta jam ramai. */
 .period-bar { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end; margin-bottom:16px; }

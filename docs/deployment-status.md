@@ -6,7 +6,72 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 13 November 2026: publikasi hasil riset (tahap 1–2)
+# 🟢 MULAI DARI SINI — 13 November 2026 (malam): desain baru + daftar kerja besok
+
+Tiga PR terbuka, **bertumpuk**, semuanya menunggu pemilik (agen tidak diizinkan
+me-merge ke `main`). Di komputer lain: `git fetch && git checkout desain/papan-kendali`
+— cabang ini memuat SEMUA pekerjaan (#58 + #59 + desain).
+
+| PR | Cabang | Isi |
+|---|---|---|
+| #58 | `docs/kerangka-kinerja-komunikasi` | modul Kinerja Komunikasi Pemerintah |
+| #59 | `pers/tahap-1-publikasi` | publikasi hasil riset + halaman publik `/pers` |
+| #60 | `desain/papan-kendali` | desain tampilan baru (blok ini) |
+
+**Desain baru (#60):** hanya `apps/web/app/globals.css` + baris atas Command Center.
+Palet tema terang hangat (kartu putih di atas abu-mauve) dan tema gelap navy; huruf
+Plus Jakarta Sans; kartu membulat tanpa garis; angka besar tebal; baris statistik menjadi
+ubin terpisah; Command Center mendapat satu ubin per sumber (Survei/Media/Sosial, tidak
+pernah dijumlahkan — R1). Warna sumber TIDAK diubah. Token chrome baru: `--panel-line`,
+`--ground-img`, `--top-line`, `--hero-bg`. Dicek di peramban lokal dengan data demo
+sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (gelap);
+**halaman lain belum dilihat satu per satu.**
+
+## Daftar kerja besok (urut prioritas)
+
+**A. Tindakan pemilik (membuka semuanya ke produksi)**
+1. Merge PR #58 → #59 → #60 (berurutan).
+2. Supabase SQL Editor: jalankan `db/migrations/2026-11-12-kinerja-komunikasi.sql`,
+   lalu `db/migrations/2026-11-13-publikasi.sql`.
+3. Buka produksi: cek `/kinerja`, `/publikasi`, `/pers`, dan tampilan baru.
+
+**B. Desain — yang kurang**
+4. Lihat satu per satu di kedua tema: `/sinyal`, `/laporan`, `/tema`, `/narrative`,
+   `/jaringan`, `/geo`, `/segments`, `/consistency`, `/forecast`, `/pengaruh`, `/dampak`,
+   `/brief`, `/copilot`, `/governance`, `/kinerja`, `/publikasi`, `/pers`, `/masuk`,
+   `/daftar`, `/proyek`; rapikan yang janggal.
+5. Tampilan ponsel (≤ 560 px) dan cetak/PDF `/laporan` dengan palet baru.
+6. Ukur ulang kontras teks `--txt3` dan warna sumber di atas kartu baru (WCAG AA).
+7. Ubin angka besar di `/sinyal` dan `/kinerja` (masih tata letak lama).
+8. Daftar menu kiri terpotong oleh kotak "Proyek aktif" di layar pendek.
+
+**C. Situs publikasi — yang kurang**
+9. Artikel pertama BBM Bali (butuh A selesai + akun pemilik).
+10. Grafik interaktif di `/pers`, RSS, gambar OG.
+11. Ekspor DOCX/PDF + unduh CSV agregat.
+12. Lima keputusan pemilik (nama/domain, Ghost atau bangun sendiri, siapa penerbit,
+    penyebutan akun tokoh publik, bahasa) — lihat `docs/rencana-situs-publikasi.md`.
+
+**D. Kinerja Komunikasi — yang kurang**
+13. Pengodean isi per unggahan + kesepakatan antar-pengode.
+14. Keselarasan pesan (C3); sambungkan waktu tanggap (C4) dan tingkat jawab (O8) ke data.
+15. Formulir audit T1–T4 dan dashboard Information Flow.
+16. Empat pertanyaan pemilik: Kemenko mana, akses data, tujuan, urutan kerja.
+
+**E. Daftar lama**
+17. Cek produksi BBM Bali `/sinyal` + `/laporan` (11–20 Okt, WITA) dan penemuan tema.
+18. Periode tetap di halaman selain `/sinyal` dan `/laporan`.
+19. Daftar aktor per proyek.
+20. P11 estimasi gender/umur/minat per akun; P5 label manusia; P8/P9/P10; P0 kunci
+    Anthropic di Render.
+
+Gotcha dev lokal: `localhost:3100` di Chrome pernah dipasangi service worker proyek lain
+(cache `kala-v2`) sehingga CSS/menu tampak basi. Hapus lewat DevTools → Application →
+Service Workers → Unregister, atau pakai port lain.
+
+---
+
+# 13 November 2026: publikasi hasil riset (tahap 1–2)
 
 Dua PR terbuka, **bertumpuk**, **belum di-merge** (merge ke `main` menunggu pemilik;
 agen tidak diizinkan me-merge sendiri):
