@@ -6,7 +6,53 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 12 November 2026: modul Kinerja Komunikasi Pemerintah
+# 🟢 MULAI DARI SINI — 13 November 2026: publikasi hasil riset (tahap 1–2)
+
+Dua PR terbuka, **bertumpuk**, **belum di-merge** (merge ke `main` menunggu pemilik;
+agen tidak diizinkan me-merge sendiri):
+
+1. PR #58 `docs/kerangka-kinerja-komunikasi` — modul Kinerja Komunikasi (blok di bawah).
+2. PR #59 `pers/tahap-1-publikasi` (di atas #58) — isi blok ini.
+
+**Urutan untuk pemilik:** merge #58 → merge #59 → jalankan DUA migrasi di Supabase SQL
+Editor: `db/migrations/2026-11-12-kinerja-komunikasi.sql` lalu
+`db/migrations/2026-11-13-publikasi.sql`. Sebelum migrasi dijalankan, `/kinerja`,
+`/publikasi`, dan `/pers` menampilkan pesan "belum aktif"; halaman lain tidak terpengaruh.
+
+| Apa | Di mana |
+|---|---|
+| Tabel `publications` + RLS + 2 fungsi baca-publik (SECURITY DEFINER, hanya `published`) | `db/schema.sql`, `db/rls.sql`, migrasi 2026-11-13 |
+| Snapshot beku bahan `/laporan`; teks dan tautan konten warga dibuang | `apps/api/app/services/publications.py` |
+| API bertenant (draf, sunting, status, ralat, hapus draf) + API publik tanpa login | `apps/api/app/routers/publications.py` |
+| Tombol "Buat draf publikasi" (butuh periode tetap) | `/laporan`, `components/DraftPublicationButton.tsx` |
+| Daftar + penyunting artikel | `/publikasi` |
+| Halaman publik: daftar, artikel, angka per sumber, metode, batas, ralat, sitasi | `/pers`, `/pers/[slug]` |
+
+Aturan yang ditanam: alur draf → tinjauan → terbit; **menerbitkan dan meralat hanya
+Research Director/Super Admin**; artikel terbit tidak bisa dihapus atau ditarik, perubahan
+= ralat (wajib catatan, versi naik, isi lama tersimpan tetapi tidak dibuka ke publik);
+publik tidak pernah menerima `org_id`/`project_id`; isi artikel dirender dari struktur
+data, bukan HTML; tidak ada kalimat buatan model.
+
+Asumsi yang dipakai karena 5 keputusan pemilik belum dijawab (ubah bila tidak setuju):
+bangun sendiri di monorepo; penerbit = Research Director; akun tetap tidak disebut;
+Bahasa Indonesia saja; **halaman publik ditaruh di `/pers` pada situs dashboard**, bukan
+situs/domain terpisah (nama dan domain masih keputusan pemilik; `/pers` ikut terkunci
+bila `SITE_GATE=on`).
+
+Verifikasi: 972 tes backend lulus (27 baru, termasuk isolasi tenant dan RLS langsung
+ke Postgres), ruff + mypy bersih, 68 tes vitest, tsc bersih, `next build` lulus; alur
+penuh dicoba di peramban lokal dengan data palsu (draf → tinjau → ditolak terbit tanpa
+isi → terbit → ralat versi 2 → terbaca di `/pers` tanpa login; draf 404). **Belum
+diverifikasi di produksi.**
+
+Belum dikerjakan: artikel pertama BBM Bali (butuh akun pemilik di produksi + migrasi),
+grafik interaktif di `/pers`, RSS/OG, ekspor DOCX/PDF + CSV agregat, narasi AI
+(menunggu kunci Anthropic, wajib `AIEnvelope`).
+
+---
+
+# 12 November 2026: modul Kinerja Komunikasi Pemerintah
 
 **Baca blok ini dulu.** Blok 11 November di bawahnya (situs publikasi) tetap berlaku.
 
