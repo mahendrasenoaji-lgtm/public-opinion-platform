@@ -33,6 +33,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
       ["/consistency", "Konsistensi Sinyal"],
       ["/segments", "Segmen Publik"],
       ["/geo", "Peta Geografis"],
+      ["/kinerja", "Kinerja Komunikasi"],
     ],
   },
   {

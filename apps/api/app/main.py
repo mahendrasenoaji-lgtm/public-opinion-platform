@@ -13,6 +13,7 @@ from app.routers import (
     alerts,
     auth,
     brief,
+    comm_performance,
     copilot,
     forecast,
     governance,
@@ -120,5 +121,6 @@ for r in (
     network,
     reports,
     metrics,
+    comm_performance,
 ):
     app.include_router(r.router, prefix="/v1")

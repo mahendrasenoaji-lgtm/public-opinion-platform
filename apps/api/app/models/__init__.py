@@ -1,5 +1,6 @@
 """ORM models — mirrors db/schema.sql."""
 
+from app.models.comm import CommIndicatorScore, OfficialPost
 from app.models.governance import AIOutput, AuditLog, DataQualityScore
 from app.models.measurement import Forecast, MetricSnapshot, Segment, TimelineEvent
 from app.models.org import Organization, User, UserRole
@@ -19,11 +20,13 @@ from app.models.survey import (
 __all__ = [
     "AIOutput",
     "AuditLog",
+    "CommIndicatorScore",
     "DataQualityScore",
     "DataSource",
     "Forecast",
     "Mention",
     "MetricSnapshot",
+    "OfficialPost",
     "Organization",
     "Project",
     "QualityFlagEnum",
