@@ -68,3 +68,11 @@ describe("pembantu tampilan kinerja", () => {
     expect(dimensionLabel("OUTCOME")).toBe("Outcome");
   });
 });
+
+describe("parseOfficialPosts (YouTube)", () => {
+  it("menerima platform youtube dari berkas", () => {
+    const p = parseOfficialPosts(JSON.stringify([{ ...row, platform: "YouTube", views: 120 }]))[0]!;
+    expect(p.platform).toBe("youtube");
+    expect(p.views).toBe(120);
+  });
+});

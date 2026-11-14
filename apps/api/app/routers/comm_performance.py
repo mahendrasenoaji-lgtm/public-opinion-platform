@@ -4,8 +4,10 @@ Tiga hal yang dilayani router ini:
 
 * `GET  .../framework`      katalog indikator, bobot usulan, aturan cakupan;
 * `POST .../posts` dan `GET .../posts/summary`  unggahan akun resmi lembaga
-  (diunggah peneliti, bukan diambil otomatis) dan ringkasannya per akun per
-  platform;
+  (diunggah peneliti) dan ringkasannya per akun per platform;
+* `POST .../youtube`  mengambil video kanal YouTube RESMI lembaga lewat
+  YouTube Data API, lalu menyimpannya ke tabel yang sama. Hanya YouTube yang
+  diambil otomatis; Instagram, TikTok, dan X tetap lewat unggahan berkas;
 * `GET/PUT .../scores`      skor indikator 1-5 per lembaga per bulan, beserta
   kartu skor yang hanya terbit bila cakupannya cukup.
 
@@ -29,9 +31,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
-from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.exc import IntegrityError, ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.connectors import youtube_channel as ytc
+from app.connectors.base import ConnectorError, CredentialMissing
 from app.deps import CurrentUser, Role, TenantSession, require_role
 from app.models.comm import CommIndicatorScore, OfficialPost
 from app.models.governance import AuditLog
@@ -41,10 +45,11 @@ from app.services import comm_performance as cp
 router = APIRouter(prefix="/projects/{project_id}/comm-performance", tags=["comm-performance"])
 
 MIGRATION = "db/migrations/2026-11-12-kinerja-komunikasi.sql"
+MIGRATION_YOUTUBE = "db/migrations/2026-11-14-kinerja-youtube.sql"
 MAX_POSTS_PER_CALL = 1000
 SCORE_MUTABLE = ("score", "unavailable_reason", "evidence", "assessed_by", "assessed_at")
 
-PlatformIn = Literal["instagram", "tiktok", "x"]
+PlatformIn = Literal["instagram", "tiktok", "x", "youtube"]
 
 POST_LIMITATIONS = [
     "Angka diunggah peneliti dari data yang tampil publik atau dari ekspor pemilik akun; "
@@ -54,6 +59,17 @@ POST_LIMITATIONS = [
     "Engagement rate di sini dibagi jumlah pengikut, bukan reach. Angka tinggi menandakan "
     "interaksi, bukan pemahaman atau persetujuan.",
     "Reach, impressions, dan saves hanya ada bila pemilik akun memberikannya.",
+]
+
+YOUTUBE_LIMITATIONS = [
+    "Diambil dari YouTube Data API resmi: hanya tayangan, suka, dan jumlah komentar yang "
+    "tampil publik. Share, reach, impressions, dan durasi tonton hanya ada di YouTube Studio "
+    "pemilik kanal, jadi dicatat kosong.",
+    "Suka yang disembunyikan atau komentar yang dimatikan dicatat kosong, bukan nol.",
+    "Jumlah pelanggan dibulatkan YouTube dan diambil SAAT pengambilan, bukan saat video "
+    "diunggah; engagement rate video lama karena itu cenderung lebih rendah.",
+    "Tayangan video lama terus bertambah; bandingkan video pada umur yang mirip.",
+    "Video yang dihapus atau dijadikan privat tidak terlihat.",
 ]
 
 
@@ -122,6 +138,29 @@ class PostsResult(BaseModel):
     stored: int
     updated: int
     duplicates_dropped: int
+
+
+class YouTubeFetchIn(BaseModel):
+    channel: str = Field(
+        min_length=2,
+        max_length=200,
+        description="Handle (@namakanal), ID kanal (UC…), atau URL kanal resmi lembaga.",
+    )
+    since_days: int = Field(default=ytc.DEFAULT_SINCE_DAYS, ge=1, le=ytc.MAX_SINCE_DAYS)
+    max_videos: int = Field(default=ytc.DEFAULT_MAX_VIDEOS, ge=1, le=ytc.MAX_MAX_VIDEOS)
+
+
+class YouTubeFetchOut(BaseModel):
+    channel_id: str
+    channel_title: str
+    account: str
+    subscribers: int | None
+    n_videos: int
+    since_days: int
+    truncated: bool
+    quota_units: int
+    result: PostsResult
+    limitations: list[str]
 
 
 class AccountSummaryOut(BaseModel):
@@ -240,6 +279,14 @@ async def _tables() -> AsyncIterator[None]:
     """
     try:
         yield
+    except IntegrityError as e:
+        if "official_posts_platform_check" in str(e.orig):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Basis data belum menerima platform ini. Jalankan "
+                f"{MIGRATION_YOUTUBE}.",
+            ) from e
+        raise
     except ProgrammingError as e:
         if "does not exist" in str(e.orig) or "UndefinedTable" in type(e.orig).__name__:
             raise HTTPException(
@@ -304,13 +351,25 @@ async def upload_posts(
     """Unggah unggahan akun resmi. Mengunggah ulang memperbarui angkanya.
 
     Hak memakai data yang diunggah adalah tanggung jawab pengunggah. Platform
-    ini tidak mengambil data Instagram, TikTok, atau X secara otomatis.
+    ini tidak mengambil data Instagram, TikTok, atau X secara otomatis
+    (YouTube punya endpoint sendiri: `POST .../youtube`).
     """
     await _require_project(session, project_id)
+    return await _store_posts(session, user, project_id, body.items, "comm_posts_upload")
 
-    # Dalam satu berkas, baris terakhir untuk unggahan yang sama yang dipakai.
+
+async def _store_posts(
+    session: AsyncSession,
+    user: CurrentUser,
+    project_id: UUID,
+    items: list[PostIn],
+    action: str,
+    extra_audit: dict[str, object] | None = None,
+) -> PostsResult:
+    """Simpan atau perbarui unggahan, lalu catat di audit log."""
+    # Dalam satu kiriman, baris terakhir untuk unggahan yang sama yang dipakai.
     unique: dict[tuple[str, str], PostIn] = {}
-    for item in body.items:
+    for item in items:
         unique[(item.platform, item.external_id)] = item
 
     async with _tables():
@@ -344,22 +403,84 @@ async def upload_posts(
 
     updated = sum(1 for k in unique if k in existing)
     result = PostsResult(
-        received=len(body.items),
+        received=len(items),
         stored=len(unique) - updated,
         updated=updated,
-        duplicates_dropped=len(body.items) - len(unique),
+        duplicates_dropped=len(items) - len(unique),
     )
     session.add(
         AuditLog(
             org_id=user.org_id,
             actor_id=user.user_id,
-            action="comm_posts_upload",
+            action=action,
             entity="project",
             entity_id=project_id,
-            metadata_=result.model_dump(),
+            metadata_={**result.model_dump(), **(extra_audit or {})},
         )
     )
     return result
+
+
+@router.post(
+    "/youtube",
+    response_model=YouTubeFetchOut,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def fetch_youtube_channel(
+    project_id: UUID, body: YouTubeFetchIn, session: TenantSession, user: CurrentUser
+) -> YouTubeFetchOut:
+    """Ambil video kanal YouTube RESMI lembaga dan simpan sebagai unggahan akun resmi.
+
+    Hanya untuk kanal milik lembaga yang dinilai, bukan akun warga. Mengambil
+    ulang memperbarui angka video yang sama (tayangan terus bertambah).
+    """
+    await _require_project(session, project_id)
+    try:
+        fetched = await ytc.fetch_channel_uploads(
+            body.channel, since_days=body.since_days, max_videos=body.max_videos
+        )
+    except CredentialMissing as e:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(e)) from e
+    except ConnectorError as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+
+    rows = ytc.to_post_rows(fetched, datetime.now(UTC))
+    account = fetched.channel.handle or fetched.channel.channel_id
+    if rows:
+        result = await _store_posts(
+            session,
+            user,
+            project_id,
+            [PostIn(**r) for r in rows],
+            "comm_posts_youtube",
+            {"channel_id": fetched.channel.channel_id, "quota_units": fetched.quota_units},
+        )
+    else:
+        result = PostsResult(received=0, stored=0, updated=0, duplicates_dropped=0)
+
+    limitations = list(YOUTUBE_LIMITATIONS)
+    if fetched.truncated:
+        limitations.insert(
+            0,
+            f"Dibatasi {body.max_videos} video terbaru; masih ada video lain dalam "
+            f"{body.since_days} hari terakhir yang belum diambil.",
+        )
+    if fetched.channel.subscribers is None:
+        limitations.insert(
+            0, "Kanal menyembunyikan jumlah pelanggan, jadi engagement rate tidak bisa dihitung."
+        )
+    return YouTubeFetchOut(
+        channel_id=fetched.channel.channel_id,
+        channel_title=fetched.channel.title,
+        account=account,
+        subscribers=fetched.channel.subscribers,
+        n_videos=len(rows),
+        since_days=body.since_days,
+        truncated=fetched.truncated,
+        quota_units=fetched.quota_units,
+        result=result,
+        limitations=limitations,
+    )
 
 
 @router.get("/posts/summary", response_model=PostsSummaryOut)

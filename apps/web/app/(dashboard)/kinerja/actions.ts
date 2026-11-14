@@ -58,3 +58,36 @@ export async function saveScores(
     throw e;
   }
 }
+
+export interface YouTubeFetchResult {
+  channel_id: string;
+  channel_title: string;
+  account: string;
+  subscribers: number | null;
+  n_videos: number;
+  since_days: number;
+  truncated: boolean;
+  quota_units: number;
+  result: PostsResult;
+  limitations: string[];
+}
+
+/** Ambil video kanal YouTube RESMI lembaga lewat YouTube Data API, lalu simpan. */
+export async function fetchYouTubeChannel(
+  projectId: string,
+  channel: string,
+  sinceDays: number,
+  maxVideos: number,
+): Promise<Result<YouTubeFetchResult>> {
+  try {
+    const result = await api<YouTubeFetchResult>(`/projects/${projectId}/comm-performance/youtube`, {
+      method: "POST",
+      body: JSON.stringify({ channel, since_days: sinceDays, max_videos: maxVideos }),
+    });
+    revalidatePath("/kinerja");
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
