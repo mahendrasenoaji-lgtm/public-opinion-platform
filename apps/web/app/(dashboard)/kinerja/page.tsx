@@ -13,6 +13,7 @@ import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import {
   PERIOD_RE,
   PLATFORM_LABEL,
+  formatRate,
   coverageText,
   currentPeriod,
   dimensionLabel,
@@ -260,7 +261,7 @@ export default async function KinerjaPage({
                           <td className="mono">
                             {a.median_engagement_rate === null
                               ? "tidak tersedia"
-                              : `${formatMedian(a.median_engagement_rate)}% (n ${a.n_engagement_rate})`}
+                              : `${formatRate(a.median_engagement_rate)}% (n ${a.n_engagement_rate})`}
                           </td>
                         </tr>
                       ))}

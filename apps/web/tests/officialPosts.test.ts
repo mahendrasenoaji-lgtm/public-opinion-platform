@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseCsv, parseOfficialPosts } from "@/lib/officialPosts";
-import { coverageText, dimensionLabel, formatMedian } from "@/app/(dashboard)/kinerja/kinerja";
+import { coverageText, dimensionLabel, formatMedian, formatRate } from "@/app/(dashboard)/kinerja/kinerja";
 
 const row = { platform: "instagram", account: "akun", external_id: "p1", posted_at: "2026-10-01T03:00:00Z" };
 
@@ -74,5 +74,15 @@ describe("parseOfficialPosts (YouTube)", () => {
     const p = parseOfficialPosts(JSON.stringify([{ ...row, platform: "YouTube", views: 120 }]))[0]!;
     expect(p.platform).toBe("youtube");
     expect(p.views).toBe(120);
+  });
+});
+
+describe("formatRate", () => {
+  it("angka kecil tidak dibulatkan menjadi 0", () => {
+    expect(formatRate(0.0412)).toBe("0,041");
+    expect(formatRate(0.2)).toBe("0,2");
+    expect(formatRate(0)).toBe("0");
+    expect(formatRate(1.125)).toBe("1,1");
+    expect(formatRate(null)).toBe("tidak tersedia");
   });
 });

@@ -119,6 +119,18 @@ export function formatMedian(v: number | null): string {
   return v === null ? "tidak tersedia" : NUM.format(v);
 }
 
+/**
+ * Engagement rate (persen). Di YouTube angkanya per pelanggan bisa 0,04%;
+ * dibulatkan ke 1 desimal ia tampil "0%", seolah tidak ada interaksi sama
+ * sekali. Angka di bawah 1 karena itu ditulis dengan 2 angka penting.
+ */
+export function formatRate(v: number | null): string {
+  if (v === null) return "tidak tersedia";
+  if (v === 0) return "0";
+  if (v < 1) return v.toLocaleString("id-ID", { maximumSignificantDigits: 2 });
+  return NUM.format(v);
+}
+
 export function formatScore(v: number): string {
   return v.toLocaleString("id-ID", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
