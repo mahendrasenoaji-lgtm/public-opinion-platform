@@ -345,3 +345,70 @@ async def test_rls_menolak_baris_lintas_tenant_di_lapisan_basis_data() -> None:
                 )
     finally:
         await engine.dispose()
+
+
+async def test_ambil_kanal_youtube_disimpan_sebagai_akun_resmi(client, monkeypatch) -> None:
+    from datetime import UTC, datetime
+
+    from app.connectors import youtube_channel as ytc
+
+    now = datetime(2026, 11, 14, tzinfo=UTC)
+    channel = ytc.ChannelInfo("UC" + "b" * 22, "Kanal Resmi", "@kanalresmi", "UU" + "b" * 22, None)
+    videos = [
+        ytc.VideoStats(f"v{i}", f"Video {i}", now, "video", 100 * (i + 1), None, 3)
+        for i in range(6)
+    ]
+
+    async def fake_fetch(raw, *, since_days, max_videos, **_):
+        assert raw == "@kanalresmi"
+        return ytc.ChannelFetch(channel, videos, 3, truncated=True)
+
+    monkeypatch.setattr(ytc, "fetch_channel_uploads", fake_fetch)
+    headers, pid = await _org_with_project(client)
+    r = await client.post(
+        f"{_base(pid)}/youtube",
+        json={"channel": "@kanalresmi", "since_days": 30, "max_videos": 6},
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    body = r.json()
+    assert body["account"] == "@kanalresmi"
+    assert body["n_videos"] == 6
+    assert body["result"]["stored"] == 6
+    assert body["truncated"] is True
+    # Pelanggan tersembunyi dan batas jumlah video disebut di batasan.
+    assert "menyembunyikan jumlah pelanggan" in body["limitations"][0]
+    assert any("Dibatasi 6 video" in t for t in body["limitations"])
+
+    s = await client.get(f"{_base(pid)}/posts/summary", headers=headers)
+    yt = {(a["account"], a["platform"]): a for a in s.json()["accounts"]}[
+        ("@kanalresmi", "youtube")
+    ]
+    assert yt["median_views"] == 350
+    assert yt["median_likes"] is None  # suka tersembunyi: kosong, bukan nol
+    assert yt["median_engagement_rate"] is None  # tanpa pelanggan tidak dihitung
+
+    # Mengambil ulang memperbarui, tidak menggandakan.
+    again = await client.post(
+        f"{_base(pid)}/youtube", json={"channel": "@kanalresmi"}, headers=headers
+    )
+    assert again.json()["result"] == {
+        "received": 6,
+        "stored": 0,
+        "updated": 6,
+        "duplicates_dropped": 0,
+    }
+
+
+async def test_ambil_kanal_youtube_galat_konektor_jadi_502(client, monkeypatch) -> None:
+    from app.connectors import youtube_channel as ytc
+    from app.connectors.base import ConnectorError
+
+    async def fail(*_a, **_k):
+        raise ConnectorError("Kanal @x tidak ditemukan di YouTube.")
+
+    monkeypatch.setattr(ytc, "fetch_channel_uploads", fail)
+    headers, pid = await _org_with_project(client)
+    r = await client.post(f"{_base(pid)}/youtube", json={"channel": "@xyzabc"}, headers=headers)
+    assert r.status_code == 502
+    assert "tidak ditemukan" in r.json()["detail"]

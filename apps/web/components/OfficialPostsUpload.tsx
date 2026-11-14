@@ -11,7 +11,8 @@ const CHUNK = 300;
 /**
  * Unggah data unggahan akun resmi lembaga (JSON atau CSV). Platform ini tidak
  * mengambil data Instagram, TikTok, atau X sendiri; berkasnya disiapkan
- * peneliti dari tampilan publik atau dari ekspor pemilik akun.
+ * peneliti dari tampilan publik atau dari ekspor pemilik akun. YouTube punya
+ * pengambilan otomatis sendiri (`YouTubeChannelFetch`).
  */
 export function OfficialPostsUpload({ projectId }: { projectId: string }) {
   const router = useRouter();
@@ -54,7 +55,7 @@ export function OfficialPostsUpload({ projectId }: { projectId: string }) {
     <div>
       <p className="field-hint" style={{ marginBottom: 10 }}>
         Berkas JSON (larik baris) atau CSV berkepala. Kolom wajib:{" "}
-        <span className="mono">platform</span> (instagram, tiktok, x),{" "}
+        <span className="mono">platform</span> (instagram, tiktok, x, youtube),{" "}
         <span className="mono">account</span>, <span className="mono">external_id</span>,{" "}
         <span className="mono">posted_at</span>. Kolom pilihan: <span className="mono">kind</span>,{" "}
         <span className="mono">url</span>, <span className="mono">caption</span>,{" "}

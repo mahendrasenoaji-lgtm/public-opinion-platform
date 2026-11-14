@@ -514,6 +514,14 @@ akun resmi disimpan di tabel tersendiri (`official_posts`), di luar `mentions`, 
 pernah ikut terhitung dalam sentimen publik. Pilihan (a) atau (b) baru perlu diputuskan bila
 unggahan resmi ingin ditampilkan berdampingan dengan percakapan di `/sinyal`.
 
+Sejak 14 November 2026, YouTube adalah satu-satunya platform yang diambil otomatis: formulir
+"Ambil dari kanal YouTube resmi" di `/kinerja` membaca video kanal lembaga lewat YouTube Data
+API resmi (`app/connectors/youtube_channel.py`) dan menyimpannya ke `official_posts` dengan
+platform `youtube`. Yang tampil publik hanya tayangan, suka, dan jumlah komentar; share, reach,
+impressions, dan durasi tonton hanya ada di YouTube Studio pemilik kanal sehingga dicatat
+kosong. Jumlah pelanggan diambil saat pengambilan, bukan saat video diunggah. Instagram,
+TikTok, dan X tetap lewat unggahan berkas.
+
 Urutan pembangunan yang disarankan: Dashboard 2 → 3 dan 5 → 4 → 1 → 6.
 
 ---

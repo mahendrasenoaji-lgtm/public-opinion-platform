@@ -380,7 +380,7 @@ CREATE TABLE IF NOT EXISTS official_posts (
     id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     project_id   uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    platform     text NOT NULL CHECK (platform IN ('instagram', 'tiktok', 'x')),
+    platform     text NOT NULL CHECK (platform IN ('instagram', 'tiktok', 'x', 'youtube')),
     account      text NOT NULL,             -- nama akun LEMBAGA, bukan warga
     external_id  text NOT NULL,
     url          text,

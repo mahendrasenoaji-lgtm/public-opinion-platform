@@ -76,10 +76,13 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
     Petunjuk 14 Nov: pengguna menyebut Kementan, Kemenhut, KKP, KLH, Bapanas, BGN —
     daftar ini tampaknya lembaga di bawah koordinasi Kemenko Bidang Pangan (perlu
     dikonfirmasi pengguna sebelum dipakai).
-16a. YouTube belum diterima `official_posts` (CHECK hanya instagram/tiktok/x).
-    Usulan: tambah `youtube` + pengambilan otomatis daftar video dan statistik kanal
-    resmi lewat YouTube Data API (kunci sudah jalan di produksi). Butuh migrasi kecil.
-    Instagram/TikTok: sumber data (ekspor alat pihak ketiga, catat manual, atau
+16a. YouTube di modul Kinerja — dikerjakan 14 Nov (cabang `kinerja/youtube-akun-resmi`):
+    `POST /projects/{id}/comm-performance/youtube` + formulir "Ambil dari kanal YouTube
+    resmi" di `/kinerja` (`app/connectors/youtube_channel.py`, ±1 unit kuota per 50
+    video). Butuh migrasi `db/migrations/2026-11-14-kinerja-youtube.sql` (melonggarkan
+    CHECK platform); tanpa itu endpoint membalas 409 yang menyebut migrasinya.
+    Handle kanal resmi keenam lembaga belum diisi: harus diverifikasi pengguna, jangan
+    ditebak. Instagram/TikTok: sumber data (ekspor alat pihak ketiga, catat manual, atau
     Business Discovery Meta) menunggu keputusan pengguna; alamat akun resmi keenam
     lembaga harus diverifikasi, jangan ditebak.
 

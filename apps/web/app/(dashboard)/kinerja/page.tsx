@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { cookies } from "next/headers";
 import { IndicatorForm } from "@/components/IndicatorForm";
 import { OfficialPostsUpload } from "@/components/OfficialPostsUpload";
+import { YouTubeChannelFetch } from "@/components/YouTubeChannelFetch";
 import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/Panel";
 import { InsufficientData, Provenance } from "@/components/Provenance";
@@ -222,7 +223,7 @@ export default async function KinerjaPage({
 
           <Panel kicker="Output · data unggahan" title="Akun resmi per platform">
             {!posts.data || posts.data.n_posts === 0 ? (
-              <InsufficientData reason="Belum ada data unggahan akun resmi. Unggah berkas di bagian bawah." />
+              <InsufficientData reason="Belum ada data unggahan akun resmi. Ambil dari kanal YouTube atau unggah berkas di bagian bawah." />
             ) : (
               <>
                 <div style={{ overflowX: "auto" }}>
@@ -278,6 +279,12 @@ export default async function KinerjaPage({
                   limits={posts.data.limitations.join(" ")}
                 />
               </>
+            )}
+            {canEdit && (
+              <div className="act-block" style={{ marginTop: 22 }}>
+                <h3 className="kicker" style={{ marginBottom: 8 }}>Ambil dari kanal YouTube resmi</h3>
+                <YouTubeChannelFetch projectId={project.id} />
+              </div>
             )}
             {canEdit && (
               <div className="act-block" style={{ marginTop: 22 }}>

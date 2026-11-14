@@ -91,6 +91,7 @@ export const PLATFORM_LABEL: Record<string, string> = {
   instagram: "Instagram",
   tiktok: "TikTok",
   x: "X",
+  youtube: "YouTube",
 };
 
 export const AVAILABILITY_LABEL: Record<Indicator["availability"], string> = {
