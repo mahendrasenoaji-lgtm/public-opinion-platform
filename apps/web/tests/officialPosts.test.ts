@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseCsv, parseOfficialPosts } from "@/lib/officialPosts";
+import { csvTemplate, parseCsv, parseOfficialPosts } from "@/lib/officialPosts";
 import { coverageText, dimensionLabel, formatMedian, formatRate } from "@/app/(dashboard)/kinerja/kinerja";
 
 const row = { platform: "instagram", account: "akun", external_id: "p1", posted_at: "2026-10-01T03:00:00Z" };
@@ -84,5 +84,16 @@ describe("formatRate", () => {
     expect(formatRate(0)).toBe("0");
     expect(formatRate(1.125)).toBe("1,1");
     expect(formatRate(null)).toBe("tidak tersedia");
+  });
+});
+
+describe("csvTemplate", () => {
+  it("hanya kepala kolom, dan kepala itu diterima pembaca berkas", () => {
+    const tpl = csvTemplate();
+    expect(tpl.trim().split("\n")).toHaveLength(1);
+    const withRow = tpl + "instagram,akun_resmi,p1,2026-11-01T02:00:00Z,,,,10,,,,,,,,\n";
+    expect(parseOfficialPosts(withRow)).toEqual([
+      { platform: "instagram", account: "akun_resmi", external_id: "p1", posted_at: "2026-11-01T02:00:00Z", likes: 10 },
+    ]);
   });
 });

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadOfficialPosts } from "@/app/(dashboard)/kinerja/actions";
-import { parseOfficialPosts, type OfficialPostIn } from "@/lib/officialPosts";
+import { csvTemplate, parseOfficialPosts, type OfficialPostIn } from "@/lib/officialPosts";
 
 /** Baris per panggilan. Backend menerima 1.000; server action Next dibatasi 1 MB. */
 const CHUNK = 300;
@@ -65,6 +65,16 @@ export function OfficialPostsUpload({ projectId }: { projectId: string }) {
         insight pemilik akun: <span className="mono">saves</span>, <span className="mono">reach</span>,{" "}
         <span className="mono">impressions</span>. Biarkan kosong bila angkanya tidak tampil; jangan
         diisi nol. Pastikan Anda berhak memakai datanya.
+      </p>
+      <p className="field-hint" style={{ marginBottom: 10 }}>
+        <a
+          href={`data:text/csv;charset=utf-8,${encodeURIComponent(csvTemplate())}`}
+          download="templat-akun-resmi.csv"
+        >
+          Unduh templat CSV
+        </a>{" "}
+        · Instagram dan TikTok dicatat dari tampilan publik akun resmi; kolom yang tampil di
+        tiap platform dijelaskan di <span className="mono">docs/panduan-data-akun-resmi.md</span>.
       </p>
       <input
         type="file"

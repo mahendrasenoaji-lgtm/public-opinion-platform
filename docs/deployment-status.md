@@ -72,8 +72,10 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
 9. Artikel pertama BBM Bali (butuh A selesai + akun pemilik).
 10. Grafik interaktif di `/pers`, RSS, gambar OG.
 11. Ekspor DOCX/PDF + unduh CSV agregat.
-12. Lima keputusan pemilik (nama/domain, Ghost atau bangun sendiri, siapa penerbit,
-    penyebutan akun tokoh publik, bahasa) — lihat `docs/rencana-situs-publikasi.md`.
+12. ~~Lima keputusan pemilik~~ — ditetapkan 15 Nov (tabel di
+    `docs/rencana-situs-publikasi.md` bagian 5): `/pers` di domain yang sama, bangun
+    sendiri, hanya Research Director/Super Admin yang menerbitkan, akun warga tidak pernah
+    disebut, bahasa Indonesia dulu.
 
 **D. Kinerja Komunikasi — yang kurang**
 13. Pengodean isi per unggahan + kesepakatan antar-pengode.
@@ -88,10 +90,10 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
     resmi" di `/kinerja` (`app/connectors/youtube_channel.py`, ±1 unit kuota per 50
     video). Butuh migrasi `db/migrations/2026-11-14-kinerja-youtube.sql` (melonggarkan
     CHECK platform); tanpa itu endpoint membalas 409 yang menyebut migrasinya.
-    Handle kanal resmi keenam lembaga belum diisi: harus diverifikasi pengguna, jangan
-    ditebak. Instagram/TikTok: sumber data (ekspor alat pihak ketiga, catat manual, atau
-    Business Discovery Meta) menunggu keputusan pengguna; alamat akun resmi keenam
-    lembaga harus diverifikasi, jangan ditebak.
+    Migrasi dijalankan dan PR #63 digabung 14 Nov. 14 Nov: handle diverifikasi dari situs .go.id dan keenam kanal diambil ke proyek
+    "PANGAN - KINERJA AKUN RESMI (YouTube)". Instagram/TikTok: jalur bawaan diputuskan
+    15 Nov = unggah berkas, dengan tombol "Unduh templat CSV" di `/kinerja` dan panduan
+    `docs/panduan-data-akun-resmi.md` (kolom yang tampil publik per platform).
 
 **E. Daftar lama**
 17. Cek produksi BBM Bali `/sinyal` + `/laporan` (11–20 Okt, WITA) dan penemuan tema.

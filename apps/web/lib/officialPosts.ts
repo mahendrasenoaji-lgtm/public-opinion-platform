@@ -134,3 +134,31 @@ export function parseOfficialPosts(raw: string): OfficialPostIn[] {
     toPost(Object.fromEntries(cols.map((c, j) => [c, cells[j] ?? ""])), i + 2),
   );
 }
+
+/** Kolom templat CSV, urut sesuai yang dibaca `parseOfficialPosts`. */
+export const TEMPLATE_COLUMNS = [
+  "platform",
+  "account",
+  "external_id",
+  "posted_at",
+  "kind",
+  "url",
+  "caption",
+  "likes",
+  "comments",
+  "shares",
+  "views",
+  "followers",
+  "captured_at",
+  "saves",
+  "reach",
+  "impressions",
+] as const;
+
+/**
+ * Templat CSV kosong (hanya kepala kolom). Sengaja tanpa baris contoh: baris
+ * contoh yang lupa dihapus akan ikut tersimpan sebagai data.
+ */
+export function csvTemplate(): string {
+  return `${TEMPLATE_COLUMNS.join(",")}\n`;
+}
