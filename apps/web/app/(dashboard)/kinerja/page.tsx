@@ -121,6 +121,47 @@ export default async function KinerjaPage({
 
       {fw && !tablesMissing && (
         <>
+          {/* Ubin hanya menghitung baris (akun, unggahan, lembaga). Metrik
+              interaksi tidak pernah dijumlah lintas akun atau platform; itu
+              tetap per baris di tabel Output di bawah. */}
+          <section className="stat-row" style={{ marginBottom: 18 }}>
+            <div className="stat stat-big">
+              <div className="kicker">Akun resmi terpantau</div>
+              <div className="stat-v">
+                {(posts.data?.accounts.length ?? 0).toLocaleString("id-ID")}
+                <span className="stat-u">akun</span>
+              </div>
+              <div className="proj-s" style={{ marginTop: 6 }}>
+                {posts.data && posts.data.accounts.length > 0
+                  ? Array.from(new Set(posts.data.accounts.map((x) => PLATFORM_LABEL[x.platform] ?? x.platform))).join(" · ")
+                  : "Belum ada data unggahan"}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="kicker">Unggahan tercatat</div>
+              <div className="stat-v">{(posts.data?.n_posts ?? 0).toLocaleString("id-ID")}</div>
+              <div className="proj-s" style={{ marginTop: 6 }}>
+                Jumlah baris, bukan ukuran kinerja
+              </div>
+            </div>
+            <div className="stat">
+              <div className="kicker">Lembaga dinilai</div>
+              <div className="stat-v">
+                {new Set(assessments.map((x) => x.subject)).size.toLocaleString("id-ID")}
+              </div>
+              <div className="proj-s" style={{ marginTop: 6 }}>
+                {assessments.length.toLocaleString("id-ID")} isian lembaga-bulan
+              </div>
+            </div>
+            <div className="stat">
+              <div className="kicker">Indikator</div>
+              <div className="stat-v">{fw.indicators.length}</div>
+              <div className="proj-s" style={{ marginTop: 6 }}>
+                Input · Process · Output · Outcome
+              </div>
+            </div>
+          </section>
+
           <div id="kartu" />
           <Panel
             kicker="Kartu skor"
