@@ -54,8 +54,10 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
 **B. Desain — dikerjakan 14 Nov (cabang `desain/rapikan-papan-kendali`)**
 4. Uji ponsel otomatis 21 halaman di produksi (iframe 390 px, cek apakah dokumen
    melebar): semua lolos kecuali `/proyek` (tabel 442 px) — sudah dibungkus scroll.
-   `/masuk` dan `/daftar` tidak diuji (butuh keluar dari sesi). Tinjauan visual
-   tema gelap per halaman dan cetak/PDF `/laporan` BELUM dilihat mata manusia.
+   `/masuk` dan `/daftar` tidak diuji (butuh keluar dari sesi). 15 Nov: produksi dicek
+   setelah #64/#65 digabung — tema gelap `/kinerja`, `/command`, `/sinyal` rapi;
+   `/proyek` 390/390. Ditemukan: cetak/PDF dari tema gelap memakai teks terang di atas
+   kertas putih → `@media print` kini memaksa token tema terang (PR berikutnya).
 5. Lihat 4.
 6. ~~Kontras~~: diukur. Gagal AA dulu: `--txt3` (kedua tema) dan `--survey`/`--social`
    tema terang di atas `--panel2`/`--panel3`/latar pil (3,7–4,46). Nilai baru

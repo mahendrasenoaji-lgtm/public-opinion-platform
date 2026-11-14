@@ -600,6 +600,81 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .chip b { font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--txt3); font-weight:500; margin-left:3px; }
 .report .tbl td { vertical-align:top; overflow-wrap:anywhere; }
 @media print {
+  /* Cetak dan PDF selalu memakai palet terang. Tanpa ini, pengguna yang
+     sedang di tema gelap mendapat teks #EEF1FF di atas kertas putih
+     (peramban membuang latar saat mencetak): laporan nyaris tak terbaca.
+     Isinya salinan blok token tema terang di atas — ubah keduanya bersama. */
+  :root, :root[data-theme="dark"] {
+    color-scheme: light;
+  
+    --ink:#EAE4E6;            /* ground halaman */
+    --panel:#FFFFFF;          /* permukaan kartu */
+    --panel2:#F6F2F3;         /* permukaan tersarang */
+    --panel3:#EEE8EA;         /* hover */
+    --line:#E2DADD;           /* garis pemisah utama */
+    --line-2:#CBBFC4;         /* garis pemisah tegas */
+    --line-soft:#EFE9EB;      /* garis baris tabel */
+    --track:#E7E0E3;          /* dasar bar dan slider */
+  
+    --txt:#27233A;
+    --txt2:#575268;
+    --txt3:#696475;
+    --on-accent:#FFFFFF;      /* teks di atas isian berwarna */
+    --on-survey:#FFFFFF;      /* teks di atas tombol primer (latar --survey) */
+  
+    --nav-bg:#FFFFFF;
+    --nav-hover:#F3EEF0;
+    --nav-on-bg:#E4EFFC;
+    --nav-on-txt:#0A66C3;
+    --top-bg:#FFFFFF;
+  
+    --survey:#0A66C3;
+    --social:#B24219;
+    --media:#5D45D1;
+    --digital:#0A7A6F;
+    --sensor:#7A6A12;
+    --survey-bg:#E4EFFC;
+    --social-bg:#FBE9E1;
+    --media-bg:#EBE7FB;
+  
+    --pos:#0E7A48;
+    --warn:#8F6100;
+    --neg:#BC2A2A;
+    --pos-bg:#E2F3EA;
+    --warn-bg:#FBF0DA;
+    --neg-bg:#FAE6E6;
+    --pos-glow:rgba(14,122,72,.16);
+    --pos-soft:#3F8F6B;
+    --muted-fill:#9AA9B8;
+  
+    /* Ramp 0–100, sejalan dengan RISK_BANDS di services/risk.py. Dipakai dua
+     * arah: skor risiko (0 aman → 4 kritis) dan peringkat provinsi di
+     * GeoExplorer (dibalik). Keduanya presentasi, bukan warna sumber R1. */
+    --risk-0:#0E7A48;
+    --risk-1:#5E8F2E;
+    --risk-2:#8F6100;
+    --risk-3:#C25A15;
+    --risk-4:#BC2A2A;
+  
+    --paper:#F2EFE9;
+    --paper-line:#DDD7CC;
+    --paper-txt:#1A1D21;
+    --paper-txt2:#33383E;
+    --paper-txt3:#7A736A;
+  
+    --sk-1:#EEE8EA;
+    --sk-2:#F8F5F6;
+  
+    --shadow:0 1px 2px rgba(39,35,58,.06), 0 8px 24px rgba(39,35,58,.06);
+    --radius:14px;
+    --radius-sm:8px;
+  
+    /* Chrome murni (bukan warna sumber R1): garis kartu, cahaya latar, garis bar atas. */
+    --panel-line:transparent;
+    --ground-img:none;
+    --top-line:linear-gradient(90deg, transparent, #CBBFC4 30%, #CBBFC4 70%, transparent);
+    --hero-bg:linear-gradient(135deg, #FFFFFF 0%, #F6F2F3 100%);
+  }
   .nav, .top-r, .no-print { display:none !important; }
   .app { display:block; }
   .body { max-width:none; padding:0; }
