@@ -368,7 +368,7 @@ def summarize_posts(rows: Iterable[PostRow]) -> list[AccountSummary]:
                 median_shares=_median_of([r.shares for r in items if r.shares is not None]),
                 median_views=_median_of([r.views for r in items if r.views is not None]),
                 median_engagement_rate=(
-                    round(float(median(rates)), 3)
+                    round(float(median(rates)), 4)
                     if len(rates) >= MIN_POSTS_FOR_MEDIAN
                     else None
                 ),
