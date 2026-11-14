@@ -51,15 +51,20 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
 3. ~~Cek `/kinerja`, `/publikasi`, `/pers` di produksi~~ (dicek 14 Nov). Tampilan
    baru per halaman masih perlu dilihat satu per satu (butir 4).
 
-**B. Desain — yang kurang**
-4. Lihat satu per satu di kedua tema: `/sinyal`, `/laporan`, `/tema`, `/narrative`,
-   `/jaringan`, `/geo`, `/segments`, `/consistency`, `/forecast`, `/pengaruh`, `/dampak`,
-   `/brief`, `/copilot`, `/governance`, `/kinerja`, `/publikasi`, `/pers`, `/masuk`,
-   `/daftar`, `/proyek`; rapikan yang janggal.
-5. Tampilan ponsel (≤ 560 px) dan cetak/PDF `/laporan` dengan palet baru.
-6. Ukur ulang kontras teks `--txt3` dan warna sumber di atas kartu baru (WCAG AA).
-7. Ubin angka besar di `/sinyal` dan `/kinerja` (masih tata letak lama).
-8. Daftar menu kiri terpotong oleh kotak "Proyek aktif" di layar pendek.
+**B. Desain — dikerjakan 14 Nov (cabang `desain/rapikan-papan-kendali`)**
+4. Uji ponsel otomatis 21 halaman di produksi (iframe 390 px, cek apakah dokumen
+   melebar): semua lolos kecuali `/proyek` (tabel 442 px) — sudah dibungkus scroll.
+   `/masuk` dan `/daftar` tidak diuji (butuh keluar dari sesi). Tinjauan visual
+   tema gelap per halaman dan cetak/PDF `/laporan` BELUM dilihat mata manusia.
+5. Lihat 4.
+6. ~~Kontras~~: diukur. Gagal AA dulu: `--txt3` (kedua tema) dan `--survey`/`--social`
+   tema terang di atas `--panel2`/`--panel3`/latar pil (3,7–4,46). Nilai baru
+   `--txt3` #696475 / #8D97C1, `--survey` #0A66C3, `--social` #B24219 (terang);
+   semuanya >= 4,5:1 di atas semua permukaan. Warna sumber tema gelap tidak berubah.
+7. ~~Ubin angka~~: `/sinyal` ternyata sudah memakai `.stat-row`; `/kinerja` diberi
+   ubin akun / unggahan / lembaga dinilai / indikator (hitungan baris saja).
+8. ~~Menu kiri terpotong~~: `.nav nav { flex:1; min-height:0 }` — daftar menu yang
+   di-scroll, kotak "Proyek aktif" selalu terlihat.
 
 **C. Situs publikasi — yang kurang**
 9. Artikel pertama BBM Bali (butuh A selesai + akun pemilik).

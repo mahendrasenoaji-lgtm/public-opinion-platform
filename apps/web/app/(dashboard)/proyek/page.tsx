@@ -41,28 +41,32 @@ export default async function ProyekPage() {
           {projects.length === 0 ? (
             <InsufficientData reason="Organisasi Anda belum punya proyek. Klik &ldquo;+ Buat proyek baru&rdquo; di atas." />
           ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Nama</th>
-                  <th>Jenis</th>
-                  <th>Dibuat</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody>
-                {projects.map((p) => (
-                  <ProjectRow
-                    key={p.id}
-                    id={p.id}
-                    name={p.name}
-                    isDemo={p.is_demo}
-                    createdAt={p.created_at}
-                    isActive={p.id === currentId}
-                  />
-                ))}
-              </tbody>
-            </table>
+            // Pembungkus scroll: di layar ponsel (390 px) kolom Aksi membuat
+            // tabel 442 px dan seluruh halaman ikut melebar ke samping.
+            <div style={{ overflowX: "auto" }}>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th>Nama</th>
+                    <th>Jenis</th>
+                    <th>Dibuat</th>
+                    <th>Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {projects.map((p) => (
+                    <ProjectRow
+                      key={p.id}
+                      id={p.id}
+                      name={p.name}
+                      isDemo={p.is_demo}
+                      createdAt={p.created_at}
+                      isActive={p.id === currentId}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Panel>
       </div>

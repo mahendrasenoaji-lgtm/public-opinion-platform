@@ -15,8 +15,13 @@
  *
  * Nilainya BERBEDA antar tema, perannya TIDAK. Biru tema gelap #4DA3FF hanya
  * mencapai rasio kontras 2.3:1 di atas putih — gagal WCAG AA — jadi tema
- * terang memakai #0B6FD4 (4.9:1). Jingga dan ungu diperlakukan sama. Yang
+ * terang memakai #0A66C3. Jingga dan ungu diperlakukan sama. Yang
  * berubah nilainya; "biru = survei" tetap berlaku di kedua tema.
+ *
+ * 2026-11-14: biru dan jingga terang digelapkan sedikit (#0B6FD4 -> #0A66C3,
+ * #C2481B -> #B24219) dan --txt3 disesuaikan di kedua tema, karena teks kecil
+ * di atas permukaan tersarang (--panel2/--panel3) dan latar pil (--*-bg) jatuh
+ * di bawah 4.5:1. Nilai baru diukur >= 4.5:1 terhadap SEMUA permukaan tema.
  */
 
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
@@ -36,18 +41,18 @@
 
   --txt:#27233A;
   --txt2:#575268;
-  --txt3:#787286;
+  --txt3:#696475;
   --on-accent:#FFFFFF;      /* teks di atas isian berwarna */
   --on-survey:#FFFFFF;      /* teks di atas tombol primer (latar --survey) */
 
   --nav-bg:#FFFFFF;
   --nav-hover:#F3EEF0;
   --nav-on-bg:#E4EFFC;
-  --nav-on-txt:#0B6FD4;
+  --nav-on-txt:#0A66C3;
   --top-bg:#FFFFFF;
 
-  --survey:#0B6FD4;
-  --social:#C2481B;
+  --survey:#0A66C3;
+  --social:#B24219;
   --media:#5D45D1;
   --digital:#0A7A6F;
   --sensor:#7A6A12;
@@ -114,7 +119,7 @@
 
   --txt:#EEF1FF;
   --txt2:#A7B0D6;
-  --txt3:#7C88B8;
+  --txt3:#8D97C1;
   --on-accent:#0C1230;
   --on-survey:#04121F;
 
@@ -194,10 +199,14 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
   width:222px; flex:0 0 222px; background:var(--nav-bg); border-right:1px solid var(--line);
   display:flex; flex-direction:column; position:sticky; top:0; height:100vh;
 }
-.brand { display:flex; gap:9px; align-items:center; padding:16px 14px; border-bottom:1px solid var(--line); color:var(--survey); }
+.brand { display:flex; gap:9px; align-items:center; padding:16px 14px; border-bottom:1px solid var(--line); color:var(--survey); flex-shrink:0; }
 .brand-n { font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--txt); }
 .brand-s { font-family:'IBM Plex Mono',monospace; font-size:9.5px; color:var(--txt3); letter-spacing:.08em; text-transform:uppercase; }
-.nav nav { padding:8px 6px; display:flex; flex-direction:column; gap:1px; overflow-y:auto; }
+/* flex:1 + min-height:0: tanpa ini daftar menu tidak mau menyusut di bawah
+   tinggi isinya, sehingga pada layar pendek kotak "Proyek aktif" di bawahnya
+   terdorong keluar layar atau menutupi butir terakhir. Sekarang daftar menu
+   yang di-scroll; kotak proyek selalu terlihat. */
+.nav nav { padding:8px 6px; display:flex; flex-direction:column; gap:1px; overflow-y:auto; flex:1 1 auto; min-height:0; }
 .nav-grp { display:flex; flex-direction:column; gap:1px; }
 /* Judul kelompok, bukan garis pemisah: label yang menyebutkan isinya lebih
    berguna daripada garis yang cuma memotong. Tidak perlu border — jarak
@@ -219,7 +228,7 @@ button:focus-visible, input:focus-visible, a:focus-visible, select:focus-visible
 .nav-i:hover { background:var(--nav-hover); color:var(--txt); }
 .nav-on { background:var(--nav-on-bg); color:var(--nav-on-txt); font-weight:700; }
 .nav-c { margin-left:auto; color:var(--survey); }
-.nav-foot { margin-top:auto; padding:14px; border-top:1px solid var(--line); }
+.nav-foot { margin-top:auto; padding:14px; border-top:1px solid var(--line); flex-shrink:0; }
 .proj { font-size:12.5px; font-weight:600; margin-top:4px; }
 .proj-s { font-family:'IBM Plex Mono',monospace; font-size:10px; color:var(--txt3); margin-top:2px; }
 
