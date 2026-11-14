@@ -6,17 +6,33 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 13 November 2026 (malam): desain baru + daftar kerja besok
+# 🟢 MULAI DARI SINI — 14 November 2026: semua sudah di produksi
 
-Tiga PR terbuka, **bertumpuk**, semuanya menunggu pemilik (agen tidak diizinkan
-me-merge ke `main`). Di komputer lain: `git fetch && git checkout desain/papan-kendali`
-— cabang ini memuat SEMUA pekerjaan (#58 + #59 + desain).
+Keadaan per 14 November 2026:
 
-| PR | Cabang | Isi |
-|---|---|---|
-| #58 | `docs/kerangka-kinerja-komunikasi` | modul Kinerja Komunikasi Pemerintah |
-| #59 | `pers/tahap-1-publikasi` | publikasi hasil riset + halaman publik `/pers` |
-| #60 | `desain/papan-kendali` | desain tampilan baru (blok ini) |
+- **PR #58, #59, #60 sudah digabung ke `main`** pada 13 Nov (commit gabungan
+  `d0fb1c2`); CI hijau untuk ketiganya, Vercel dan Render sudah memuat kode terbaru.
+  Di komputer lain cukup `git checkout main && git pull`.
+- **Dua migrasi Supabase sudah dijalankan** pada 14 Nov lewat SQL Editor proyek
+  `publicopinion` (atas permintaan pengguna): `2026-11-12-kinerja-komunikasi.sql`
+  (pemeriksaan: `official_posts` dan `comm_indicator_scores` rowsecurity/force =
+  true) dan `2026-11-13-publikasi.sql` (`publications` true/true).
+- **Dicek di produksi 14 Nov:** `GET /v1/public/publications` → 200 `{"total":0}`
+  (sebelumnya 409 "tabel belum ada"); `/kinerja` memuat kartu skor, unggah data akun
+  resmi, dan isian 28 indikator; `/publikasi` "0 artikel"; `/pers` "Belum ada artikel
+  yang terbit". Semuanya kosong karena belum ada data, bukan karena galat.
+- **Kuota Supabase:** organisasi ALWAYSLEARN (paket gratis, ditagih lewat Vercel
+  Marketplace) **melewati kuota egress** pada siklus 10 Okt–10 Nov. Masa tenggang
+  berakhir **10 Des 2026**; setelah itu, bila masih di atas kuota, permintaan ke
+  proyek dibalas 402. Siklus 10 Nov–10 Des baru terpakai 0,12 / 5 GB (2%) per 14 Nov.
+  Jaga agar ingest besar, `rescore`, dan ekspor tetap kecil di siklus ini.
+- Pengumpulan terjadwal tetap **nonaktif** sejak 30 Okt (lihat blok 30 Oktober).
+
+| PR | Cabang | Isi | Status |
+|---|---|---|---|
+| #58 | `docs/kerangka-kinerja-komunikasi` | modul Kinerja Komunikasi Pemerintah | digabung 13 Nov |
+| #59 | `pers/tahap-1-publikasi` | publikasi hasil riset + halaman publik `/pers` | digabung 13 Nov |
+| #60 | `desain/papan-kendali` | desain tampilan baru | digabung 13 Nov |
 
 **Desain baru (#60):** hanya `apps/web/app/globals.css` + baris atas Command Center.
 Palet tema terang hangat (kartu putih di atas abu-mauve) dan tema gelap navy; huruf
@@ -27,13 +43,13 @@ pernah dijumlahkan — R1). Warna sumber TIDAK diubah. Token chrome baru: `--pan
 sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (gelap);
 **halaman lain belum dilihat satu per satu.**
 
-## Daftar kerja besok (urut prioritas)
+## Daftar kerja (urut prioritas)
 
-**A. Tindakan pemilik (membuka semuanya ke produksi)**
-1. Merge PR #58 → #59 → #60 (berurutan).
-2. Supabase SQL Editor: jalankan `db/migrations/2026-11-12-kinerja-komunikasi.sql`,
-   lalu `db/migrations/2026-11-13-publikasi.sql`.
-3. Buka produksi: cek `/kinerja`, `/publikasi`, `/pers`, dan tampilan baru.
+**A. Tindakan pemilik — SELESAI 13–14 Nov**
+1. ~~Merge PR #58 → #59 → #60~~ (digabung 13 Nov).
+2. ~~Jalankan dua migrasi Supabase~~ (dijalankan 14 Nov).
+3. ~~Cek `/kinerja`, `/publikasi`, `/pers` di produksi~~ (dicek 14 Nov). Tampilan
+   baru per halaman masih perlu dilihat satu per satu (butir 4).
 
 **B. Desain — yang kurang**
 4. Lihat satu per satu di kedua tema: `/sinyal`, `/laporan`, `/tema`, `/narrative`,
@@ -57,6 +73,15 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
 14. Keselarasan pesan (C3); sambungkan waktu tanggap (C4) dan tingkat jawab (O8) ke data.
 15. Formulir audit T1–T4 dan dashboard Information Flow.
 16. Empat pertanyaan pemilik: Kemenko mana, akses data, tujuan, urutan kerja.
+    Petunjuk 14 Nov: pengguna menyebut Kementan, Kemenhut, KKP, KLH, Bapanas, BGN —
+    daftar ini tampaknya lembaga di bawah koordinasi Kemenko Bidang Pangan (perlu
+    dikonfirmasi pengguna sebelum dipakai).
+16a. YouTube belum diterima `official_posts` (CHECK hanya instagram/tiktok/x).
+    Usulan: tambah `youtube` + pengambilan otomatis daftar video dan statistik kanal
+    resmi lewat YouTube Data API (kunci sudah jalan di produksi). Butuh migrasi kecil.
+    Instagram/TikTok: sumber data (ekspor alat pihak ketiga, catat manual, atau
+    Business Discovery Meta) menunggu keputusan pengguna; alamat akun resmi keenam
+    lembaga harus diverifikasi, jangan ditebak.
 
 **E. Daftar lama**
 17. Cek produksi BBM Bali `/sinyal` + `/laporan` (11–20 Okt, WITA) dan penemuan tema.
