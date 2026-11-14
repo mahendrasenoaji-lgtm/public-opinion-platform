@@ -27,6 +27,8 @@ Keadaan per 14 November 2026:
   proyek dibalas 402. Siklus 10 Nov–10 Des baru terpakai 0,12 / 5 GB (2%) per 14 Nov.
   Jaga agar ingest besar, `rescore`, dan ekspor tetap kecil di siklus ini.
 - Pengumpulan terjadwal tetap **nonaktif** sejak 30 Okt (lihat blok 30 Oktober).
+- **15 Nov:** egress siklus berjalan 0,122 / 5 GB (2%) setelah pengambilan YouTube dan
+  pembuatan draf publikasi. PR #64–#67 digabung; produksi dicek (lihat butir B dan 16a).
 
 | PR | Cabang | Isi | Status |
 |---|---|---|---|
@@ -69,7 +71,11 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
    di-scroll, kotak "Proyek aktif" selalu terlihat.
 
 **C. Situs publikasi — yang kurang**
-9. Artikel pertama BBM Bali (butuh A selesai + akun pemilik).
+9. Artikel pertama BBM Bali — 15 Nov: draf dibuat dari `/laporan` (11–20 Okt, WITA),
+   judul "Sepuluh hari kelangkaan BBM di Bali dalam komentar YouTube", ringkasan + isi +
+   tag terisi, snapshot beku 35.772 konten / 19.828 bernilai / neg-net-pos 14.455-1.607-3.766.
+   Status **tinjauan** (belum terbit). Menerbitkan menunggu konfirmasi pemilik karena
+   artikel terbit tidak bisa dihapus atau ditarik: `/publikasi` → **Terbitkan**.
 10. Grafik interaktif di `/pers`, RSS, gambar OG.
 11. Ekspor DOCX/PDF + unduh CSV agregat.
 12. ~~Lima keputusan pemilik~~ — ditetapkan 15 Nov (tabel di
