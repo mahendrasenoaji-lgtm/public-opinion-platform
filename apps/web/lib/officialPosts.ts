@@ -6,7 +6,7 @@
  * "tidak tampil" dan "nol" adalah dua hal berbeda di platform ini.
  */
 
-export const PLATFORMS = ["instagram", "tiktok", "x"] as const;
+export const PLATFORMS = ["instagram", "tiktok", "x", "youtube"] as const;
 export type Platform = (typeof PLATFORMS)[number];
 
 export const COUNT_FIELDS = [
@@ -83,7 +83,7 @@ function toCount(value: unknown, field: string, n: number): number | null {
 function toPost(r: Record<string, unknown>, n: number, fallbackAccount?: string): OfficialPostIn {
   const platform = String(r.platform ?? "").trim().toLowerCase();
   if (!(PLATFORMS as readonly string[]).includes(platform)) {
-    throw new Error(`Baris ke-${n}: \`platform\` harus instagram, tiktok, atau x.`);
+    throw new Error(`Baris ke-${n}: \`platform\` harus instagram, tiktok, x, atau youtube.`);
   }
   const account = String(r.account ?? fallbackAccount ?? "").trim();
   const external_id = String(r.external_id ?? "").trim();

@@ -32,10 +32,10 @@ DISCLAIMER: Final = (
 
 Dimension = Literal["INPUT", "PROCESS", "OUTPUT", "OUTCOME"]
 Availability = Literal["PUBLIC", "ACCOUNT", "INTERNAL", "SURVEY"]
-Platform = Literal["instagram", "tiktok", "x"]
+Platform = Literal["instagram", "tiktok", "x", "youtube"]
 
 DIMENSIONS: Final[tuple[Dimension, ...]] = ("INPUT", "PROCESS", "OUTPUT", "OUTCOME")
-PLATFORMS: Final[tuple[Platform, ...]] = ("instagram", "tiktok", "x")
+PLATFORMS: Final[tuple[Platform, ...]] = ("instagram", "tiktok", "x", "youtube")
 
 #: Bobot usulan (persen). Uji kepekaan dengan bobot rata selalu ikut dihitung.
 DEFAULT_WEIGHTS: Final[dict[Dimension, float]] = {
@@ -332,8 +332,8 @@ def _median_of(values: list[int]) -> float | None:
 def engagement_rate(row: PostRow) -> float | None:
     """Persen terhadap pengikut. None bila pengikut atau semua interaksi kosong.
 
-    Share yang tidak tampil publik (Instagram) dihitung nol; itu sebabnya
-    angka ini tidak boleh dibandingkan lintas platform.
+    Share yang tidak tampil publik (Instagram, YouTube) dihitung nol; itu
+    sebabnya angka ini tidak boleh dibandingkan lintas platform.
     """
     if not row.followers or row.followers <= 0:
         return None
