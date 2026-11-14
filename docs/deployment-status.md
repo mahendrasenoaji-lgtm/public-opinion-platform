@@ -8,6 +8,9 @@
 
 # 🟢 MULAI DARI SINI — 14 November 2026: semua sudah di produksi
 
+Catatan percakapan sesi 14–15 Nov (apa yang diminta, apa yang dikerjakan, data YouTube
+keenam lembaga pangan): [sesi-2026-11-14-15-youtube-kinerja-desain-publikasi.md](sesi-2026-11-14-15-youtube-kinerja-desain-publikasi.md).
+
 Keadaan per 14 November 2026:
 
 - **PR #58, #59, #60 sudah digabung ke `main`** pada 13 Nov (commit gabungan
