@@ -183,6 +183,19 @@ dibandingkan dengan survei, dan dikutip di paper.
    (CLAUDE.md §3). Apakah tokoh publik (pejabat, media resmi) boleh disebut namanya?
 5. Arah "versi riset" (bagian 4) disetujui atau tidak.
 
+### Ditetapkan 15 November 2026 (atas permintaan pengguna "kerjakan sampai tuntas")
+
+Default di bawah mengikuti apa yang sudah berjalan di kode, ditambah pilihan paling hati-hati.
+Semuanya bisa diubah pemilik produk kapan saja.
+
+| # | Keputusan | Yang berlaku |
+|---|---|---|
+| 1 | Nama dan domain | Nama "Riset opini publik", di `/pers` pada domain yang sama (`public-opinion-platform.vercel.app/pers`). Domain sendiri butuh pembelian domain, jadi ditunda. |
+| 2 | Bangun sendiri atau Ghost | **Bangun sendiri** — sudah berjalan sejak #59: angka dari snapshot beku, tanpa salin manual. |
+| 3 | Siapa yang menerbitkan | **Hanya Research Director dan Super Admin** (`PUBLISHER_ROLES` di `services/publications.py`). Artikel terbit tidak bisa dihapus; perubahan lewat ralat. |
+| 4 | Penyebutan akun | **Akun warga tidak pernah disebut**: teks dan tautan konten SOCIAL dibuang dari snapshot (`sanitize_report`). Lembaga dan media boleh disebut (judul berita adalah terbitan redaksi). Tokoh publik perorangan tidak disebut nama akunnya sampai ada keputusan lain. |
+| 5 | Bahasa / arah versi riset | **Bahasa Indonesia** dulu; versi Inggris dan DOI Zenodo masuk antrean "sesudahnya" di bagian 6, belum dikerjakan. |
+
 ---
 
 ## 6. Urutan kerja yang diusulkan (±3–4 sesi)
