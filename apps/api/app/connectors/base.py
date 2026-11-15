@@ -4,7 +4,8 @@
 
 Konektor HANYA boleh mengambil data lewat API resmi yang aksesnya diberikan
 kepada organisasi pengguna, atau lewat feed yang memang diterbitkan untuk
-dibaca mesin (RSS/Atom). Yang tidak boleh, tanpa pengecualian:
+dibaca mesin (RSS/Atom; untuk situs resmi lembaga juga `robots.txt` dan
+`sitemap.xml`, lihat `official_site.py`). Yang tidak boleh, tanpa pengecualian:
 
 - mengambil halaman dengan menyamar sebagai peramban untuk melewati
   pembatasan platform;

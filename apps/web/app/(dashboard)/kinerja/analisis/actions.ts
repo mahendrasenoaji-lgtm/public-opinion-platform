@@ -2,7 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { api, ApiError } from "@/lib/api";
-import type { AlignmentRow, CodingRow, FlowRow, ResponseRate } from "./analisis";
+import type {
+  AlignmentRow,
+  CodingRow,
+  FlowRow,
+  ResponseRate,
+  SiteItemIn,
+  SiteReadResult,
+} from "./analisis";
 
 type Result<T> = { ok: true; result: T } | { ok: false; error: string };
 
@@ -61,4 +68,32 @@ export async function fetchResponseRate(
     method: "POST",
     body: JSON.stringify({ account, max_videos: maxVideos }),
   });
+}
+
+/** Daftarkan situs resmi lembaga dan langsung coba baca feed/sitemap-nya. */
+export async function addSite(
+  projectId: string,
+  subject: string,
+  url: string,
+): Promise<Result<SiteReadResult>> {
+  return call(`${base(projectId)}/sites`, { method: "POST", body: JSON.stringify({ subject, url }) });
+}
+
+export async function refreshSite(projectId: string, id: string): Promise<Result<SiteReadResult>> {
+  return call(`${base(projectId)}/sites/${id}/refresh`, { method: "POST" });
+}
+
+export async function uploadSiteItems(
+  projectId: string,
+  id: string,
+  items: SiteItemIn[],
+): Promise<Result<{ received: number; stored: number; updated: number }>> {
+  return call(`${base(projectId)}/sites/${id}/items`, {
+    method: "POST",
+    body: JSON.stringify({ items }),
+  });
+}
+
+export async function deleteSite(projectId: string, id: string): Promise<Result<null>> {
+  return call(`${base(projectId)}/sites/${id}`, { method: "DELETE" });
 }

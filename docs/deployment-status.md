@@ -6,7 +6,53 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 15 November 2026 (sore): cabang `pers/grafik-rss-ekspor`
+# 🟢 MULAI DARI SINI — 15 November 2026 (malam): situs web resmi
+
+Cabang `kinerja/situs-resmi`, **menumpuk di atas `pers/grafik-rss-ekspor` (PR #70)**.
+Gabung #70 dulu, baru PR ini. Belum digabung, belum di produksi.
+
+**Yang dibangun:** bagian baru "Situs resmi" di `/kinerja/analisis?bagian=situs`. Per
+situs lembaga: terbitan 30 dan 90 hari, terbitan per minggu, hari sejak terbitan terakhir,
+jeda terpanjang, median jeda, kategori (dari alamat), dan tanda **sepi** bila 30 hari tanpa
+terbitan tercatat. Butir masuk lewat dua jalur: dibaca otomatis (robots.txt, RSS/Atom,
+sitemap bertanggal) atau unggah CSV (`url,title,published_at,category`). Isi artikel tidak
+diambil. Berkas: `connectors/official_site.py`, `services/site_activity.py`,
+`routers/comm_sites.py`.
+
+**Migrasi baru:** `db/migrations/2026-11-15b-kinerja-situs-resmi.sql` (tabel
+`official_sites`, `official_site_items`, RLS aktif + paksa). Belum dijalankan di Supabase.
+
+**Temuan dari enam lembaga pangan (dibaca 15 Nov 2026, dari komputer ini):**
+
+| Lembaga | Situs | RSS/Atom | Sitemap | Terbaca otomatis |
+|---|---|---|---|---|
+| Kementan | pertanian.go.id | tidak ada | tidak ada (robots.txt menunjuk `pertanian.local`) | tidak |
+| Kemenhut | kehutanan.go.id | tidak ada | 10 halaman tetap, satu cap waktu | tidak |
+| KKP | kkp.go.id | tidak ada | tidak ada, robots.txt 404 | tidak |
+| KLH | kemenlh.go.id | tidak ada | 19 halaman tetap, satu tanggal | tidak |
+| Bapanas | badanpangan.go.id | tidak ada | 500 alamat (301 `/blog/`), semua bercap 15 Agu 2025 | tidak |
+| BGN | bgn.go.id | tidak ada | 13 halaman tetap, tanpa tanggal | tidak |
+
+Jadi **tidak satu pun dari enam situs bisa dibaca otomatis** dengan aturan konektor yang
+berlaku (hanya berkas yang diterbitkan untuk mesin). Ini sendiri temuan tentang
+keterbacaan mesin situs pemerintah, tetapi pertanyaan "update tiap hari atau sepi" untuk
+keenamnya baru terjawab setelah butirnya diunggah manual, atau setelah pemilik memutuskan
+soal membaca halaman daftar berita (lihat keputusan di bawah).
+
+**Keputusan yang dibutuhkan dari pemilik:** `connectors/base.py` melarang mengurai halaman
+web biasa. Pilihannya: (a) tetap, dan butir keenam situs diunggah lewat CSV; atau (b)
+menambah pengecualian tertulis: halaman DAFTAR berita/siaran pers situs `.go.id` boleh
+dibaca dengan identitas jujur (User-Agent platform), mematuhi robots.txt, paling banyak
+beberapa permintaan per situs per hari, hanya judul + alamat + tanggal. Pilihan (b) butuh
+pengurai per situs (enam tata letak berbeda) dan bisa rusak bila situs berubah.
+
+**Dicek:** pytest 1.111 lulus / 3 lewati (termasuk isolasi tenant), ruff, mypy, tsc, vitest 99. Tampilan
+dicek lokal: keenam situs asli didaftarkan (semua "tidak terbaca mesin"), grafik dicek
+dengan butir sintetis.
+
+---
+
+# 15 November 2026 (sore): cabang `pers/grafik-rss-ekspor`
 
 Satu cabang, tiga commit, **belum digabung** (menunggu OK pemilik). Butir daftar kerja
 yang ditutup: 10, 11, 13, 14, 15, 18.

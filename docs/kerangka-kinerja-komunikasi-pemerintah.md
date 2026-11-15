@@ -508,6 +508,12 @@ A12, A14–A18, catatan A20) dengan dua lembar pengode dan Krippendorff alpha pe
 formulir penelusuran T1–T4 dan tampilan 11 tahap (T5 belum); pasangan keselarasan untuk C3;
 saran C4 dan O8 dari data. Semuanya saran dengan batas tertulis, bukan skor resmi.
 
+**Situs web resmi (15 November 2026).** Bagian "Situs resmi" di `/kinerja/analisis`
+menghitung keaktifan situs lembaga (terbitan per minggu, hari sejak terbitan terakhir, jeda
+terpanjang, tanda sepi 30 hari) dari butir bertanggal. Ini pelengkap O1 untuk kanal situs,
+bukan indikator baru yang berbobot. Butuh migrasi
+`db/migrations/2026-11-15b-kinerja-situs-resmi.sql`.
+
 **Keputusan desain yang perlu pemilik produk.** Unggahan akun resmi pemerintah bukan
 percakapan warga (`SOCIAL`) dan bukan liputan redaksi (`MEDIA`). Dua pilihan: (a) menyimpannya
 sebagai `SOCIAL` dengan penanda "akun resmi", atau (b) menambah nilai enum `SignalSource` baru

@@ -36,3 +36,31 @@ describe("alphaLabel dan coderSlot", () => {
     expect(coderSlot("")).toBe(1);
   });
 });
+
+import { normalizeDate, siteItemsFromRows } from "@/app/(dashboard)/kinerja/analisis/analisis";
+
+describe("butir situs dari CSV", () => {
+  it("menerima tanggal ISO dan hari/bulan/tahun", () => {
+    expect(normalizeDate("2026-11-10")).toBe("2026-11-10");
+    expect(normalizeDate("5/11/2026")).toBe("2026-11-05");
+    expect(normalizeDate("2026-11-10T08:00:00+07:00")).toBe("2026-11-10T08:00:00+07:00");
+    expect(normalizeDate("10 November 2026")).toBeNull();
+    expect(normalizeDate("32/13/2026")).toBeNull();
+  });
+  it("membaca kolom menurut kepala, bukan urutan", () => {
+    const items = siteItemsFromRows([
+      ["Published_At", "URL", "title"],
+      ["10/11/2026", "https://x.go.id/berita/a", " Judul "],
+      ["", "", ""],
+    ]);
+    expect(items).toEqual([
+      { url: "https://x.go.id/berita/a", title: "Judul", published_at: "2026-11-10", category: null },
+    ]);
+  });
+  it("menyebut baris yang salah", () => {
+    expect(() => siteItemsFromRows([["url", "published_at"], ["x.go.id/a", "2026-11-10"]])).toThrow("Baris 2");
+    expect(() => siteItemsFromRows([["url", "published_at"], ["https://x.go.id/a", "kemarin"]])).toThrow("tanggal");
+    expect(() => siteItemsFromRows([["url"], ["https://x.go.id/a"]])).toThrow("published_at");
+    expect(() => siteItemsFromRows([["url", "published_at"]])).toThrow("tidak memuat");
+  });
+});
