@@ -163,6 +163,7 @@ class OfficialSite(Base):
     feed_kind: Mapped[str] = mapped_column(Text, nullable=False, default="none")
     source_url: Mapped[str | None] = mapped_column(Text)
     check_notes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    list_urls: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
     checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

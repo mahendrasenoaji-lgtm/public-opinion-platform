@@ -217,8 +217,9 @@ export interface Site {
   id: string;
   subject: string;
   base_url: string;
-  feed_kind: "rss" | "sitemap" | "none";
+  feed_kind: "rss" | "sitemap" | "halaman" | "none";
   source_url: string | null;
+  list_urls: string[];
   check_notes: string[];
   checked_at: string | null;
   last_captured_at: string | null;
@@ -260,7 +261,8 @@ export interface SiteReadResult {
 export const FEED_KIND_LABEL: Record<string, string> = {
   rss: "Feed RSS/Atom",
   sitemap: "Sitemap bertanggal",
-  none: "Tidak terbaca mesin",
+  halaman: "Halaman daftar berita",
+  none: "Belum terbaca",
 };
 
 export const SITE_CSV_TEMPLATE =
@@ -310,3 +312,18 @@ export function siteItemsFromRows(rows: string[][]): SiteItemIn[] {
   if (items.length === 0) throw new Error("Berkas tidak memuat baris data.");
   return items;
 }
+
+/** Isi kotak teks (satu alamat per baris) menjadi daftar alamat. */
+export function linesToUrls(raw: string): string[] {
+  return raw
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l !== "");
+}
+
+export const ORIGIN_LABEL: Record<string, string> = {
+  rss: "feed RSS",
+  sitemap: "sitemap",
+  halaman: "halaman daftar",
+  manual: "unggahan manual",
+};

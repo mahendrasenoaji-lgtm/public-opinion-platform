@@ -16,6 +16,7 @@ import type { PostsSummary } from "../kinerja";
 import {
   ALIGNMENT_LABEL,
   FEED_KIND_LABEL,
+  ORIGIN_LABEL,
   alphaLabel,
   coderSlot,
   hoursLabel,
@@ -537,14 +538,14 @@ async function Situs({ base, projectId, canEdit }: { base: string; projectId: st
           <>
             <section className="stat-row" style={{ marginBottom: 14 }}>
               <div className="stat"><div className="kicker">Situs terdaftar</div><div className="stat-v">{d.sites.length}</div></div>
-              <div className="stat"><div className="kicker">Tidak terbaca mesin</div><div className="stat-v">{unread}</div><div className="proj-s" style={{ marginTop: 6 }}>tanpa RSS dan tanpa sitemap bertanggal</div></div>
+              <div className="stat"><div className="kicker">Belum terbaca</div><div className="stat-v">{unread}</div><div className="proj-s" style={{ marginTop: 6 }}>tanpa feed, sitemap bertanggal, atau halaman daftar</div></div>
               <div className="stat"><div className="kicker">Sepi ≥ {d.quiet_days} hari</div><div className="stat-v">{quiet}</div><div className="proj-s" style={{ marginTop: 6 }}>dari situs yang punya butir tercatat</div></div>
             </section>
             <div style={{ overflowX: "auto" }}>
               <table className="tbl">
                 <thead>
                   <tr>
-                    <th scope="col">Lembaga</th><th scope="col">Sumber terbaca mesin</th>
+                    <th scope="col">Lembaga</th><th scope="col">Dibaca dari</th>
                     <th scope="col">Terbitan 30 hari</th><th scope="col">Terbitan {d.window_days} hari</th>
                     <th scope="col">Terakhir terbit</th><th scope="col">Jeda terpanjang</th>
                     <th scope="col">Median jeda</th><th scope="col">Bacaan</th>
@@ -584,7 +585,7 @@ async function Situs({ base, projectId, canEdit }: { base: string; projectId: st
         return (
           <Panel key={s.id} kicker={`${FEED_KIND_LABEL[s.feed_kind]} · ${s.base_url.replace("https://", "")}`} title={s.subject}>
             {s.n_total === 0 ? (
-              <InsufficientData reason="Belum ada butir tercatat untuk situs ini. Situs tidak terbaca otomatis; unggah butirnya lewat CSV." />
+              <InsufficientData reason="Belum ada butir tercatat untuk situs ini. Daftarkan halaman daftar beritanya, atau unggah butirnya lewat CSV." />
             ) : (
               <>
                 <h3 className="kicker" style={{ marginBottom: 8 }}>Terbitan per minggu ({d.window_days} hari terakhir)</h3>
@@ -599,7 +600,7 @@ async function Situs({ base, projectId, canEdit }: { base: string; projectId: st
                 </div>
                 <p className="field-hint">
                   {s.weeks_without} dari {s.weeks.length} minggu tanpa terbitan tercatat · {s.active_days} hari berbeda punya terbitan · butir berasal dari{" "}
-                  {Object.entries(s.origins).map(([k, n]) => `${k === "manual" ? "unggahan manual" : k} (${n})`).join(", ")}
+                  {Object.entries(s.origins).map(([k, n]) => `${ORIGIN_LABEL[k] ?? k} (${n})`).join(", ")}
                   {s.last_captured_at ? ` · data terakhir masuk ${shortDate(s.last_captured_at)}` : ""}
                 </p>
                 {s.categories.length > 0 && (
@@ -626,7 +627,7 @@ async function Situs({ base, projectId, canEdit }: { base: string; projectId: st
                 </ul>
               </details>
             )}
-            {canEdit && <SiteActions projectId={projectId} siteId={s.id} baseUrl={s.base_url} />}
+            {canEdit && <SiteActions projectId={projectId} siteId={s.id} baseUrl={s.base_url} listUrls={s.list_urls} />}
           </Panel>
         );
       })}

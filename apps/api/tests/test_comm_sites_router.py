@@ -15,6 +15,7 @@ if DSN:
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
+seen_list_urls: list[list[str]] = []
 NOW = datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0)
 
 
@@ -54,7 +55,8 @@ async def _org_with_project(client) -> tuple[dict[str, str], str]:
 def _fake(kind: str, days_ago: list[int], *, same_stamp: bool = False):
     from app.connectors import official_site as osite
 
-    async def read_site(base: str) -> osite.SiteReading:
+    async def read_site(base: str, *, list_urls: list[str] | None = None) -> osite.SiteReading:
+        seen_list_urls.append(list(list_urls or []))
         base_url = osite.normalize_base(base)
         items = [
             osite.SiteItem(
@@ -98,7 +100,14 @@ class TestSitus:
         assert site["origins"] == {"rss": 40} and len(site["latest"]) == 8
         assert got["source"] == "OFFICIAL_SITE" and got["limitations"]
 
+        # Baru saja dibaca: pembacaan ulang ditahan supaya situs tidak dibebani.
+        soon = await client.post(f"{base}/{site['id']}/refresh", headers=headers)
+        assert soon.status_code == 429 and "Tunggu" in soon.text
+
         # Baca ulang: butir yang sama diperbarui, bukan digandakan.
+        from app.routers import comm_sites
+
+        monkeypatch.setattr(comm_sites, "READ_COOLDOWN", timedelta(0))
         again = await client.post(f"{base}/{site['id']}/refresh", headers=headers)
         assert again.status_code == 200, again.text
         assert again.json()["result"] == {"received": 40, "stored": 0, "updated": 40}
@@ -169,6 +178,34 @@ class TestSitus:
         assert (await client.delete(f"{base}/{sid}", headers=headers)).status_code == 204
         assert (await client.get(base, headers=headers)).json()["sites"] == []
 
+    async def test_halaman_daftar_didaftarkan_lalu_dibaca(self, client, monkeypatch) -> None:
+        from app.connectors import official_site as osite
+
+        headers, pid = await _org_with_project(client)
+        base = f"/v1/projects/{pid}/comm-performance/sites"
+        monkeypatch.setattr(osite, "read_site", _fake("none", []))
+        sid = (
+            await client.post(base, json={"subject": "KZ", "url": "kemenz.go.id"}, headers=headers)
+        ).json()["site_id"]
+
+        monkeypatch.setattr(osite, "read_site", _fake("halaman", [0, 1, 2]))
+        r = await client.put(
+            f"{base}/{sid}/list-urls", json={"list_urls": ["/berita", " "]}, headers=headers
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["feed_kind"] == "halaman" and r.json()["result"]["stored"] == 3
+        assert seen_list_urls[-1] == ["https://kemenz.go.id/berita"]
+        site = (await client.get(base, headers=headers)).json()["sites"][0]
+        assert site["list_urls"] == ["https://kemenz.go.id/berita"]
+        assert site["origins"] == {"halaman": 3} and site["quiet"] is False
+
+        foreign = await client.put(
+            f"{base}/{sid}/list-urls",
+            json={"list_urls": ["https://situs-lain.example.com/berita"]},
+            headers=headers,
+        )
+        assert foreign.status_code == 422 and "harus berada di" in foreign.text
+
     async def test_alamat_tidak_sah(self, client) -> None:
         headers, pid = await _org_with_project(client)
         r = await client.post(
@@ -196,6 +233,7 @@ class TestIsolasiTenant:
         for call in (
             client.post(base_a, json={"subject": "B", "url": "b.go.id"}, headers=headers_b),
             client.post(f"{base_a}/{sid}/refresh", headers=headers_b),
+            client.put(f"{base_a}/{sid}/list-urls", json={"list_urls": []}, headers=headers_b),
             client.post(f"{base_a}/{sid}/items", json=item, headers=headers_b),
             client.delete(f"{base_a}/{sid}", headers=headers_b),
         ):

@@ -2,8 +2,9 @@
 
 Menjawab satu pertanyaan sempit: apa saja yang terbit untuk publik di situs
 resmi sebuah lembaga, seberapa sering, dan kapan terakhir. Butir masuk lewat
-dua jalur: (1) dibaca dari feed RSS/Atom atau sitemap bertanggal milik situs
-itu, (2) diunggah manual bila situsnya tidak menyediakan keduanya.
+tiga jalur: (1) feed RSS/Atom atau sitemap bertanggal milik situs itu, (2)
+halaman daftar berita yang alamatnya didaftarkan pengguna, bila (1) tidak ada
+(pengecualian tertulis di `connectors/base.py`), (3) unggahan manual.
 
 Yang disimpan hanya judul, alamat, tanggal, dan kategori. Isi artikel tidak
 diambil. Halaman ini tidak menilai mutu informasi dan tidak menyimpulkan
@@ -40,16 +41,18 @@ LOCAL_OFFSET = timedelta(hours=7)
 MAX_MANUAL_ITEMS = 500
 MAX_SITES = 30
 LATEST_ITEMS = 8
+#: Jarak minimal antar-pembacaan satu situs, supaya situs lembaga tidak dibebani.
+READ_COOLDOWN = timedelta(hours=1)
 
 LIMITATIONS = [
-    "Yang dihitung hanya butir yang TERCATAT di proyek ini. Situs tanpa feed RSS dan tanpa "
-    "sitemap bertanggal tidak bisa dibaca otomatis; untuk situs itu angka berasal dari unggahan "
-    "manual dan hanya selengkap unggahannya.",
+    "Yang dihitung hanya butir yang TERCATAT di proyek ini. Halaman daftar berita biasanya "
+    "hanya menampilkan 10-20 butir terbaru, jadi hitungan 30 dan 90 hari baru lengkap setelah "
+    "situs dibaca berkala; sebelum itu angkanya batas bawah, bukan jumlah sebenarnya.",
+    "Butir dari halaman daftar dipasangkan dengan tanggal terdekat di halaman itu. Pada tata "
+    "letak yang tidak biasa pasangan bisa keliru; cek contoh butir terbaru terhadap situsnya.",
     "\"Sepi\" berarti tidak ada terbitan tercatat selama "
     f"{sa.QUIET_DAYS} hari sampai pengambilan data terakhir. Itu belum tentu berarti lembaganya "
     "tidak berkomunikasi: bisa lewat kanal lain, atau datanya belum diambil.",
-    "Feed RSS biasanya hanya memuat 10-50 butir terbaru, jadi riwayat lama tidak terlihat sampai "
-    "situs dibaca berulang kali.",
     "Kategori ditebak dari alamat butir (mis. /siaran-pers/), bukan dari isinya, kecuali "
     "diisi saat unggah.",
     "Jumlah terbitan bukan ukuran mutu. Halaman ini tidak menilai isi dan tidak memeringkat "
@@ -80,8 +83,14 @@ def _clean(v: str) -> str:
 class SiteIn(BaseModel):
     subject: str = Field(min_length=1, max_length=120)
     url: str = Field(min_length=4, max_length=300)
+    #: Halaman daftar berita/siaran pers; dibaca bila situs tanpa feed.
+    list_urls: list[str] = Field(default_factory=list, max_length=osite.MAX_LIST_PAGES)
 
     _strip = field_validator("subject", "url")(_clean)
+
+
+class ListUrlsIn(BaseModel):
+    list_urls: list[str] = Field(max_length=osite.MAX_LIST_PAGES)
 
 
 class ManualItem(BaseModel):
@@ -137,6 +146,7 @@ class SiteOut(BaseModel):
     base_url: str
     feed_kind: str
     source_url: str | None
+    list_urls: list[str]
     check_notes: list[str]
     checked_at: datetime | None
     #: Kapan butir terakhir kali ditambahkan (otomatis atau manual).
@@ -229,7 +239,7 @@ async def _store(
 
 async def _read_and_store(session: TenantSession, site: OfficialSite) -> ReadResult:
     try:
-        reading = await osite.read_site(site.base_url)
+        reading = await osite.read_site(site.base_url, list_urls=list(site.list_urls or []))
     except ConnectorError as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
     notes = list(reading.notes)
@@ -243,7 +253,8 @@ async def _read_and_store(session: TenantSession, site: OfficialSite) -> ReadRes
         kind, items = "none", []
     if kind == "none":
         notes.append(
-            "Situs ini tidak bisa dibaca otomatis. Masukkan butirnya lewat unggahan manual."
+            "Situs ini belum terbaca otomatis. Daftarkan alamat halaman daftar beritanya, atau "
+            "masukkan butirnya lewat unggahan manual."
         )
     site.feed_kind = kind
     site.source_url = reading.source_url if kind != "none" else None
@@ -284,6 +295,15 @@ async def _site(session: TenantSession, project_id: UUID, site_id: UUID) -> Offi
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Situs tidak ditemukan.")
     return row
+
+
+def _cooldown(site: OfficialSite) -> None:
+    if site.checked_at and datetime.now(UTC) - site.checked_at < READ_COOLDOWN:
+        minutes = int(READ_COOLDOWN.total_seconds() // 60)
+        raise HTTPException(
+            status.HTTP_429_TOO_MANY_REQUESTS,
+            f"Situs ini baru saja dibaca. Tunggu {minutes} menit antar-pembacaan.",
+        )
 
 
 @router.get("/sites", response_model=SitesOut)
@@ -331,6 +351,7 @@ async def list_sites(project_id: UUID, session: TenantSession, user: CurrentUser
                 base_url=s.base_url,
                 feed_kind=s.feed_kind,
                 source_url=s.source_url,
+                list_urls=list(s.list_urls or []),
                 check_notes=list(s.check_notes or []),
                 checked_at=s.checked_at,
                 last_captured_at=max((i.captured_at for i in mine), default=None),
@@ -386,6 +407,7 @@ async def add_site(
     await _require_project(session, project_id)
     try:
         base_url = osite.normalize_base(body.url)
+        list_urls = osite.normalize_list_urls(body.list_urls, base_url)
     except ConnectorError as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
     async with _tables():
@@ -410,6 +432,7 @@ async def add_site(
             project_id=project_id,
             subject=body.subject,
             base_url=base_url,
+            list_urls=list_urls,
             created_by=user.user_id,
         )
         session.add(site)
@@ -440,6 +463,7 @@ async def refresh_site(
     """Baca ulang situs. Butir lama tetap; yang baru ditambahkan."""
     async with _tables():
         site = await _site(session, project_id, site_id)
+        _cooldown(site)
         result = await _read_and_store(session, site)
     session.add(
         AuditLog(
@@ -449,6 +473,35 @@ async def refresh_site(
             entity="official_site",
             entity_id=site_id,
             metadata_={"feed_kind": result.feed_kind, "stored": result.result.stored},
+        )
+    )
+    return result
+
+
+@router.put(
+    "/sites/{site_id}/list-urls",
+    response_model=ReadResult,
+    dependencies=[Depends(require_role(Role.RESEARCHER))],
+)
+async def set_list_urls(
+    project_id: UUID, site_id: UUID, body: ListUrlsIn, session: TenantSession, user: CurrentUser
+) -> ReadResult:
+    """Setel halaman daftar berita sebuah situs, lalu langsung baca."""
+    async with _tables():
+        site = await _site(session, project_id, site_id)
+        try:
+            site.list_urls = osite.normalize_list_urls(body.list_urls, site.base_url)
+        except ConnectorError as e:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+        result = await _read_and_store(session, site)
+    session.add(
+        AuditLog(
+            org_id=user.org_id,
+            actor_id=user.user_id,
+            action="comm_site_list_urls",
+            entity="official_site",
+            entity_id=site_id,
+            metadata_={"list_urls": site.list_urls, "stored": result.result.stored},
         )
     )
     return result

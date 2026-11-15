@@ -33,20 +33,33 @@ diambil. Berkas: `connectors/official_site.py`, `services/site_activity.py`,
 | Bapanas | badanpangan.go.id | tidak ada | 500 alamat (301 `/blog/`), semua bercap 15 Agu 2025 | tidak |
 | BGN | bgn.go.id | tidak ada | 13 halaman tetap, tanpa tanggal | tidak |
 
-Jadi **tidak satu pun dari enam situs bisa dibaca otomatis** dengan aturan konektor yang
-berlaku (hanya berkas yang diterbitkan untuk mesin). Ini sendiri temuan tentang
-keterbacaan mesin situs pemerintah, tetapi pertanyaan "update tiap hari atau sepi" untuk
-keenamnya baru terjawab setelah butirnya diunggah manual, atau setelah pemilik memutuskan
-soal membaca halaman daftar berita (lihat keputusan di bawah).
+Jadi tidak satu pun dari enam situs menyediakan sumber terbaca mesin yang bertanggal.
 
-**Keputusan yang dibutuhkan dari pemilik:** `connectors/base.py` melarang mengurai halaman
-web biasa. Pilihannya: (a) tetap, dan butir keenam situs diunggah lewat CSV; atau (b)
-menambah pengecualian tertulis: halaman DAFTAR berita/siaran pers situs `.go.id` boleh
-dibaca dengan identitas jujur (User-Agent platform), mematuhi robots.txt, paling banyak
-beberapa permintaan per situs per hari, hanya judul + alamat + tanggal. Pilihan (b) butuh
-pengurai per situs (enam tata letak berbeda) dan bisa rusak bila situs berubah.
+**Keputusan pemilik 15 Nov (malam): halaman daftar berita boleh dibaca.** Pengecualian
+tertulis ada di `apps/api/app/connectors/base.py`: hanya situs resmi lembaga, identitas
+jujur, robots.txt dipatuhi, paling banyak 5 halaman daftar per situs, jeda 1 jam
+antar-pembacaan, hanya judul + alamat + tanggal; halaman artikel tidak dibuka. Pengurainya
+umum (tautan butir + tanggal terdekat), bukan satu per situs.
 
-**Dicek:** pytest 1.111 lulus / 3 lewati (termasuk isolasi tenant), ruff, mypy, tsc, vitest 99. Tampilan
+Hasil baca pertama lewat jalur itu (15 Nov 2026):
+
+| Lembaga | Halaman daftar yang didaftarkan | Butir bertanggal |
+|---|---|---|
+| Kemenhut | `/news`, `/pers` | 24 |
+| KKP | `/news.html` | 17 |
+| KLH | `/news/main/siaran_pers`, `/berita`, `/pengumuman` | 27 |
+| Bapanas | `/berita`, `/pengumuman` | 19 |
+| BGN | `/news` | 12 |
+| Kementan | `/index.php/news/all/0` | **0**: halaman daftarnya tidak menampilkan tanggal |
+
+Kementan tetap perlu unggahan CSV (beranda menampilkan tanggal, tetapi pasangan
+tautan-tanggalnya di sana tidak bisa dipercaya, jadi tidak dipakai).
+
+**Batas penting:** satu halaman daftar hanya menampilkan 10–20 butir terbaru. Hitungan 30
+dan 90 hari baru lengkap setelah situs dibaca berkala (tombol "Baca ulang"); sebelum itu
+angkanya batas bawah. Belum ada pembacaan terjadwal.
+
+**Dicek:** pytest lulus seluruhnya (termasuk isolasi tenant), ruff, mypy, tsc, vitest 100. Tampilan
 dicek lokal: keenam situs asli didaftarkan (semua "tidak terbaca mesin"), grafik dicek
 dengan butir sintetis.
 

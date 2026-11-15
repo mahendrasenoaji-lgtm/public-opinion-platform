@@ -779,3 +779,5 @@ a.chip:hover { border-color:var(--line-2); color:var(--txt); }
 .site-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
 .site-actions label.btn { cursor:pointer; position:relative; }
 .site-actions .is-disabled { opacity:.5; pointer-events:none; }
+.site-lists { flex:1 0 100%; display:grid; gap:8px; justify-items:start; }
+.site-lists .field { width:100%; margin:0; }

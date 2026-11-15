@@ -64,3 +64,12 @@ describe("butir situs dari CSV", () => {
     expect(() => siteItemsFromRows([["url", "published_at"]])).toThrow("tidak memuat");
   });
 });
+
+import { linesToUrls } from "@/app/(dashboard)/kinerja/analisis/analisis";
+
+describe("linesToUrls", () => {
+  it("satu alamat per baris, baris kosong dibuang", () => {
+    expect(linesToUrls(" /berita \r\n\nhttps://x.go.id/pers\n")).toEqual(["/berita", "https://x.go.id/pers"]);
+    expect(linesToUrls("")).toEqual([]);
+  });
+});

@@ -75,8 +75,24 @@ export async function addSite(
   projectId: string,
   subject: string,
   url: string,
+  listUrls: string[],
 ): Promise<Result<SiteReadResult>> {
-  return call(`${base(projectId)}/sites`, { method: "POST", body: JSON.stringify({ subject, url }) });
+  return call(`${base(projectId)}/sites`, {
+    method: "POST",
+    body: JSON.stringify({ subject, url, list_urls: listUrls }),
+  });
+}
+
+/** Setel halaman daftar berita sebuah situs, lalu langsung baca. */
+export async function setSiteListUrls(
+  projectId: string,
+  id: string,
+  listUrls: string[],
+): Promise<Result<SiteReadResult>> {
+  return call(`${base(projectId)}/sites/${id}/list-urls`, {
+    method: "PUT",
+    body: JSON.stringify({ list_urls: listUrls }),
+  });
 }
 
 export async function refreshSite(projectId: string, id: string): Promise<Result<SiteReadResult>> {
