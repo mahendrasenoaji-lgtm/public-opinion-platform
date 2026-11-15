@@ -719,3 +719,33 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .pers-data h3 { font-size:14px; margin:20px 0 6px; }
 .pers-data ul { padding-left:20px; color:var(--txt2); }
 .pers-cite { padding:10px 12px; background:var(--panel2); border:1px solid var(--line); border-radius:var(--radius-sm); overflow-wrap:anywhere; }
+
+/* ---- /pers: menu, grafik, unduhan ---- */
+.pers-nav { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:13px; margin-bottom:26px; padding-bottom:12px; border-bottom:1px solid var(--line); }
+.pers-nav a { text-decoration:none; color:var(--txt2); font-weight:500; }
+.pers-nav a:hover { color:var(--txt); text-decoration:underline; }
+.pers-pages { display:flex; flex-wrap:wrap; justify-content:space-between; gap:12px; margin-top:24px; padding-top:14px; border-top:1px solid var(--line); font-size:13px; color:var(--txt2); }
+.pers-source { margin-top:26px; padding-top:6px; border-top:1px solid var(--line); }
+.pers-source figure, .pers-charts figure { margin:14px 0 18px; }
+.pers-source figcaption { font-size:12.5px; color:var(--txt2); margin-bottom:8px; }
+.pers-stack { display:flex; gap:2px; height:18px; }
+.pers-stack > span { min-width:3px; border-radius:4px; }
+.pers-legend { display:flex; flex-wrap:wrap; gap:4px 16px; margin-top:8px; font-size:12.5px; color:var(--txt2); }
+.pers-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:4px; }
+.pers-legend b { color:var(--txt); font-weight:600; }
+.pers-details { margin:4px 0 14px; }
+.pers-details summary { cursor:pointer; color:var(--txt2); font-size:12.5px; }
+.pers-peak { margin:10px 0; color:var(--txt2); }
+.pers-peak b { color:var(--txt); }
+.pers-peak ul { margin:4px 0 0; }
+.pers-actions { display:flex; flex-wrap:wrap; gap:8px; }
+.pers-actions a { text-decoration:none; }
+.pers-prose { font-size:15px; line-height:1.7; }
+.pers-prose h2 { font-size:19px; margin:28px 0 8px; }
+.pers-prose ul { padding-left:22px; }
+.pers-prose .tbl { font-size:13px; }
+@media print {
+  .pers { max-width:none; padding:0; }
+  .pers-details > summary { display:none; }
+  .pers-source { break-inside:avoid; }
+}

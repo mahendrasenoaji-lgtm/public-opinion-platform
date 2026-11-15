@@ -15,13 +15,50 @@ export interface PersRef {
   version: number;
 }
 
+export interface PersDay {
+  day: string;
+  volume: number;
+  scored: number;
+  /** null bila konten bernilai pada hari itu di bawah ambang. */
+  mean: number | null;
+  negative_share: number | null;
+}
+
+export interface PersItem {
+  /** Kosong untuk konten warga: teks dan tautannya tidak pernah disimpan. */
+  text?: string;
+  source_url?: string | null;
+  engagement: number | null;
+  published_at: string;
+}
+
+export interface PersPeak {
+  day: string;
+  volume: number;
+  ratio: number | null;
+  is_spike: boolean;
+  top_content: PersItem[];
+  same_day_media: PersItem[];
+}
+
 export interface PersSource {
   source: string;
   n: number;
   scored: number;
   labels: Record<string, number>;
+  days?: PersDay[];
+  peaks?: PersPeak[];
   words?: [string, number][];
   hashtags?: [string, number][];
+  emoji?: [string, number][];
+}
+
+export interface PersTopic {
+  label: string;
+  source: string;
+  n: number;
+  scored: number;
+  sentiment: number | null;
 }
 
 export interface PersArticle extends PersRef {
@@ -36,6 +73,7 @@ export interface PersArticle extends PersRef {
     report: {
       sources: PersSource[];
       outlets?: { domain: string; n: number }[];
+      topics?: PersTopic[];
       methods?: Record<string, string>;
       limitations?: string[];
     };
@@ -59,8 +97,10 @@ async function read<T>(path: string): Promise<PersResult<T>> {
   }
 }
 
-export function listArticles(tag?: string) {
-  const q = new URLSearchParams({ limit: "50" });
+export const PAGE_SIZE = 20;
+
+export function listArticles(tag?: string, page = 1, limit = PAGE_SIZE) {
+  const q = new URLSearchParams({ limit: String(limit), offset: String((page - 1) * limit) });
   if (tag) q.set("tag", tag);
   return read<{ total: number; items: PersRef[] }>(`/public/publications?${q}`);
 }
@@ -89,4 +129,26 @@ export function citation(a: PersRef, url: string): string {
   const year = new Date(a.published_at).getUTCFullYear();
   const version = a.version > 1 ? ` (versi ${a.version})` : "";
   return `${a.author_name}. (${year}). ${a.title}${version}. ${url}`;
+}
+
+/** Nomor halaman dari query; apa pun yang bukan bilangan bulat positif menjadi 1. */
+export function pageNumber(raw: string | string[] | undefined): number {
+  const text = (Array.isArray(raw) ? raw[0] : raw) ?? "";
+  return /^[1-9]\d{0,5}$/.test(text) ? Number(text) : 1;
+}
+
+/** Tanggal pendek untuk sumbu dan tabel harian: "11 Okt". */
+export function dayLabel(iso: string): string {
+  return new Date(`${iso.slice(0, 10)}T00:00:00Z`).toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+}
+
+/** Alamat dasar situs dari header permintaan (di belakang proxy Vercel). */
+export function originOf(h: { get(name: string): string | null }): string {
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
+  const local = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  return `${h.get("x-forwarded-proto") ?? (local ? "http" : "https")}://${host}`;
 }
