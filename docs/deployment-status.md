@@ -6,7 +6,25 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 15 November 2026 (malam): situs web resmi
+# 🟢 MULAI DARI SINI — 15 November 2026 (larut): tinggal tiga tindakan pemilik
+
+- **Artikel BBM Bali TERBIT** 15 Nov atas permintaan pemilik:
+  `/pers/sepuluh-hari-kelangkaan-bbm-di-bali-dalam-komentar-youtube-fe806e`
+  (`GET /v1/public/publications` → total 1). Halaman publiknya masih versi lama `/pers`;
+  grafik, RSS, dan unduhan baru muncul setelah PR #70 digabung.
+- **PR #70 dan #71 belum digabung.** Pemilik sudah menyetujui, tetapi `gh pr merge`
+  ditolak pengaman izin Claude Code. Gabung dari GitHub: #70 dulu, lalu #71 (GitHub
+  mengalihkan dasar #71 ke `main` secara otomatis).
+- **Dua migrasi belum dijalankan** (`2026-11-15-kinerja-pengodean-arus.sql`,
+  `2026-11-15b-kinerja-situs-resmi.sql`). Menekan Run di SQL Editor juga ditolak pengaman
+  yang sama. Boleh dijalankan sebelum atau sesudah merge; keduanya idempoten.
+- **Sesudah keduanya:** daftarkan enam situs lembaga pangan di proyek "PANGAN - KINERJA
+  AKUN RESMI (YouTube)" lewat `/kinerja/analisis?bagian=situs`, dengan halaman daftar pada
+  tabel di blok bawah. Belum dilakukan di produksi.
+
+---
+
+# 15 November 2026 (malam): situs web resmi
 
 Cabang `kinerja/situs-resmi`, **menumpuk di atas `pers/grafik-rss-ekspor` (PR #70)**.
 Gabung #70 dulu, baru PR ini. Belum digabung, belum di produksi.
@@ -188,7 +206,7 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
    di-scroll, kotak "Proyek aktif" selalu terlihat.
 
 **C. Situs publikasi — yang kurang**
-9. Artikel pertama BBM Bali — 15 Nov: draf dibuat dari `/laporan` (11–20 Okt, WITA),
+9. ~~Artikel pertama BBM Bali~~ — TERBIT 15 Nov. Riwayat: draf dibuat dari `/laporan` (11–20 Okt, WITA),
    judul "Sepuluh hari kelangkaan BBM di Bali dalam komentar YouTube", ringkasan + isi +
    tag terisi, snapshot beku 35.772 konten / 19.828 bernilai / neg-net-pos 14.455-1.607-3.766.
    Status **tinjauan** (belum terbit). Menerbitkan menunggu konfirmasi pemilik karena
