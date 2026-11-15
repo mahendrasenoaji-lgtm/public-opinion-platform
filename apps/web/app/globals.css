@@ -749,3 +749,23 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
   .pers-details > summary { display:none; }
   .pers-source { break-inside:avoid; }
 }
+
+/* Kinerja · analisis isi dan arus informasi */
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+a.chip { text-decoration:none; }
+a.chip:hover { border-color:var(--line-2); color:var(--txt); }
+.chip-on { border-color:var(--txt2); color:var(--txt); font-weight:600; }
+.code-card { border:1px solid var(--line); border-radius:var(--radius-sm); padding:13px 14px; margin-bottom:12px; background:var(--panel2); }
+.code-head { display:flex; flex-wrap:wrap; justify-content:space-between; gap:6px 14px; font-size:12.5px; }
+.code-caption { font-size:13px; margin:8px 0 12px; overflow-wrap:anywhere; }
+.code-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:10px 12px; }
+.code-grid .field { margin:0; min-width:0; }
+.code-grid select, .code-grid input { width:100%; min-width:0; }
+/* Batang hitungan: tinta netral, bukan warna sumber (R1). */
+.bar-list { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:6px; }
+.bar-list li { display:grid; grid-template-columns:minmax(0, 1fr) 90px 34px; gap:8px; align-items:center; font-size:12.5px; }
+.bar-list-wide li { grid-template-columns:minmax(0, 1.2fr) minmax(80px, 1fr) 34px; }
+.bar-list-l { color:var(--txt2); overflow-wrap:anywhere; }
+.bar-list-track { height:8px; background:var(--line-soft); border-radius:4px; overflow:hidden; }
+.bar-list-fill { display:block; height:100%; background:var(--txt2); border-radius:0 4px 4px 0; }
+.bar-list-v { text-align:right; font-variant-numeric:tabular-nums; }

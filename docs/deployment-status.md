@@ -6,7 +6,62 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 14 November 2026: semua sudah di produksi
+# 🟢 MULAI DARI SINI — 15 November 2026 (sore): cabang `pers/grafik-rss-ekspor`
+
+Satu cabang, tiga commit, **belum digabung** (menunggu OK pemilik). Butir daftar kerja
+yang ditutup: 10, 11, 13, 14, 15, 18.
+
+**Yang dikerjakan**
+
+- **Situs publikasi (butir 10, 11):** grafik harian per sumber di `/pers/[slug]` (volume
+  dan porsi negatif sebagai dua grafik terpisah, tidak pernah satu sumbu ganda; tabel per
+  hari), puncak + tautan liputan hari yang sama, RSS `/pers/rss.xml`, gambar OG, unduh
+  `data.csv` (agregat, sel dinetralkan dari injeksi rumus) dan `artikel.docx`, halaman
+  `/pers/metodologi` dan `/pers/tentang`, paginasi `?halaman=`. PDF = tombol cetak.
+- **Periode tetap (butir 18):** `/tema`, `/jaringan`, `/pengaruh` membaca `?dari=&sampai=`;
+  API `network`, `influence`, `topics/discover` menerima `start`/`end`.
+- **Kinerja Komunikasi (butir 13, 14, 15):** halaman baru `/kinerja/analisis` dengan empat
+  bagian: (1) pengodean isi per unggahan, dua lembar pengode, Krippendorff alpha per
+  variabel (A9, A11, A12, A14–A18), sebaran ditahan bila alpha < 0,667; (2) formulir audit
+  T1–T4 + dashboard Information Flow 11 tahap; (3) keselarasan C3 (pasangan pernyataan,
+  saran skor 1/3/5); (4) saran C4 dari lonjakan percakapan SOSIAL vs unggahan resmi, dan
+  saran O8 dari komentar kanal YouTube resmi (teks komentar tidak disimpan). Semua saran
+  skor BUKAN skor resmi; penilai tetap mengisi di `/kinerja`.
+  Router `app/routers/comm_coding.py`, layanan `services/content_coding.py` dan
+  `services/comm_flow.py`.
+
+**Migrasi baru yang HARUS dijalankan sebelum `/kinerja/analisis` berfungsi:**
+`db/migrations/2026-11-15-kinerja-pengodean-arus.sql` (tabel `official_post_codings`,
+`comm_flow_records`, `comm_alignment_pairs`, RLS aktif + paksa). Tanpa itu endpoint
+membalas 409 yang menyebut migrasinya; bagian lain tidak terpengaruh. Belum dijalankan
+di Supabase (butuh izin pemilik).
+
+**Dicek:** pytest 1.069 lulus / 3 lewati (termasuk isolasi tenant untuk semua endpoint
+baru), ruff, mypy, `tsc`, vitest 96 lulus. Tampilan dicek lokal dengan data sintetis.
+**Belum dicek di produksi** (belum digabung); `/pers` baru bisa dilihat berisi setelah ada
+artikel terbit.
+
+**Batas yang diketahui**
+
+- Dua lembar pengode boleh diisi dari satu login: platform belum punya cara menambah
+  pengguna kedua ke satu organisasi, jadi kemandirian pengode tidak bisa diperiksa sistem.
+- C4 memakai awal hari lonjakan (00.00) sebagai titik mulai; selang bisa terlalu panjang
+  sampai 24 jam. O8 mengenali pertanyaan dari bentuknya dan hanya melihat 100 utas terbaru
+  per video dengan paling banyak 5 balasan per utas.
+- Angka literatur untuk alpha dipakai sebagai uji (0,743 / 0,815 / 0,691).
+
+**Masih terbuka**
+
+- Butir 9: terbitkan artikel BBM Bali (menunggu konfirmasi pemilik).
+- Butir 16: empat pertanyaan pemilik tentang Kinerja.
+- Butir 17: cek produksi BBM Bali `/sinyal` + `/laporan` (ekstensi Chrome tidak tersambung
+  pada sesi ini).
+- Butir 19: daftar aktor per proyek (butuh keputusan penyimpanan; belum dimulai).
+- Butir 20: P0, P5, P8–P10, P11.
+
+---
+
+# 14 November 2026: semua sudah di produksi
 
 Catatan percakapan sesi 14–15 Nov (apa yang diminta, apa yang dikerjakan, data YouTube
 keenam lembaga pangan): [sesi-2026-11-14-15-youtube-kinerja-desain-publikasi.md](sesi-2026-11-14-15-youtube-kinerja-desain-publikasi.md).
@@ -79,17 +134,17 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
    tag terisi, snapshot beku 35.772 konten / 19.828 bernilai / neg-net-pos 14.455-1.607-3.766.
    Status **tinjauan** (belum terbit). Menerbitkan menunggu konfirmasi pemilik karena
    artikel terbit tidak bisa dihapus atau ditarik: `/publikasi` → **Terbitkan**.
-10. Grafik interaktif di `/pers`, RSS, gambar OG.
-11. Ekspor DOCX/PDF + unduh CSV agregat.
+10. ~~Grafik interaktif di `/pers`, RSS, gambar OG~~ — 15 Nov, cabang `pers/grafik-rss-ekspor`.
+11. ~~Ekspor DOCX/PDF + unduh CSV agregat~~ — 15 Nov, cabang yang sama (PDF lewat cetak).
 12. ~~Lima keputusan pemilik~~ — ditetapkan 15 Nov (tabel di
     `docs/rencana-situs-publikasi.md` bagian 5): `/pers` di domain yang sama, bangun
     sendiri, hanya Research Director/Super Admin yang menerbitkan, akun warga tidak pernah
     disebut, bahasa Indonesia dulu.
 
 **D. Kinerja Komunikasi — yang kurang**
-13. Pengodean isi per unggahan + kesepakatan antar-pengode.
-14. Keselarasan pesan (C3); sambungkan waktu tanggap (C4) dan tingkat jawab (O8) ke data.
-15. Formulir audit T1–T4 dan dashboard Information Flow.
+13. ~~Pengodean isi per unggahan + kesepakatan antar-pengode~~ — 15 Nov, `/kinerja/analisis`.
+14. ~~Keselarasan pesan (C3); waktu tanggap (C4) dan tingkat jawab (O8) ke data~~ — 15 Nov, sebagai saran skor.
+15. ~~Formulir audit T1–T4 dan dashboard Information Flow~~ — 15 Nov.
 16. Empat pertanyaan pemilik: Kemenko mana, akses data, tujuan, urutan kerja.
     Petunjuk 14 Nov: pengguna menyebut Kementan, Kemenhut, KKP, KLH, Bapanas, BGN —
     daftar ini tampaknya lembaga di bawah koordinasi Kemenko Bidang Pangan (perlu
@@ -106,7 +161,7 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
 
 **E. Daftar lama**
 17. Cek produksi BBM Bali `/sinyal` + `/laporan` (11–20 Okt, WITA) dan penemuan tema.
-18. Periode tetap di halaman selain `/sinyal` dan `/laporan`.
+18. ~~Periode tetap di halaman selain `/sinyal` dan `/laporan`~~ — 15 Nov (`/tema`, `/jaringan`, `/pengaruh`).
 19. Daftar aktor per proyek.
 20. P11 estimasi gender/umur/minat per akun; P5 label manusia; P8/P9/P10; P0 kunci
     Anthropic di Render.
