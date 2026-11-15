@@ -21,7 +21,16 @@ const BUTTON: React.CSSProperties = {
  * korpus besar tidak instan, dan tombol yang diam selama beberapa detik akan
  * ditekan berkali-kali.
  */
-export function DiscoverButton({ projectId }: { projectId: string }) {
+export function DiscoverButton({
+  projectId,
+  start = null,
+  end = null,
+}: {
+  projectId: string;
+  /** Periode tetap (TTTT-BB-HH); keduanya null = 30 hari terakhir. */
+  start?: string | null;
+  end?: string | null;
+}) {
   // isPending dari useActionState (React 19) — bukan useFormStatus, supaya
   // tidak perlu menambah @types/react-dom hanya untuk satu tombol.
   const [state, action, isPending] = useActionState(discoverTopics, AWAL);
@@ -30,6 +39,12 @@ export function DiscoverButton({ projectId }: { projectId: string }) {
     <div style={{ textAlign: "right" }}>
       <form action={action}>
         <input type="hidden" name="projectId" value={projectId} />
+        {start && end && (
+          <>
+            <input type="hidden" name="start" value={start} />
+            <input type="hidden" name="end" value={end} />
+          </>
+        )}
         <button type="submit" className="nav-i" disabled={isPending} style={BUTTON}>
           {isPending ? "Menghitung…" : "Temukan tema"}
         </button>

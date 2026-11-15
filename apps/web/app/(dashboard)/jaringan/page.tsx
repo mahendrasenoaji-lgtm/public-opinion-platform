@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient } from "@/lib/api";
+import { PeriodBar } from "@/components/PeriodBar";
+import { parseWindow, windowQuery } from "../sinyal/window";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -26,13 +28,20 @@ interface NetworkOut {
   limitations: string[];
 }
 
-export default async function JaringanPage() {
+export default async function JaringanPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const win = parseWindow(await searchParams);
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
   // apiOrNullLenient: /network butuh kolom mentions.reply_to_hash/
   // quote_of_hash/conversation_id yang migrasinya ke Supabase bisa saja
   // belum diterapkan -- 500, bukan 404, dan tanpa ini menjatuhkan seluruh
   // halaman (lihat catatan yang sama di lib/api.ts).
-  const data = await apiOrNullLenient<NetworkOut>(`/projects/${projectId}/network`);
+  const data = await apiOrNullLenient<NetworkOut>(
+    `/projects/${projectId}/network${windowQuery(win)}`,
+  );
   const social = SOURCE.SOCIAL.color;
   const peak = Math.max(1, ...(data?.top ?? []).map((r) => r.in_degree));
 
@@ -40,6 +49,7 @@ export default async function JaringanPage() {
     <>
       <PageHeader kicker="Jaringan Interaksi" title={name} isDemo={isDemo} />
       <div className="body">
+        <PeriodBar win={win} />
         {/* Judul kartu di sini sengaja "posisi struktural", bukan "pengaruh"
             atau "kendali" — CLAUDE.md §3. Yang terukur adalah seberapa sering
             sebuah akun dibalas/dikutip akun lain yang IKUT muncul di data

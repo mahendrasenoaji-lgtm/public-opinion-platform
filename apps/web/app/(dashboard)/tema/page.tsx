@@ -5,6 +5,8 @@ import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
+import { PeriodBar } from "@/components/PeriodBar";
+import { parseWindow } from "../sinyal/window";
 import { DiscoverButton } from "./DiscoverButton";
 import { ReviewTopic } from "./ReviewTopic";
 
@@ -25,7 +27,12 @@ interface TopicRow {
   reviewed_label: string | null;
 }
 
-export default async function TemaPage() {
+export default async function TemaPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const win = parseWindow(await searchParams);
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
   // apiOrNullLenient: kolom review_status bisa saja belum ada di Supabase
   // (migrasi manual belum jalan) -- itu 500, bukan 404, dan tanpa ini
@@ -38,10 +45,14 @@ export default async function TemaPage() {
     <>
       <PageHeader kicker="Tema" title={name} isDemo={isDemo} />
       <div className="body">
+        <PeriodBar
+          win={win}
+          note="Periode ini dipakai saat tombol Temukan tema ditekan; tema yang tampil adalah hasil penemuan terakhir"
+        />
         <Panel
           kicker="Tema percakapan"
           title="Klaster yang ditemukan"
-          right={<DiscoverButton projectId={projectId} />}
+          right={<DiscoverButton projectId={projectId} start={win.start} end={win.end} />}
         >
           {topics.length === 0 ? (
             <InsufficientData

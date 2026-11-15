@@ -4,6 +4,8 @@ import { PageHeader } from "@/components/PageHeader";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient } from "@/lib/api";
+import { PeriodBar } from "@/components/PeriodBar";
+import { parseWindow, windowQuery } from "../sinyal/window";
 import { getCurrentProject } from "@/lib/currentProject";
 
 export const dynamic = "force-dynamic";
@@ -31,9 +33,16 @@ interface InfluenceOut {
   limitations: string[];
 }
 
-export default async function PengaruhPage() {
+export default async function PengaruhPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const win = parseWindow(await searchParams);
   const { id: projectId, name, is_demo: isDemo } = await getCurrentProject();
-  const data = await apiOrNullLenient<InfluenceOut>(`/projects/${projectId}/influence`);
+  const data = await apiOrNullLenient<InfluenceOut>(
+    `/projects/${projectId}/influence${windowQuery(win)}`,
+  );
   const social = SOURCE.SOCIAL.color;
   const peak = Math.max(1, ...(data?.top ?? []).map((r) => r.influence_estimate));
 
@@ -41,6 +50,7 @@ export default async function PengaruhPage() {
     <>
       <PageHeader kicker="Estimasi Pengaruh" title={name} isDemo={isDemo} />
       <div className="body">
+        <PeriodBar win={win} />
         {/* Judul halaman ini sengaja "estimasi", bukan "pengaruh". Yang diukur
             adalah keterpaparan; apakah ada yang berubah pikiran tidak terukur
             di data ini sama sekali (CLAUDE.md §3). */}

@@ -35,8 +35,15 @@ export async function discoverTopics(
   const projectId = String(formData.get("projectId") ?? "");
   if (!projectId) return { ok: false, message: "Proyek tidak dikenali." };
 
+  // Periode tetap dari halaman; bentuknya diperiksa lagi di sini karena
+  // FormData berasal dari klien.
+  const start = String(formData.get("start") ?? "");
+  const end = String(formData.get("end") ?? "");
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  const query = iso.test(start) && iso.test(end) ? `?start=${start}&end=${end}` : "";
+
   try {
-    const result = await api<DiscoveryResult>(`/projects/${projectId}/topics/discover`, {
+    const result = await api<DiscoveryResult>(`/projects/${projectId}/topics/discover${query}`, {
       method: "POST",
     });
 
@@ -51,7 +58,8 @@ export async function discoverTopics(
     return {
       ok: true,
       message:
-        `${result.topics.length} tema ditemukan dari ${result.n_analysed} percakapan. ` +
+        `${result.topics.length} tema ditemukan dari ${result.n_analysed} percakapan` +
+        `${query ? ` (${start} s.d. ${end})` : " (30 hari terakhir)"}. ` +
         `${result.unclustered_pct.toFixed(1)}% tidak masuk tema mana pun` +
         (result.unclustered_pct >= 30
           ? " — peta tema ini tidak menggambarkan sebagian besar percakapan."
