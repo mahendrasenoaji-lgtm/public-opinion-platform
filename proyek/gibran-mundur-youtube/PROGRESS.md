@@ -56,7 +56,8 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 | Tahap | Item | Status |
 |---|---|---|
 | 01 | 19.995 | **Terunggah 17 Nov 2026** (19.784 konten unik sesudah dedup; satu kali "Internal Server Error" di item 14.101, dilanjutkan dari titik itu) |
-| 02–10 | ±19.995 per tahap | belum diunggah (lokal) |
+| 02 | 19.995 | **Sebagian (17 Nov):** 2.400 item pertama masuk, lalu "Bad Gateway" dari Render. Sisa 17.595 ada di `unggah_bertahap/tahap_02_sisa.json` (lokal), belum diunggah karena ekstensi Chrome terputus. |
+| 03–10 | ±19.995 per tahap | belum diunggah (lokal) |
 
 ## Angka 17 Nov 2026
 
@@ -96,7 +97,10 @@ Ditulis supaya pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
 6. **Pemilik (soal unggahan):** "simpan di lokal dulu, bertahap diunggahnya." Data dipecah menjadi 10 tahap acak.
    Tahap 1 diunggah dan dicek di `/sinyal`.
 7. **Pemilik:** "lanjutkan. simpan semua di github ya supaya dapat saya baca progress dan percakapannya."
-   Tahap 2 diunggah; folder ini masuk repo lewat PR (cabang `proyek/gibran-mundur-youtube`).
+   Folder ini masuk repo lewat PR #72 (cabang `proyek/gibran-mundur-youtube`). Tahap 2 baru masuk 2.400 item:
+   Render membalas "Bad Gateway", lalu sesudah server pulih halaman `/sinyal` menampilkan nol di semua kartu
+   dan ekstensi Claude di Chrome terputus. Belum diketahui apakah nol itu karena sesi login habis atau hal lain;
+   cek dulu dengan memuat ulang `/sinyal` sebelum mengunggah lagi.
 
 ### Hal yang perlu diketahui sesi berikutnya
 
