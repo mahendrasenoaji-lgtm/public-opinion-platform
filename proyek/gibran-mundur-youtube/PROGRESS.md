@@ -1,0 +1,109 @@
+# Pengunduran diri Wapres Gibran — komentar YouTube 10–17 Nov 2026 (WIB)
+
+Folder kerja proyek platform **"PENGUNDURAN DIRI GIBRAN (YouTube 10-17 Nov 2026)"**. Dibuat 17 Nov 2026.
+Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untuk latar).
+
+## 🟢 Mulai dari sini
+
+- **Data mentah dan berkas besar hanya ada di Mac** (tidak di-commit; lihat `.gitignore` folder ini).
+  Keputusan pemilik 17 Nov: "simpan di lokal dulu, bertahap diunggahnya".
+- **Unggahan bertahap ke platform:** `unggah_bertahap/tahap_NN_dari_10.json`, tiap berkas ±20.000 komentar,
+  hasil acak (seed 20261117) dari seluruh data, sehingga setiap tahap adalah sampel acak dan angka di platform
+  tetap terbaca wajar walau belum semua masuk. Unggah lewat `/sinyal` → "Unggah data (JSON)". Aman diulang.
+  Status tahap ada di tabel bawah.
+- **Kuota Supabase:** masa tenggang egress sampai 10 Des 2026. Jangan jalankan "Nilai ulang" untuk proyek ini
+  (data baru sudah dinilai `informal-4` saat masuk) dan buka dasbor seperlunya.
+- **Video belum ditarik:** 729 video kecil (±88 ribu komentar menurut YouTube). Lanjutkan saat kuota YouTube
+  pulih (kuota harian 10.000 unit, pulih ±15.00 WIB):
+  `YOUTUBE_API_KEY=... python3 -I skrip/collect_gibran.py raw_youtube_api.json 6000`
+  Skrip melompati video yang sudah ada di `raw_youtube_api.json.parts/` dan tidak mencari ulang.
+  Kunci diambil pemilik sendiri dari Render → pop-api → Environment (Claude tidak diizinkan membukanya).
+  Sesudah itu jalankan ulang `analyze_gibran.py`, lalu buat tahap tambahan HANYA dari komentar baru
+  (jangan acak ulang semuanya: tahap lama sudah terunggah; dedup platform memang menahan yang kembar).
+
+## Keputusan
+
+| Hal | Keputusan | Alasan |
+|---|---|---|
+| Jendela | 10 Nov 00:00 – 17 Nov 23:59 WIB | 10 Nov usulan hak menyatakan pendapat di DPR; 11–12 Nov surat pengunduran diri; sampai hari pengambilan. |
+| Cara ambil | Skrip + YouTube Data API v3 resmi | Tombol "Tarik semua" hanya 2 hari terakhir, 100 komentar utama per video. |
+| Video | Terbit dalam jendela, judul/deskripsi menyebut "gibran" + kata peristiwa | Lihat `PAT` di `skrip/collect_gibran.py`. |
+| Identitas | Nama akun diganti hash 12 karakter | Aturan CLAUDE.md §3. |
+| Unggah | Bertahap, 10 berkas acak | Permintaan pemilik; menjaga kuota Supabase. |
+
+## Batas bacaan yang khas proyek ini
+
+- Kamus platform memberi bobot negatif pada kata **"mundur"** (dulu dipakai sebagai tuntutan). Di sini itu kata
+  topik. `analyze_gibran.py` menghitung skor kedua tanpa kata topik (`sentiment2`, `overall_tanpa_kata_topik` di
+  `stats.json`). Platform sendiri tetap memakai skor biasa.
+- Peta aktor di platform (`services/actors.py`) disusun untuk kasus BBM Bali; daftar aktor proyek ini ada di
+  `ACTORS` pada `skrip/analyze_gibran.py` (nama saja, tanpa klaim jabatan).
+- Yang ditarik lebih dulu adalah 114 video paling ramai; 729 video kecil belum masuk.
+- Komentar YouTube bukan sampel penduduk; nada bukan sikap; sarkasme sering salah baca.
+
+## Berkas
+
+| Berkas | Isi | Di repo? |
+|---|---|---|
+| `skrip/collect_gibran.py`, `skrip/analyze_gibran.py` | pengumpul dan pengolah | ya |
+| `stats.json` | angka ringkas untuk laporan | ya |
+| `raw_youtube_api.json`, `.parts/` | data mentah API | lokal saja |
+| `komentar_youtube_gibran_mundur_10-17nov2026.csv` | satu baris per komentar + link | lokal saja |
+| `unggah_platform_gibran_mundur.json`, `unggah_bertahap/` | berkas unggahan | lokal saja |
+
+## Status unggahan
+
+| Tahap | Item | Status |
+|---|---|---|
+| 01 | 19.995 | **Terunggah 17 Nov 2026** (19.784 konten unik sesudah dedup; satu kali "Internal Server Error" di item 14.101, dilanjutkan dari titik itu) |
+| 02–10 | ±19.995 per tahap | belum diunggah (lokal) |
+
+## Angka 17 Nov 2026
+
+**Lokal, seluruh data terkumpul** (`stats.json`): 199.974 komentar + balasan (159.706 + 40.268), 128.842 akun, 114 video.
+Puncak 12 Nov (58.115; jam teramai 19.00–20.59 WIB). Dinilai 109.744 (55%), di antaranya 56% negatif, 34% positif;
+rata-rata −0,149 (tanpa kata topik "mundur": −0,114). Paling sering disebut: Gibran 41.718, Prabowo 16.900,
+Jokowi 10.637, DPR 7.368, MK 4.330.
+
+**Platform sesudah tahap 1** (`/sinyal?dari=2026-11-10&sampai=2026-11-17&zona=WIB`): 19.784 konten, 18.234 akun,
+sentimen −0,15 (n 10.724), jam paling ramai Kamis 19.00 WIB, aktor: Gibran 3.837, Prabowo 1.664, Jokowi 992.
+Catatan: daftar aktor platform masih menulis Gibran "Wakil Presiden RI" (jabatan per Oktober 2026) dan memuat
+aktor BBM Bali; perlu diperbarui lewat PR bila proyek ini mau dipublikasikan.
+
+## Ringkasan percakapan (17 Nov 2026, satu sesi Claude Code di Mac)
+
+Ditulis supaya pekerjaan bisa dilanjutkan di komputer lain tanpa riwayat chat.
+
+1. **Pemilik:** minta satu jurnal Indonesia dan satu jurnal internasional yang berkaitan dengan kajian BBM Bali.
+   **Hasil:** Mulia dkk. (2024), "Analisis Sentimen dan Topik Perbincangan Netizen Indonesia Terkait Pengurangan
+   Subsidi BBM", *Jurnal Linguistik Komputasional*; dan Nasrullah dkk. (2026), "Emotional discourse and symbolic
+   contestation in Indonesia's digital public sphere… YouTube comments on LPG subsidy regulatory adjustment news",
+   *Frontiers in Communication*. Cadangan: Frevita dkk. (2026, JAIEA, Pertalite di komentar YouTube) dan Mukti dkk.
+   (2025, IJSSHR, LPG 3 kg). Ditemukan lewat Consensus; volume dan DOI perlu dicek di situs jurnal sebelum dikutip.
+2. **Pemilik:** "pengunduran diri Gibran Rakabuming Raka, buatkan di sentimen analisisnya" di platform.
+   **Yang terjadi:** platform belum login di Chrome (pemilik login sendiri). Claude mencoba membuka halaman
+   Environment Render untuk mengambil kunci YouTube dan ditolak pengaman izin Claude Code.
+3. **Pemilik:** "sudah. kerjakan sampai tuntas. ingat supabase… tidak boleh melebihi kuota bulanan. kenapa ada
+   batasan? api youtube sudah ada di platform ini."
+   **Jawaban:** kunci ada di server Render dan hanya terpakai lewat tombol "Tarik semua", yang dirancang untuk
+   pengumpulan rutin: 2 hari terakhir, 100 komentar utama per video, tanpa balasan (menjaga timeout dan kuota
+   10.000 unit per hari). Puncak 11–12 Nov tidak terjangkau tombol itu.
+   Pemilik memilih **skrip penuh seperti BBM Bali** (bukan token pengumpul, bukan tombol biasa).
+4. **Pemilik:** minta dipandu lewat Chrome. Claude membuka halaman Environment `pop-api` (nilai tetap tertutup),
+   pemilik menekan ikon salin sendiri lalu menjalankan `pbpaste > ~/.yt_key && chmod 600 ~/.yt_key`.
+5. **Pengumpulan:** 874 kandidat video, 872 relevan, ±288 ribu komentar menurut YouTube. Berhenti di 6.011 unit:
+   114 video teramai selesai (199.974 komentar), 729 video kecil belum.
+6. **Pemilik (soal unggahan):** "simpan di lokal dulu, bertahap diunggahnya." Data dipecah menjadi 10 tahap acak.
+   Tahap 1 diunggah dan dicek di `/sinyal`.
+7. **Pemilik:** "lanjutkan. simpan semua di github ya supaya dapat saya baca progress dan percakapannya."
+   Tahap 2 diunggah; folder ini masuk repo lewat PR (cabang `proyek/gibran-mundur-youtube`).
+
+### Hal yang perlu diketahui sesi berikutnya
+
+- Berkas `~/.yt_key` (kunci YouTube, izin 600) masih ada di Mac untuk menarik 729 video sisanya. Hapus dengan
+  `rm ~/.yt_key` bila tidak dipakai lagi. Tidak pernah masuk repo.
+- Data mentah (95 MB) dan berkas unggahan tidak masuk GitHub (melewati batas wajar ukuran berkas dan repo ini
+  publik). Di komputer lain data bisa dibuat ulang dengan `collect_gibran.py`, tetapi hasilnya bisa sedikit berbeda.
+- Alat unggah Chrome dibatasi 10 MB per berkas; tiap tahap ±7,7 MB.
+- Jangan pindah halaman selagi "Mengunggah N / N…" masih tampil; potongan terakhir bisa belum selesai.
+- Sesi login platform dan Render dilakukan pemilik sendiri.
