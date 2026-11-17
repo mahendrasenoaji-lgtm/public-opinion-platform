@@ -56,8 +56,22 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 | Tahap | Item | Status |
 |---|---|---|
 | 01 | 19.995 | **Terunggah 17 Nov 2026** (19.784 konten unik sesudah dedup; satu kali "Internal Server Error" di item 14.101, dilanjutkan dari titik itu) |
-| 02 | 19.995 | **Sebagian (17 Nov):** 2.400 item pertama masuk, lalu "Bad Gateway" dari Render. Sisa 17.595 ada di `unggah_bertahap/tahap_02_sisa.json` (lokal), belum diunggah karena ekstensi Chrome terputus. |
-| 03–10 | ±19.995 per tahap | belum diunggah (lokal) |
+| 02 | 19.995 | **Terunggah 17 Nov** (2.400 + sisa 17.595; 17.436 baru dari sisa) |
+| 03 | 19.995 | **Terunggah 17 Nov** (halaman sempat jatuh di ±9.900; sisanya lewat `tahap_03_sisa.json`) |
+| 04 | 19.995 | **Terunggah 17 Nov** (19.740 baru) |
+| 05 | 19.995 | **Terunggah 17 Nov** (19.724 baru) |
+| 06 | 19.995 | **Terunggah 17 Nov** (19.726 baru) |
+| 07 | 19.995 | **Terunggah 17 Nov** (19.702 baru) |
+| 08 | 19.995 | **Sebagian (17 Nov):** minimal 16.800 item masuk, lalu dijeda pemilik (komputer dimatikan). **Unggah ulang berkas tahap 08 utuh**; yang sudah ada otomatis dilewati. |
+| 09–10 | ±19.995 per tahap | belum diunggah (lokal) |
+
+**Cara unggah yang terbukti lancar (17 Nov):** buka `/sinyal?dari=2026-01-01&sampai=2026-01-02&zona=WIB`
+(periode kosong) lalu unggah dari sana. Sebabnya: `ingestBatch` memanggil `revalidatePath("/sinyal")` tiap
+potongan 300 item, sehingga seluruh dasbor dihitung ulang 67 kali per tahap. Dengan periode berisi data, itulah
+yang menjatuhkan server Render ("Bad Gateway") dan memboroskan kuota Supabase. Perbaikan kode yang disarankan
+(belum dikerjakan): revalidasi sekali saja di akhir unggahan. Tiap tahap ±10 menit.
+Supabase 17 Nov sesudah tahap 5: basis data 138 / 500 MB, egress 1,49 / 5 GB.
+Catatan: pembaruan tabel ini baru ada di berkas lokal Mac, belum didorong ke cabang PR #72.
 
 ## Angka 17 Nov 2026
 
