@@ -2593,41 +2593,33 @@ async def conversation_report(
 ) -> ConversationReportOut:
     """Bahan laporan percakapan: kata, tagar, emoji, lonjakan, sentimen harian, media, tema."""
     since, until = _window(days, start, end)
-    rows = (
-        await session.execute(
-            _scoped(
-                select(
-                    Mention.source,
-                    Mention.text,
-                    Mention.sentiment,
-                    Mention.published_at,
-                    Mention.engagement,
-                    Mention.url,
-                    Mention.external_id,
-                    Mention.topic_id,
-                ),
-                project_id,
-                since,
-                until,
-            ).where(Mention.source.in_(_SENTIMENT_SOURCES))
-        )
-    ).all()
-
-    report = report_svc.build(
-        (
-            report_svc.Row(
-                source=r.source.value,
-                text=r.text,
-                sentiment=None if r.sentiment is None else float(r.sentiment),
-                published_at=r.published_at,
-                engagement=r.engagement,
-                url=_recover_source_url(r.url, r.external_id)[0],
-                topic_id=None if r.topic_id is None else str(r.topic_id),
-            )
-            for r in rows
-        ),
-        tz=tz,
+    columns = select(
+        Mention.text,
+        Mention.sentiment,
+        Mention.published_at,
+        Mention.engagement,
+        Mention.url,
+        Mention.external_id,
+        Mention.topic_id,
     )
+    # Dibaca per potongan, per sumber: laporan hanya menyimpan hitungan dan
+    # beberapa konten teramai per hari, bukan seluruh teks jendela.
+    builder = report_svc.Builder(tz=tz)
+    for src in _SENTIMENT_SOURCES:
+        async for batch in _batches(session, columns, project_id, since, until, src):
+            builder.add(
+                report_svc.Row(
+                    source=src.value,
+                    text=r.text,
+                    sentiment=None if r.sentiment is None else float(r.sentiment),
+                    published_at=r.published_at,
+                    engagement=r.engagement,
+                    url=_recover_source_url(r.url, r.external_id)[0],
+                    topic_id=None if r.topic_id is None else str(r.topic_id),
+                )
+                for r in batch
+            )
+    report = builder.result()
 
     labels: dict[str, str] = {}
     if report.topics:
@@ -2831,26 +2823,16 @@ async def activity(
 ) -> ActivityOut:
     """Engagement harian, peta jam ramai, dan konten paling ramai, per sumber."""
     since, until = _window(days, start, end)
-    rows = (
-        await session.execute(
-            _scoped(
-                select(Mention.source, Mention.published_at, Mention.engagement),
-                project_id,
-                since,
-                until,
-            ).where(Mention.source.in_(_SENTIMENT_SOURCES))
-        )
-    ).all()
-
-    grouped: dict[ModelSignalSource, list[tuple[datetime, int]]] = {}
-    for src, published_at, engagement in rows:
-        grouped.setdefault(src, []).append((published_at, engagement))
+    columns = select(Mention.engagement)
 
     by_source: list[ActivityBySource] = []
     for src in _SENTIMENT_SOURCES:
-        if src not in grouped:
+        acc = signal_stats.ActivityAccumulator(tz=tz)
+        async for batch in _batches(session, columns, project_id, since, until, src):
+            acc.add((r.page_at, r.engagement) for r in batch)
+        stats = acc.result()
+        if not stats.n:
             continue
-        stats = signal_stats.summarize_activity(grouped[src], tz=tz)
         top: list[TopMentionOut] = []
         if stats.n_with_engagement:
             top_rows = (

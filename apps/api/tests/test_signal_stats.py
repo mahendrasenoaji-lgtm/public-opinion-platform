@@ -123,3 +123,12 @@ def test_satu_hari_sah():
 def test_jendela_tidak_sah_ditolak(start, end):
     with pytest.raises(st.WindowError):
         st.resolve_window(days=30, start=start, end=end, now=NOW)
+
+
+def test_aktivitas_per_potongan_sama_dengan_sekali_baca():
+    base = datetime(2026, 11, 10, 16, 30, tzinfo=UTC)
+    rows = [(base + timedelta(minutes=37 * i), i % 4) for i in range(200)]
+    acc = st.ActivityAccumulator(tz="WIT")
+    for start in range(0, len(rows), 33):
+        acc.add(rows[start : start + 33])
+    assert acc.result() == st.summarize_activity(rows, tz="WIT")

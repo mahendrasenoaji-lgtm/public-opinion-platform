@@ -137,3 +137,35 @@ class TestBuild:
     def test_kosong(self) -> None:
         report = cr.build([])
         assert report.sources == [] and report.outlets == [] and report.topics == []
+
+
+class TestBuilderPerPotongan:
+    def test_diisi_per_potongan_sama_dengan_sekali_baca(self) -> None:
+        """Termasuk seri engagement dan waktu yang sama: urutan masuk menentukan."""
+        rows = []
+        for i in range(120):
+            rows.append(
+                _row(
+                    f"antre bbm #langka {'😡' if i % 3 else '🙏'} nomor {i % 7}",
+                    day=i % 5,
+                    hour=i % 4,
+                    sentiment=None if i % 4 == 0 else (-0.6 if i % 2 else 0.4),
+                    engagement=(i * 7) % 5,
+                    topic_id="t1" if i % 6 == 0 else None,
+                )
+            )
+        for i in range(20):
+            rows.append(
+                _row(
+                    f"kelangkaan bbm berita {i}",
+                    source="MEDIA",
+                    day=i % 5,
+                    hour=i % 2,
+                    sentiment=-0.3,
+                    url=f"https://www.media{i % 3}.id/berita/{i}",
+                )
+            )
+        b = cr.Builder(tz="WITA")
+        for start in range(0, len(rows), 17):
+            b.add(rows[start : start + 17])
+        assert b.result() == cr.build(rows, tz="WITA")

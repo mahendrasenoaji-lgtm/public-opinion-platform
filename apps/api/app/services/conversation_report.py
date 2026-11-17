@@ -19,7 +19,7 @@ from __future__ import annotations
 import re
 import statistics
 import unicodedata
-from collections import Counter, defaultdict
+from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta, timezone
@@ -201,6 +201,188 @@ def _item(row: Row) -> Item:
     )
 
 
+@dataclass(slots=True)
+class _Day:
+    volume: int = 0
+    scored: int = 0
+    total: float = 0.0
+    negative: int = 0
+    #: Paling banyak TOP_PER_PEAK kandidat konten teramai (engagement > 0).
+    top: list[tuple[int, datetime, int, Row]] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class _Source:
+    n: int = 0
+    words: Counter[str] = field(default_factory=Counter)
+    tags: Counter[str] = field(default_factory=Counter)
+    emoji: Counter[str] = field(default_factory=Counter)
+    labels: Counter[str] = field(default_factory=Counter)
+    days: dict[date, _Day] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class _Topic:
+    n: int = 0
+    engagement: int = 0
+    scored: int = 0
+    total: float = 0.0
+
+
+def _keep(
+    bucket: list[tuple[int, datetime, int, Row]], entry: tuple[int, datetime, int, Row]
+) -> None:
+    """Simpan `entry` bila termasuk TOP_PER_PEAK terkecil menurut (kunci, waktu, urutan masuk)."""
+    if len(bucket) < TOP_PER_PEAK:
+        bucket.append(entry)
+        bucket.sort(key=lambda e: e[:3])
+    elif entry[:3] < bucket[-1][:3]:
+        bucket[-1] = entry
+        bucket.sort(key=lambda e: e[:3])
+
+
+class Builder:
+    """`build` yang diisi sepotong demi sepotong.
+
+    Yang disimpan hanya hitungan dan paling banyak `TOP_PER_PEAK` konten per
+    hari per sumber, bukan seluruh konten jendela. Dipakai router yang membaca
+    konten per potongan dari database. Hasilnya sama persis dengan `build`
+    atas gabungan semua potongan dalam urutan yang sama.
+    """
+
+    def __init__(self, *, tz: str = "WIB", sources: Sequence[str] = ("SOCIAL", "MEDIA")) -> None:
+        if tz not in TIMEZONES:
+            raise ValueError(f"zona waktu tidak dikenal: {tz!r}")
+        self._tz = tz
+        self._zone = timezone(timedelta(hours=TIMEZONES[tz]))
+        self._sources = tuple(sources)
+        self._by_source: dict[str, _Source] = {}
+        #: Liputan paling awal per hari, untuk "liputan hari yang sama".
+        self._media_by_day: dict[date, list[tuple[int, datetime, int, Row]]] = {}
+        self._outlets: Counter[str] = Counter()
+        self._topics: dict[tuple[str, str], _Topic] = {}
+        self._seq = 0
+
+    def add(self, rows: Iterable[Row]) -> None:
+        for row in rows:
+            if row.source not in self._sources:
+                continue
+            moment = row.published_at
+            if moment.tzinfo is None:
+                moment = moment.replace(tzinfo=UTC)
+            day = moment.astimezone(self._zone).date()
+            seq = self._seq
+            self._seq += 1
+
+            acc = self._by_source.setdefault(row.source, _Source())
+            acc.n += 1
+            acc.words.update(words_in(row.text))
+            acc.tags.update(hashtags_in(row.text))
+            acc.emoji.update(emoji_in(row.text))
+            acc.labels["tidak dinilai" if row.sentiment is None else label_for(row.sentiment)] += 1
+
+            d = acc.days.setdefault(day, _Day())
+            d.volume += 1
+            if row.sentiment is not None:
+                d.scored += 1
+                d.total += row.sentiment
+                if label_for(row.sentiment) == "negatif":
+                    d.negative += 1
+            if row.engagement > 0:
+                _keep(d.top, (-row.engagement, row.published_at, seq, row))
+
+            if row.source == "MEDIA":
+                _keep(self._media_by_day.setdefault(day, []), (0, row.published_at, seq, row))
+                domain = domain_of(row.url)
+                if domain:
+                    self._outlets[domain] += 1
+
+            if row.topic_id:
+                t = self._topics.setdefault((row.topic_id, row.source), _Topic())
+                t.n += 1
+                t.engagement += max(0, row.engagement)
+                if row.sentiment is not None:
+                    t.scored += 1
+                    t.total += row.sentiment
+
+    def result(self, *, word_limit: int = 30, tag_limit: int = 15) -> Report:
+        reports: list[SourceReport] = []
+        for source in self._sources:
+            acc = self._by_source.get(source)
+            if acc is None:
+                continue
+            days: list[DaySentiment] = []
+            for day in sorted(acc.days):
+                tally = acc.days[day]
+                enough = tally.scored >= MIN_SCORED
+                days.append(
+                    DaySentiment(
+                        day=day,
+                        volume=tally.volume,
+                        scored=tally.scored,
+                        mean=round(tally.total / tally.scored, 3) if enough else None,
+                        negative_share=(
+                            round(tally.negative / tally.scored, 3) if enough else None
+                        ),
+                    )
+                )
+
+            median = statistics.median(d.volume for d in days)
+            ranked = sorted(days, key=lambda d: (-d.volume, d.day))[:MAX_PEAKS]
+            peaks: list[Peak] = []
+            for d in ranked:
+                ratio = round(d.volume / median, 2) if median else None
+                is_spike = len(days) >= 3 and ratio is not None and ratio >= SPIKE_RATIO
+                if peaks and not is_spike:
+                    continue  # hanya hari teramai yang dilaporkan bila bukan lonjakan
+                same_day = [] if source == "MEDIA" else self._media_by_day.get(d.day, [])
+                peaks.append(
+                    Peak(
+                        day=d.day,
+                        volume=d.volume,
+                        ratio=ratio,
+                        is_spike=is_spike,
+                        top_content=[_item(e[3]) for e in acc.days[d.day].top],
+                        same_day_media=[_item(e[3]) for e in same_day],
+                    )
+                )
+
+            reports.append(
+                SourceReport(
+                    source=source,
+                    n=acc.n,
+                    scored=sum(v for k, v in acc.labels.items() if k != "tidak dinilai"),
+                    labels=dict(acc.labels),
+                    days=days,
+                    peaks=peaks,
+                    words=_top(acc.words, word_limit),
+                    hashtags=_top(acc.tags, tag_limit),
+                    emoji=_top(acc.emoji, tag_limit),
+                )
+            )
+
+        topics = [
+            TopicStat(
+                topic_id=topic_id,
+                source=source,
+                n=t.n,
+                engagement=t.engagement,
+                scored=t.scored,
+                mean=round(t.total / t.scored, 3) if t.scored >= MIN_SCORED else None,
+            )
+            for (topic_id, source), t in self._topics.items()
+        ]
+        topics.sort(key=lambda t: (-t.n, t.topic_id, t.source))
+
+        return Report(
+            timezone=self._tz,
+            sources=reports,
+            outlets=[Outlet(domain=d, n=n) for d, n in _top(self._outlets, 15)],
+            outlets_total=len(self._outlets),
+            topics=topics,
+        )
+
+
 def build(
     rows: Iterable[Row],
     *,
@@ -210,131 +392,6 @@ def build(
     tag_limit: int = 15,
 ) -> Report:
     """Susun bahan laporan dari konten satu jendela waktu."""
-    if tz not in TIMEZONES:
-        raise ValueError(f"zona waktu tidak dikenal: {tz!r}")
-    zone = timezone(timedelta(hours=TIMEZONES[tz]))
-
-    by_source: dict[str, list[tuple[date, Row]]] = defaultdict(list)
-    for row in rows:
-        if row.source not in sources:
-            continue
-        moment = row.published_at
-        if moment.tzinfo is None:
-            moment = moment.replace(tzinfo=UTC)
-        by_source[row.source].append((moment.astimezone(zone).date(), row))
-
-    media_by_day: dict[date, list[Row]] = defaultdict(list)
-    for day, row in by_source.get("MEDIA", []):
-        media_by_day[day].append(row)
-
-    reports: list[SourceReport] = []
-    topic_acc: dict[tuple[str, str], list[Row]] = defaultdict(list)
-
-    for source in sources:
-        entries = by_source.get(source)
-        if not entries:
-            continue
-        words: Counter[str] = Counter()
-        tags: Counter[str] = Counter()
-        emoji: Counter[str] = Counter()
-        labels: Counter[str] = Counter()
-        per_day: dict[date, list[Row]] = defaultdict(list)
-        for day, row in entries:
-            per_day[day].append(row)
-            words.update(words_in(row.text))
-            tags.update(hashtags_in(row.text))
-            emoji.update(emoji_in(row.text))
-            labels["tidak dinilai" if row.sentiment is None else label_for(row.sentiment)] += 1
-            if row.topic_id:
-                topic_acc[(row.topic_id, source)].append(row)
-
-        days: list[DaySentiment] = []
-        for day in sorted(per_day):
-            scored = [r.sentiment for r in per_day[day] if r.sentiment is not None]
-            enough = len(scored) >= MIN_SCORED
-            days.append(
-                DaySentiment(
-                    day=day,
-                    volume=len(per_day[day]),
-                    scored=len(scored),
-                    mean=round(sum(scored) / len(scored), 3) if enough else None,
-                    negative_share=(
-                        round(sum(label_for(s) == "negatif" for s in scored) / len(scored), 3)
-                        if enough
-                        else None
-                    ),
-                )
-            )
-
-        median = statistics.median(d.volume for d in days)
-        ranked = sorted(days, key=lambda d: (-d.volume, d.day))[:MAX_PEAKS]
-        peaks: list[Peak] = []
-        for d in ranked:
-            ratio = round(d.volume / median, 2) if median else None
-            is_spike = len(days) >= 3 and ratio is not None and ratio >= SPIKE_RATIO
-            if peaks and not is_spike:
-                continue  # hanya hari teramai yang dilaporkan bila bukan lonjakan
-            top = sorted(
-                (r for r in per_day[d.day] if r.engagement > 0),
-                key=lambda r: (-r.engagement, r.published_at),
-            )[:TOP_PER_PEAK]
-            same_day = (
-                []
-                if source == "MEDIA"
-                else sorted(media_by_day.get(d.day, []), key=lambda r: r.published_at)[
-                    :TOP_PER_PEAK
-                ]
-            )
-            peaks.append(
-                Peak(
-                    day=d.day,
-                    volume=d.volume,
-                    ratio=ratio,
-                    is_spike=is_spike,
-                    top_content=[_item(r) for r in top],
-                    same_day_media=[_item(r) for r in same_day],
-                )
-            )
-
-        reports.append(
-            SourceReport(
-                source=source,
-                n=len(entries),
-                scored=sum(v for k, v in labels.items() if k != "tidak dinilai"),
-                labels=dict(labels),
-                days=days,
-                peaks=peaks,
-                words=_top(words, word_limit),
-                hashtags=_top(tags, tag_limit),
-                emoji=_top(emoji, tag_limit),
-            )
-        )
-
-    outlet_counts: Counter[str] = Counter()
-    for _, row in by_source.get("MEDIA", []):
-        domain = domain_of(row.url)
-        if domain:
-            outlet_counts[domain] += 1
-
-    topics: list[TopicStat] = []
-    for (topic_id, source), members in topic_acc.items():
-        scored = [r.sentiment for r in members if r.sentiment is not None]
-        topics.append(
-            TopicStat(
-                topic_id=topic_id,
-                source=source,
-                n=len(members),
-                engagement=sum(max(0, r.engagement) for r in members),
-                scored=len(scored),
-                mean=round(sum(scored) / len(scored), 3) if len(scored) >= MIN_SCORED else None,
-            )
-        )
-    topics.sort(key=lambda t: (-t.n, t.topic_id, t.source))
-
-    return Report(
-        timezone=tz,
-        sources=reports,
-        outlets=[Outlet(domain=d, n=n) for d, n in _top(outlet_counts, 15)],
-        outlets_total=len(outlet_counts),
-        topics=topics,
-    )
+    builder = Builder(tz=tz, sources=sources)
+    builder.add(rows)
+    return builder.result(word_limit=word_limit, tag_limit=tag_limit)

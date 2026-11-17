@@ -219,6 +219,11 @@ export interface FullIngestResult {
  * menarik yang terbaru, jadi rentang lampau tidak bisa diambil lewat tombol
  * "Tarik semua". Data tetap melewati pipeline yang sama (dedup, bahasa,
  * sentimen). Pemotongan per batch ada di UploadData.tsx, bukan di sini.
+ *
+ * Tidak memanggil revalidatePath: pemanggil memanggil `finishIngest` SEKALI
+ * sesudah potongan terakhir. Dulu revalidasi per potongan 300 item membuat
+ * Next menghitung ulang seluruh /sinyal puluhan kali per berkas; pada proyek
+ * besar (Gibran, 17 Nov 2026) itu menjatuhkan server API ("Bad Gateway").
  */
 export async function ingestBatch(
   projectId: string,
@@ -231,12 +236,16 @@ export async function ingestBatch(
       method: "POST",
       body: JSON.stringify({ connector, source, items }),
     });
-    revalidatePath("/sinyal");
     return { ok: true, result };
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };
     throw e;
   }
+}
+
+/** Segarkan /sinyal sekali, sesudah seluruh potongan sebuah unggahan selesai atau berhenti. */
+export async function finishIngest(): Promise<void> {
+  revalidatePath("/sinyal");
 }
 
 export type SignalSourceKey = "SOCIAL" | "MEDIA";

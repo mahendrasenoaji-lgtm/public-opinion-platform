@@ -91,9 +91,7 @@ def summarize_emotions(
                 dominant[key] += 1
 
     share = {k: (round(v / n_with, 4) if n_with else 0.0) for k, v in sums.items()}
-    return EmotionSummary(
-        n_total=n_total, n_with_emotion=n_with, share=share, dominant=dominant
-    )
+    return EmotionSummary(n_total=n_total, n_with_emotion=n_with, share=share, dominant=dominant)
 
 
 @dataclass(frozen=True)
@@ -121,58 +119,80 @@ class ActivitySummary:
     peak: tuple[int, int, int] | None
 
 
-def summarize_activity(
-    rows: Iterable[tuple[datetime, int]], *, tz: str = "WIB"
-) -> ActivitySummary:
+class ActivityAccumulator:
+    """`summarize_activity` yang diisi sepotong demi sepotong.
+
+    Hanya hitungan per hari dan per sel jam yang disimpan, bukan barisnya.
+    Hasilnya sama persis dengan `summarize_activity` atas gabungan potongan.
+    """
+
+    __slots__ = (
+        "_engagement_by_day",
+        "_heatmap",
+        "_n",
+        "_total",
+        "_tz",
+        "_volume_by_day",
+        "_with_engagement",
+        "_zone",
+    )
+
+    def __init__(self, *, tz: str = "WIB") -> None:
+        if tz not in TIMEZONES:
+            raise ValueError(f"zona waktu tidak dikenal: {tz!r}")
+        self._tz = tz
+        self._zone = timezone(timedelta(hours=TIMEZONES[tz]))
+        self._heatmap = [[0] * 24 for _ in range(7)]
+        self._volume_by_day: dict[date, int] = defaultdict(int)
+        self._engagement_by_day: dict[date, int] = defaultdict(int)
+        self._n = 0
+        self._total = 0
+        self._with_engagement = 0
+
+    def add(self, rows: Iterable[tuple[datetime, int]]) -> None:
+        for published_at, engagement in rows:
+            moment = published_at if published_at.tzinfo else published_at.replace(tzinfo=UTC)
+            local = moment.astimezone(self._zone)
+            value = max(0, int(engagement or 0))
+            self._n += 1
+            self._total += value
+            if value > 0:
+                self._with_engagement += 1
+            self._heatmap[local.weekday()][local.hour] += 1
+            self._volume_by_day[local.date()] += 1
+            self._engagement_by_day[local.date()] += value
+
+    def result(self) -> ActivitySummary:
+        by_day = [
+            DayActivity(day=d, volume=self._volume_by_day[d], engagement=self._engagement_by_day[d])
+            for d in sorted(self._volume_by_day)
+        ]
+        peak: tuple[int, int, int] | None = None
+        for weekday, hours in enumerate(self._heatmap):
+            for hour, count in enumerate(hours):
+                if count and (peak is None or count > peak[2]):
+                    peak = (weekday, hour, count)
+        return ActivitySummary(
+            timezone=self._tz,
+            n=self._n,
+            engagement_total=self._total,
+            n_with_engagement=self._with_engagement,
+            by_day=by_day,
+            heatmap=[list(row) for row in self._heatmap],
+            peak=peak,
+        )
+
+
+def summarize_activity(rows: Iterable[tuple[datetime, int]], *, tz: str = "WIB") -> ActivitySummary:
     """Ringkas `(published_at, engagement)` menjadi deret harian dan peta jam.
 
     `published_at` tanpa zona dianggap UTC, sama dengan cara kolomnya disimpan
     (`timestamptz`). Hari pada `by_day` adalah tanggal LOKAL zona yang diminta,
     jadi komentar pukul 23.30 WITA tidak pindah ke hari berikutnya.
     """
-    if tz not in TIMEZONES:
-        raise ValueError(f"zona waktu tidak dikenal: {tz!r}")
-    zone = timezone(timedelta(hours=TIMEZONES[tz]))
-
-    heatmap = [[0] * 24 for _ in range(7)]
-    volume_by_day: dict[date, int] = defaultdict(int)
-    engagement_by_day: dict[date, int] = defaultdict(int)
-    n = 0
-    total = 0
-    with_engagement = 0
-
-    for published_at, engagement in rows:
-        moment = published_at if published_at.tzinfo else published_at.replace(tzinfo=UTC)
-        local = moment.astimezone(zone)
-        value = max(0, int(engagement or 0))
-        n += 1
-        total += value
-        if value > 0:
-            with_engagement += 1
-        heatmap[local.weekday()][local.hour] += 1
-        volume_by_day[local.date()] += 1
-        engagement_by_day[local.date()] += value
-
-    by_day = [
-        DayActivity(day=d, volume=volume_by_day[d], engagement=engagement_by_day[d])
-        for d in sorted(volume_by_day)
-    ]
-
-    peak: tuple[int, int, int] | None = None
-    for weekday, hours in enumerate(heatmap):
-        for hour, count in enumerate(hours):
-            if count and (peak is None or count > peak[2]):
-                peak = (weekday, hour, count)
-
-    return ActivitySummary(
-        timezone=tz,
-        n=n,
-        engagement_total=total,
-        n_with_engagement=with_engagement,
-        by_day=by_day,
-        heatmap=heatmap,
-        peak=peak,
-    )
+    acc = ActivityAccumulator(tz=tz)
+    acc.add(rows)
+    return acc.result()
 
 
 def hourly_totals(heatmap: Sequence[Sequence[int]]) -> list[int]:
