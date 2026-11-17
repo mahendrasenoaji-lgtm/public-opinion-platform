@@ -68,15 +68,13 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 
 **Semua 10 tahap sudah masuk (17 Nov 2026, 13.28 WIB).** Yang belum: 729 video kecil.
 
-**PENTING, jangan buka periode penuh dulu:** sesudah tahap 10 selesai, membuka
-`/sinyal?dari=2026-11-10&sampai=2026-11-17` menjatuhkan server Render ("This page couldn't load", `/health` 503
-selama ±1,5 menit, pulih sendiri 13.31 WIB). Sebabnya `GET /signals/summary` memuat seluruh baris ke memori
-(dipanggil 3 kali sekaligus) ditambah panel emosi dan aktor yang memuat seluruh teks; ±197 ribu konten
-melampaui 512 MB. Perbaikan: **PR #73** (`sinyal/hemat-memori`): ringkasan dihitung di SQL, emosi dan aktor
-dibaca 5.000 baris per potongan. Sampai PR #73 di-merge dan dirilis, buka `/sinyal` hanya per hari
-(mis. `dari=2026-11-15&sampai=2026-11-15`) atau periode kosong. Angka total di platform belum dicek ulang
-karena itu. Masih terbuka sesudah #73: waktu hitung panel emosi (±24 detik untuk 200 ribu teks di Mac,
-lebih lambat di Render) dan aktor (±10 detik); ukur dulu sesudah rilis.
+**Periode penuh sudah bisa dibuka (17 Nov, 13.54 WIB).** Sebelumnya, sesudah tahap 10 selesai, membuka
+`/sinyal?dari=2026-11-10&sampai=2026-11-17` menjatuhkan server Render (`/health` 503 selama ±1,5 menit):
+`GET /signals/summary` memuat seluruh baris ke memori (dipanggil 3 kali sekaligus) ditambah panel emosi dan
+aktor yang memuat seluruh teks. **PR #73** (di-merge 17 Nov, rilis Render `a98fe58`) memindahkan ringkasan ke
+SQL dan membaca teks emosi/aktor 5.000 baris per potongan. Sesudah rilis, halaman periode penuh termuat
+lengkap dalam ±1,5 menit dan `/health` tetap 200 (paling lambat 8,9 detik). Halaman itu tetap berat: buka
+seperlunya. `/signals/report` (halaman `/laporan`) dan `/signals/activity` masih memuat satu jendela sekaligus.
 
 Catatan 17 Nov siang: sejak ±11.24 WIB server Render berkali-kali putus di tengah unggahan walau periode
 kosong dipakai (11.24 Bad Gateway, 11.27, 11.31, 11.38 Internal Server Error), padahal tahap 08 dan 14.100
@@ -96,6 +94,11 @@ Supabase 17 Nov sesudah tahap 5: basis data 138 / 500 MB, egress 1,49 / 5 GB.
 Puncak 12 Nov (58.115; jam teramai 19.00–20.59 WIB). Dinilai 109.744 (55%), di antaranya 56% negatif, 34% positif;
 rata-rata −0,149 (tanpa kata topik "mundur": −0,114). Paling sering disebut: Gibran 41.718, Prabowo 16.900,
 Jokowi 10.637, DPR 7.368, MK 4.330.
+
+**Platform sesudah 10 tahap** (17 Nov 13.54 WIB, periode 10–17 Nov, zona WIB): 197.331 konten, 127.742 akun,
+sentimen −0,15 (n 108.553), 56.927 konten berpenanda emosi (28,8%), jam paling ramai Kamis 19.00 WIB, total
+engagement 287.047. Volume harian: 10 Nov 24.246; 11 Nov 28.908; 12 Nov 62.160; 13 Nov 33.130; 14 Nov 20.189;
+15 Nov 17.030; 16 Nov 11.668. Aktor: Gibran 39.472, Prabowo 17.032, Jokowi 9.720.
 
 **Platform sesudah tahap 1** (`/sinyal?dari=2026-11-10&sampai=2026-11-17&zona=WIB`): 19.784 konten, 18.234 akun,
 sentimen −0,15 (n 10.724), jam paling ramai Kamis 19.00 WIB, aktor: Gibran 3.837, Prabowo 1.664, Jokowi 992.
