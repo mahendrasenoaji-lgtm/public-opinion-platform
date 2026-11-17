@@ -206,6 +206,64 @@ class ActorSummary:
     levels: list[Tally]
 
 
+class Summarizer:
+    """`summarize` yang diisi sepotong demi sepotong.
+
+    Dipakai pembaca yang mengambil konten per potongan dari database, supaya
+    seluruh teks satu jendela tidak perlu berada di memori sekaligus. Hasilnya
+    sama persis dengan `summarize` atas gabungan semua potongan.
+    """
+
+    __slots__ = ("_counts", "_level_counts", "_level_seen", "_n_total", "_n_with", "_seen")
+
+    def __init__(self) -> None:
+        self._n_total = 0
+        self._n_with = 0
+        self._counts: dict[str, list[float]] = {}
+        self._seen: dict[str, int] = {}
+        self._level_counts: dict[str, list[float]] = {}
+        self._level_seen: dict[str, int] = {}
+
+    def add(self, rows: Iterable[tuple[str, float | None]]) -> None:
+        for text, sentiment in rows:
+            self._n_total += 1
+            grams = _phrases(text)
+            keys = [a.key for a in ACTORS if any(alias in grams for alias in a.aliases)]
+            found_levels = {_BY_KEY[k].level for k in keys}
+            found_levels.update(level for word, level in GENERIC.items() if word in grams)
+            if keys:
+                self._n_with += 1
+            for key in keys:
+                self._seen[key] = self._seen.get(key, 0) + 1
+                if sentiment is not None:
+                    self._counts.setdefault(key, []).append(sentiment)
+            for level in found_levels:
+                self._level_seen[level] = self._level_seen.get(level, 0) + 1
+                if sentiment is not None:
+                    self._level_counts.setdefault(level, []).append(sentiment)
+
+    def result(self) -> ActorSummary:
+        def _tally(key: str, n: int, values: list[float]) -> Tally:
+            mean = round(sum(values) / len(values), 3) if values else None
+            return Tally(key=key, n=n, scored=len(values), mean=mean)
+
+        actor_rows = sorted(
+            (_tally(k, n, self._counts.get(k, [])) for k, n in self._seen.items()),
+            key=lambda t: (-t.n, t.key),
+        )
+        level_rows = [
+            _tally(lv, self._level_seen[lv], self._level_counts.get(lv, []))
+            for lv in LEVELS
+            if lv in self._level_seen
+        ]
+        return ActorSummary(
+            n_total=self._n_total,
+            n_with_actor=self._n_with,
+            actors=actor_rows,
+            levels=level_rows,
+        )
+
+
 def summarize(rows: Iterable[tuple[str, float | None]]) -> ActorSummary:
     """Hitung penyebutan aktor dan tingkat kekuasaan atas `(teks, sentimen)`.
 
@@ -215,40 +273,6 @@ def summarize(rows: Iterable[tuple[str, float | None]]) -> ActorSummary:
     menyebut dua aktor dihitung untuk keduanya, jadi jumlah per aktor bisa
     melebihi `n_with_actor`.
     """
-    n_total = n_with = 0
-    counts: dict[str, list[float]] = {}
-    seen: dict[str, int] = {}
-    level_counts: dict[str, list[float]] = {}
-    level_seen: dict[str, int] = {}
-
-    for text, sentiment in rows:
-        n_total += 1
-        grams = _phrases(text)
-        keys = [a.key for a in ACTORS if any(alias in grams for alias in a.aliases)]
-        found_levels = {_BY_KEY[k].level for k in keys}
-        found_levels.update(level for word, level in GENERIC.items() if word in grams)
-        if keys:
-            n_with += 1
-        for key in keys:
-            seen[key] = seen.get(key, 0) + 1
-            if sentiment is not None:
-                counts.setdefault(key, []).append(sentiment)
-        for level in found_levels:
-            level_seen[level] = level_seen.get(level, 0) + 1
-            if sentiment is not None:
-                level_counts.setdefault(level, []).append(sentiment)
-
-    def _tally(key: str, n: int, values: list[float]) -> Tally:
-        mean = round(sum(values) / len(values), 3) if values else None
-        return Tally(key=key, n=n, scored=len(values), mean=mean)
-
-    actor_rows = sorted(
-        (_tally(k, n, counts.get(k, [])) for k, n in seen.items()),
-        key=lambda t: (-t.n, t.key),
-    )
-    level_rows = [
-        _tally(lv, level_seen[lv], level_counts.get(lv, [])) for lv in LEVELS if lv in level_seen
-    ]
-    return ActorSummary(
-        n_total=n_total, n_with_actor=n_with, actors=actor_rows, levels=level_rows
-    )
+    acc = Summarizer()
+    acc.add(rows)
+    return acc.result()

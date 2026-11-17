@@ -60,6 +60,20 @@ def test_istilah_pendek_dalam_petik_bukan_kutipan_dan_duplikat_dibuang():
 # ------------------------------------------------------------------- aktor ----
 
 
+def test_ringkasan_aktor_per_potongan_sama_dengan_sekali_baca():
+    rows = [
+        ("bahlil harus tanggung jawab", -0.6),
+        ("pak koster dan bahlil sama saja", -0.4),
+        ("gubernur diam saja", None),
+        ("antrean panjang sekali", -0.5),
+        ("bahlil lagi", 0.2),
+    ]
+    acc = actors.Summarizer()
+    acc.add(rows[:2])
+    acc.add(rows[2:])
+    assert acc.result() == actors.summarize(rows)
+
+
 def test_ringkasan_aktor_menghitung_sebutan_dan_nada():
     out = actors.summarize(
         [
