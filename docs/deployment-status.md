@@ -6,7 +6,70 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 15 November 2026 (larut): tinggal tiga tindakan pemilik
+# 🟢 MULAI DARI SINI — 17 November 2026: semua sudah di produksi, tidak ada PR terbuka
+
+**Keadaan `main` (17 Nov 2026, ±14.40 WIB):** PR #70, #71, #72, #73, #74 sudah digabung; CI hijau;
+Render dan Vercel memuat kode terbaru. Di komputer lain cukup `git checkout main && git pull`.
+
+**Yang dikerjakan 17 Nov**
+
+- **Proyek Gibran** (`proyek/gibran-mundur-youtube/`, rincian di PROGRESS.md folder itu): kesepuluh tahap
+  unggahan selesai, 197.331 konten unik di platform (10–17 Nov, 127.742 akun, sentimen −0,15 dari
+  108.553 konten bernilai). 729 video kecil (±88 ribu komentar) belum ditarik.
+- **PR #73, `/sinyal` hemat memori:** membuka periode penuh proyek Gibran menjatuhkan server Render
+  (`/health` 503 ±1,5 menit) karena `GET /signals/summary` memuat seluruh baris ke memori, dipanggil tiga
+  kali sekaligus, bersama panel emosi dan aktor yang memuat seluruh teks. Kini ringkasan dihitung dengan
+  agregat SQL dan teks emosi/aktor dibaca 5.000 baris per potongan. Dicek di produksi: periode penuh
+  termuat lengkap, `/health` tetap 200.
+- **PR #70 dan #71 digabung** (#70 dulu, lalu #71 setelah dasarnya dialihkan ke `main`). Rute baru
+  Kinerja terdaftar di API produksi; `/pers`, `/pers/rss.xml`, `/pers/metodologi`, `/pers/tentang`, dan
+  artikel BBM Bali membalas 200.
+- **Dua migrasi dijalankan di Supabase** (`2026-11-15-kinerja-pengodean-arus.sql`,
+  `2026-11-15b-kinerja-situs-resmi.sql`). Kueri pemeriksaan: kelima tabel baru `rowsecurity = true` dan
+  `force = true`. Dialog Supabase "Potential issues detected" dijawab **Run without RLS** (SQL dijalankan
+  apa adanya; migrasinya sendiri yang menyalakan RLS di dalam blok `DO`).
+- **Enam situs lembaga pangan didaftarkan** di proyek "PANGAN - KINERJA AKUN RESMI (YouTube)" lewat
+  `/kinerja/analisis?bagian=situs`:
+
+  | Lembaga | Situs | Halaman daftar | Butir bertanggal (17 Nov, dibaca dari Render) |
+  |---|---|---|---|
+  | Kemenhut | kehutanan.go.id | `/news`, `/pers` | 24 |
+  | KKP | kkp.go.id | `/news.html` | 18 |
+  | BGN | bgn.go.id | `/news` | 10 |
+  | KLH | kemenlh.go.id | `/news/main/siaran_pers`, `/berita`, `/pengumuman` | 9 (hanya halaman pertama yang terbuka) |
+  | Bapanas | badanpangan.go.id | `/berita`, `/pengumuman` | 0: beranda dan halaman daftar tidak bisa dibuka |
+  | Kementan | pertanian.go.id | `/index.php/news/all/0` | 0: halaman daftar tanpa tanggal |
+
+  Bapanas dan dua halaman KLH terbaca dari Mac pada 15 Nov (19 dan 27 butir) tetapi tidak dari server
+  Render. Dugaan: situsnya menolak akses dari server di luar negeri; belum dibuktikan. Pendaftaran Bapanas
+  sempat menggantung lebih dari 2 menit di layar sebelum tercatat.
+
+**Yang masih terbuka**
+
+1. **Empat pertanyaan pemilik tentang Kinerja belum dijawab:** Kemenko mana (dugaan: Kemenko Pangan),
+   akses data, tujuan penilaian, urutan kerja. Ini menentukan langkah berikutnya.
+2. **Penilaian sungguhan belum ada:** belum ada unggahan yang dikode, audit T1–T4 belum diisi, skor resmi
+   per indikator belum diisi penilai. Angka C3/C4/O8 dari sistem hanya saran.
+3. **Butir situs yang belum masuk:** Bapanas, Kementan, dan sisa KLH perlu unggahan CSV (tombol "Unggah CSV
+   butir" di halaman situs). Belum ada pembacaan terjadwal, jadi hitungan 30/90 hari masih batas bawah.
+4. **Data Instagram, TikTok, X** menunggu CSV dari pemilik.
+5. **`/sinyal` pada jendela sangat besar masih lambat:** leksikon emosi ±24 detik dan aktor ±10 detik per
+   200 ribu teks di Mac pengembang. Pilihan bila mengganggu: hitung saat ingest, atau sampel acak berlabel
+   (keputusan pemilik). `/signals/report` (halaman `/laporan`) dan `/signals/activity` masih memuat satu
+   jendela sekaligus; `/laporan` belum diuji untuk proyek Gibran.
+6. **Unggahan JSON:** `ingestBatch` masih memanggil `revalidatePath("/sinyal")` tiap 300 item; unggah dari
+   periode kosong (`?dari=2026-01-01&sampai=2026-01-02`) sampai itu diperbaiki.
+7. **Daftar aktor** masih disusun untuk BBM Bali dan menulis Gibran "Wakil Presiden RI"; perlu daftar per
+   proyek sebelum proyek Gibran dipublikasikan (butir 19 lama).
+8. **Kuota Supabase:** masa tenggang egress berakhir 10 Des 2026.
+9. Butir lama yang belum disentuh: 17 (cek produksi BBM Bali `/laporan`), 20 (P0, P5, P8–P10, P11).
+
+**Catatan kerja:** `gh pr merge` dan tombol Run di SQL Editor hanya lolos pengaman izin Claude Code bila
+pemilik memintanya secara eksplisit di pesan itu (menyebut nomor PR atau berkas migrasinya).
+
+---
+
+# 15 November 2026 (larut): tinggal tiga tindakan pemilik (SELESAI 17 Nov, lihat blok di atas)
 
 - **Artikel BBM Bali TERBIT** 15 Nov atas permintaan pemilik:
   `/pers/sepuluh-hari-kelangkaan-bbm-di-bali-dalam-komentar-youtube-fe806e`
