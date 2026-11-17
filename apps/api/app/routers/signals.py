@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -1877,6 +1877,17 @@ async def _batches(
         last = (rows[-1].page_at, rows[-1].page_id)
 
 
+async def _off_loop(fn: Callable[[Any], None], batch: list[Any]) -> None:
+    """Jalankan perhitungan teks satu potongan di thread, bukan di event loop.
+
+    Leksikon emosi dan aktor murni Python dan memakan puluhan detik pada
+    ratusan ribu konten. Dijalankan langsung di handler async, ia memblokir
+    event loop sehingga /health tidak dijawab dan Render me-restart server
+    (17 Nov 2026, proyek Gibran 289 ribu konten: /health 10-12 detik lalu 503).
+    """
+    await asyncio.to_thread(fn, batch)
+
+
 async def _manual_count(
     session: Any,
     project_id: UUID,
@@ -2520,7 +2531,7 @@ async def emotion_summary(
         async for batch in _batches(
             session, select(Mention.text), project_id, since, until, src
         ):
-            analyser.add(r.text for r in batch)
+            await _off_loop(analyser.add, [r.text for r in batch])
         if not analyser.shares:
             continue
         shares, top_markers = analyser.shares, analyser.top()
@@ -2607,17 +2618,20 @@ async def conversation_report(
     builder = report_svc.Builder(tz=tz)
     for src in _SENTIMENT_SOURCES:
         async for batch in _batches(session, columns, project_id, since, until, src):
-            builder.add(
-                report_svc.Row(
-                    source=src.value,
-                    text=r.text,
-                    sentiment=None if r.sentiment is None else float(r.sentiment),
-                    published_at=r.published_at,
-                    engagement=r.engagement,
-                    url=_recover_source_url(r.url, r.external_id)[0],
-                    topic_id=None if r.topic_id is None else str(r.topic_id),
-                )
-                for r in batch
+            await _off_loop(
+                builder.add,
+                [
+                    report_svc.Row(
+                        source=src.value,
+                        text=r.text,
+                        sentiment=None if r.sentiment is None else float(r.sentiment),
+                        published_at=r.published_at,
+                        engagement=r.engagement,
+                        url=_recover_source_url(r.url, r.external_id)[0],
+                        topic_id=None if r.topic_id is None else str(r.topic_id),
+                    )
+                    for r in batch
+                ],
             )
     report = builder.result()
 
@@ -2757,8 +2771,9 @@ async def actor_summary(
         quotes: list[QuoteOut] = []
         quotes_total = 0
         async for batch in _batches(session, columns, project_id, since, until, src):
-            summarizer.add(
-                (r.text, None if r.sentiment is None else float(r.sentiment)) for r in batch
+            await _off_loop(
+                summarizer.add,
+                [(r.text, None if r.sentiment is None else float(r.sentiment)) for r in batch],
             )
             if src is not ModelSignalSource.MEDIA:
                 continue
@@ -2829,7 +2844,7 @@ async def activity(
     for src in _SENTIMENT_SOURCES:
         acc = signal_stats.ActivityAccumulator(tz=tz)
         async for batch in _batches(session, columns, project_id, since, until, src):
-            acc.add((r.page_at, r.engagement) for r in batch)
+            await _off_loop(acc.add, [(r.page_at, r.engagement) for r in batch])
         stats = acc.result()
         if not stats.n:
             continue
