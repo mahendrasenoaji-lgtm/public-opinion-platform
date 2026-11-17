@@ -16,7 +16,11 @@ if DSN:
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
 seen_list_urls: list[list[str]] = []
-NOW = datetime.now(UTC).replace(hour=3, minute=0, second=0, microsecond=0)
+# Pukul 03.00 UTC (10.00 WIB) pada tanggal WIB hari ini. Router menghitung "hari ini"
+# dalam WIB; memakai tanggal UTC membuat tes gagal antara 00.00 dan 07.00 WIB
+# (ketahuan di CI 18 Nov 2026 00.02 WIB: n_30 29, bukan 30).
+_WIB_TODAY = (datetime.now(UTC) + timedelta(hours=7)).date()
+NOW = datetime(_WIB_TODAY.year, _WIB_TODAY.month, _WIB_TODAY.day, 3, tzinfo=UTC)
 
 
 @pytest.fixture
