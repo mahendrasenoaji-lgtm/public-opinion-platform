@@ -50,3 +50,12 @@ class TestAnalyse:
         assert top["anticipation"] == [("semoga", 1), ("🙏", 1)]
         assert top == emotion.top_markers(texts)
         assert set(top) == set(emotion.KEYS)
+
+    def test_diisi_per_potongan_sama_dengan_sekali_baca(self) -> None:
+        texts = ["marah sekali", "antre", "semoga cepat 🙏", "marah dan kecewa", "takut"]
+        acc = emotion.Analyser()
+        acc.add(texts[:2])
+        acc.add(texts[2:])
+        shares, top = emotion.analyse(texts)
+        assert acc.shares == shares
+        assert acc.top() == top

@@ -24,7 +24,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import AsyncIterator, Sequence
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -33,7 +33,7 @@ from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import Select, and_, bindparam, delete, func, or_, select
+from sqlalchemy import Row, Select, and_, bindparam, delete, func, or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import DBAPIError, ProgrammingError
 
@@ -72,7 +72,6 @@ from app.services import news_quotes, rescoring, signal_stats
 from app.services import sentiment as sentiment_svc
 from app.services import topics as topics_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
-from app.services.ingestion import concentration_ratio
 from app.services.pipeline import IncomingItem, prepare_batch
 from app.services.rescoring import rescore as rescore_mention
 from app.services.sentiment_eval import LABELED
@@ -1827,6 +1826,57 @@ def _scoped(query: Select, project_id: UUID, since: datetime, until: datetime) -
     )
 
 
+#: Baris per potongan saat membaca teks satu jendela. Proyek dengan ratusan
+#: ribu konten (Gibran, 17 Nov 2026: 197 ribu) menjatuhkan server 512 MB bila
+#: seluruh teksnya dimuat sekaligus oleh beberapa panel yang berjalan bersamaan.
+_BATCH_ROWS = 5000
+
+
+async def _batches(
+    session: Any,
+    columns: Select[Any],
+    project_id: UUID,
+    since: datetime,
+    until: datetime,
+    source: ModelSignalSource,
+) -> AsyncIterator[Sequence[Row[Any]]]:
+    """Baris satu sumber di jendela ini, terbaru dulu, `_BATCH_ROWS` per potongan.
+
+    Halaman berikutnya dicari dari (published_at, id) baris terakhir, bukan
+    OFFSET, supaya tiap potongan tetap satu pembacaan indeks
+    (project_id, source, published_at DESC) berapa pun jauhnya.
+    """
+    query = (
+        _scoped(
+            columns.add_columns(
+                Mention.published_at.label("page_at"), Mention.id.label("page_id")
+            ),
+            project_id,
+            since,
+            until,
+        )
+        .where(Mention.source == source)
+        .order_by(Mention.published_at.desc(), Mention.id.desc())
+        .limit(_BATCH_ROWS)
+    )
+    last: tuple[datetime, UUID] | None = None
+    while True:
+        page = query
+        if last is not None:
+            page = query.where(
+                or_(
+                    Mention.published_at < last[0],
+                    and_(Mention.published_at == last[0], Mention.id < last[1]),
+                )
+            )
+        rows = (await session.execute(page)).all()
+        if rows:
+            yield rows
+        if len(rows) < _BATCH_ROWS:
+            return
+        last = (rows[-1].page_at, rows[-1].page_id)
+
+
 async def _manual_count(
     session: Any,
     project_id: UUID,
@@ -1868,23 +1918,66 @@ async def summary(
     """
     since, until = _window(days, start, end)
 
-    base = _scoped(select(Mention), project_id, since, until)
-    if source is not None:
-        base = base.where(Mention.source == ModelSignalSource(source.value))
+    def _mine(query: Select[Any]) -> Select[Any]:
+        query = _scoped(query, project_id, since, until)
+        if source is not None:
+            query = query.where(Mention.source == ModelSignalSource(source.value))
+        return query
 
-    rows = (await session.execute(base)).scalars().all()
-    volume = len(rows)
-
-    scored = [float(r.sentiment) for r in rows if r.sentiment is not None]
-    distinct_authors = len({r.author_hash for r in rows if r.author_hash})
-    concentration = concentration_ratio(r.author_hash for r in rows)
+    # Semua angka di bawah dihitung database. Dulu barisnya dimuat utuh lalu
+    # dihitung di Python; halaman /sinyal memanggil endpoint ini tiga kali
+    # sekaligus, dan pada proyek 197 ribu konten itu menghabiskan memori server.
+    per_source = (
+        await session.execute(
+            _mine(
+                select(
+                    Mention.source,
+                    func.count(),
+                    func.count(Mention.sentiment),
+                    func.sum(Mention.sentiment),
+                    func.count(Mention.author_hash),
+                )
+            ).group_by(Mention.source)
+        )
+    ).all()
 
     mix: dict[str, int] = {}
     scored_mix: dict[str, int] = {}
-    for r in rows:
-        mix[r.source.value] = mix.get(r.source.value, 0) + 1
-        if r.sentiment is not None:
-            scored_mix[r.source.value] = scored_mix.get(r.source.value, 0) + 1
+    scored_sum = 0.0
+    authored = 0
+    for src, n, n_scored, total, n_authored in per_source:
+        mix[src.value] = int(n)
+        authored += int(n_authored)
+        if n_scored:
+            scored_mix[src.value] = int(n_scored)
+            scored_sum += float(total)
+    volume = sum(mix.values())
+    scored_n = sum(scored_mix.values())
+
+    distinct_authors = int(
+        (
+            await session.execute(
+                _mine(select(func.count(func.distinct(Mention.author_hash)))).where(
+                    Mention.author_hash != ""
+                )
+            )
+        ).scalar_one()
+    )
+
+    # Porsi 10 akun paling aktif; padanan `ingestion.concentration_ratio`.
+    concentration = 0.0
+    if authored:
+        per_author = (
+            _mine(select(func.count().label("n")))
+            .where(Mention.author_hash.is_not(None))
+            .group_by(Mention.author_hash)
+            .order_by(func.count().desc())
+            .limit(10)
+            .subquery()
+        )
+        top10 = (await session.execute(select(func.sum(per_author.c.n)))).scalar_one()
+        concentration = round(int(top10 or 0) / authored, 4)
+
     # R1: nada liputan media dan nada komentar sosial diukur penilai berbeda
     # atas populasi berbeda. Tanpa `source`, begitu keduanya ada, rata-ratanya
     # hanya mengikuti sumber yang lebih banyak (proyek MBG: -0,47 dari 64
@@ -1892,8 +1985,8 @@ async def summary(
     # diterbitkan; pemanggil meminta per sumber lewat `?source=`.
     mixed = source is None and len(scored_mix) > 1
 
-    enough = volume >= MIN_MENTIONS_FOR_AGGREGATE and len(scored) >= MIN_MENTIONS_FOR_AGGREGATE
-    mean = round(sum(scored) / len(scored), 3) if scored else None
+    enough = volume >= MIN_MENTIONS_FOR_AGGREGATE and scored_n >= MIN_MENTIONS_FOR_AGGREGATE
+    mean = round(scored_sum / scored_n, 3) if scored_n else None
 
     dominant = source or (
         SignalSource.MEDIA
@@ -1903,9 +1996,9 @@ async def summary(
     limitations = [_MEDIA_LIMITATION if dominant is SignalSource.MEDIA else _SOCIAL_LIMITATION]
     if mix.get("SOCIAL", 0):
         limitations.append(_TONE_NOT_STANCE_LIMITATION)
-    if volume and len(scored) / volume < 0.6:
+    if volume and scored_n / volume < 0.6:
         limitations.append(
-            f"Hanya {len(scored)} dari {volume} konten bisa dinilai sentimennya "
+            f"Hanya {scored_n} dari {volume} konten bisa dinilai sentimennya "
             "oleh leksikon; rata-rata di atas mewakili sebagian itu saja."
         )
     if concentration >= 0.5 and distinct_authors:
@@ -1996,7 +2089,7 @@ async def summary(
             unit="skala -1..1",
             source=dominant,
             method=_sentiment_method(dominant),
-            effective_n=len(scored),
+            effective_n=scored_n,
             period_start=since.date(),
             period_end=until.date(),
             insufficient_data=not enough,
@@ -2007,7 +2100,7 @@ async def summary(
                 if enough
                 else (
                     f"Perlu minimal {MIN_MENTIONS_FOR_AGGREGATE} konten bernilai "
-                    f"sentimen; tersedia {len(scored)}."
+                    f"sentimen; tersedia {scored_n}."
                 )
             ),
         ),
@@ -2421,23 +2514,16 @@ async def emotion_summary(
     tetap dikembalikan supaya pembaca tahu seberapa tipis datanya.
     """
     since, until = _window(days, start, end)
-    rows = (
-        await session.execute(
-            _scoped(select(Mention.source, Mention.text), project_id, since, until).where(
-                Mention.source.in_(_SENTIMENT_SOURCES)
-            )
-        )
-    ).all()
-
-    grouped: dict[ModelSignalSource, list[str]] = {}
-    for src, text in rows:
-        grouped.setdefault(src, []).append(text)
-
     by_source: list[EmotionBySource] = []
     for src in _SENTIMENT_SOURCES:
-        if src not in grouped:
+        analyser = emotion_svc.Analyser()
+        async for batch in _batches(
+            session, select(Mention.text), project_id, since, until, src
+        ):
+            analyser.add(r.text for r in batch)
+        if not analyser.shares:
             continue
-        shares, top_markers = emotion_svc.analyse(grouped[src])
+        shares, top_markers = analyser.shares, analyser.top()
         stats = signal_stats.summarize_emotions(shares, keys=emotion_svc.KEYS)
         enough = stats.n_with_emotion >= MIN_MENTIONS_FOR_AGGREGATE
         by_source.append(
@@ -2653,25 +2739,13 @@ async def actor_summary(
 ) -> ActorsOut:
     """Siapa yang disebut, di tingkat kekuasaan mana, dan kutipan dari liputan."""
     since, until = _window(days, start, end)
-    rows = (
-        await session.execute(
-            _scoped(
-                select(
-                    Mention.source,
-                    Mention.text,
-                    Mention.sentiment,
-                    Mention.published_at,
-                    Mention.url,
-                    Mention.external_id,
-                ),
-                project_id,
-                since,
-                until,
-            )
-            .where(Mention.source.in_(_SENTIMENT_SOURCES))
-            .order_by(Mention.published_at.desc())
-        )
-    ).all()
+    columns = select(
+        Mention.text,
+        Mention.sentiment,
+        Mention.published_at,
+        Mention.url,
+        Mention.external_id,
+    )
 
     def _out(tally: actors_svc.Tally, *, named: bool) -> ActorTallyOut:
         actor = actors_svc.actor(tally.key) if named else None
@@ -2687,16 +2761,16 @@ async def actor_summary(
 
     by_source: list[ActorsBySource] = []
     for src in _SENTIMENT_SOURCES:
-        mine = [r for r in rows if r.source is src]
-        if not mine:
-            continue
-        stats = actors_svc.summarize(
-            (r.text, None if r.sentiment is None else float(r.sentiment)) for r in mine
-        )
+        summarizer = actors_svc.Summarizer()
         quotes: list[QuoteOut] = []
         quotes_total = 0
-        if src is ModelSignalSource.MEDIA:
-            for r in mine:
+        async for batch in _batches(session, columns, project_id, since, until, src):
+            summarizer.add(
+                (r.text, None if r.sentiment is None else float(r.sentiment)) for r in batch
+            )
+            if src is not ModelSignalSource.MEDIA:
+                continue
+            for r in batch:
                 for quote in news_quotes.extract_quotes(r.text):
                     quotes_total += 1
                     if len(quotes) < MAX_QUOTES:
@@ -2709,6 +2783,9 @@ async def actor_summary(
                                 source_url=source_url,
                             )
                         )
+        stats = summarizer.result()
+        if not stats.n_total:
+            continue
         by_source.append(
             ActorsBySource(
                 source=SignalSource(src.value),

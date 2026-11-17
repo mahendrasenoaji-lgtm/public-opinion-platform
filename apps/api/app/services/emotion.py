@@ -213,23 +213,41 @@ def top_markers(texts: Iterable[str], *, limit: int = 5) -> dict[str, list[tuple
     }
 
 
+class Analyser:
+    """`analyse` yang diisi sepotong demi sepotong.
+
+    Dipakai pembaca yang mengambil teks per potongan dari database, supaya
+    seluruh teks satu jendela tidak perlu berada di memori sekaligus. Hasilnya
+    sama persis dengan `analyse` atas gabungan semua potongan.
+    """
+
+    __slots__ = ("_counts", "shares")
+
+    def __init__(self) -> None:
+        self.shares: list[dict[str, float]] = []
+        self._counts: dict[str, dict[str, int]] = {k: {} for k in KEYS}
+
+    def add(self, texts: Iterable[str]) -> None:
+        for text in texts:
+            per: dict[str, int] = {}
+            for hit in markers(text):
+                per[hit.key] = per.get(hit.key, 0) + 1
+                bucket = self._counts[hit.key]
+                bucket[hit.marker] = bucket.get(hit.marker, 0) + 1
+            total = sum(per.values())
+            self.shares.append({k: round(v / total, 3) for k, v in per.items()} if total else {})
+
+    def top(self, *, limit: int = 5) -> dict[str, list[tuple[str, int]]]:
+        return {
+            key: sorted(bucket.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
+            for key, bucket in self._counts.items()
+        }
+
+
 def analyse(
     texts: Iterable[str], *, limit: int = 5
 ) -> tuple[list[dict[str, float]], dict[str, list[tuple[str, int]]]]:
     """Satu lintasan: porsi emosi per teks + penanda paling sering per emosi."""
-    shares: list[dict[str, float]] = []
-    counts: dict[str, dict[str, int]] = {k: {} for k in KEYS}
-    for text in texts:
-        hits = markers(text)
-        per: dict[str, int] = {}
-        for hit in hits:
-            per[hit.key] = per.get(hit.key, 0) + 1
-            bucket = counts[hit.key]
-            bucket[hit.marker] = bucket.get(hit.marker, 0) + 1
-        total = sum(per.values())
-        shares.append({k: round(v / total, 3) for k, v in per.items()} if total else {})
-    top = {
-        key: sorted(bucket.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
-        for key, bucket in counts.items()
-    }
-    return shares, top
+    acc = Analyser()
+    acc.add(texts)
+    return acc.shares, acc.top(limit=limit)

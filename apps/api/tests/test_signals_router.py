@@ -328,6 +328,55 @@ class TestAgregasi:
         assert body["sentiment"]["value"] is not None
         assert body["sentiment"]["value"] > 0
 
+    async def test_ringkasan_menghitung_akun_dan_konsentrasi_di_database(self, client) -> None:
+        """Angka akun dihitung SQL; harus sama dengan hitungan tangan."""
+        headers, pid = await _new_project(client)
+        # 12 akun: akun-0 menulis 9 konten, 11 akun lain satu konten, 4 tanpa akun.
+        items = [_item(i, f"program ini bagus sekali nomor {i}", author="akun-0") for i in range(9)]
+        items += [
+            _item(100 + i, f"program ini buruk sekali nomor {i}", author=f"akun-{i + 1}")
+            for i in range(11)
+        ]
+        items += [_item(200 + i, f"program ini lumayan bagus nomor {i}") for i in range(4)]
+        await client.post(
+            f"/v1/projects/{pid}/signals/ingest", json={"items": items}, headers=headers
+        )
+        body = (await client.get(f"/v1/projects/{pid}/signals/summary", headers=headers)).json()
+        assert body["volume"]["value"] == 24
+        assert body["distinct_authors"] == 12
+        # 10 akun teratas: 9 + sembilan akun satu konten = 18 dari 20 konten berakun.
+        assert body["concentration_top10"] == 0.9
+        assert body["source_mix"] == {"SOCIAL": 24}
+
+    async def test_panel_teks_sama_hasilnya_bila_dibaca_per_potongan(
+        self, client, monkeypatch
+    ) -> None:
+        """Emosi dan aktor dibaca per potongan; ukuran potongan tidak boleh mengubah angka."""
+        from app.routers import signals as signals_router
+
+        headers, pid = await _new_project(client)
+        items = [
+            _item(i, f"marah dan kecewa, presiden diam saja nomor {i}", days_ago=1 + i % 3)
+            for i in range(23)
+        ]
+        await client.post(
+            f"/v1/projects/{pid}/signals/ingest", json={"items": items}, headers=headers
+        )
+
+        async def _baca() -> tuple[dict, dict]:
+            emo = await client.get(f"/v1/projects/{pid}/signals/emotions", headers=headers)
+            act = await client.get(f"/v1/projects/{pid}/signals/actors", headers=headers)
+            assert emo.status_code == 200, emo.text
+            assert act.status_code == 200, act.text
+            return emo.json(), act.json()
+
+        sekali = await _baca()
+        assert sekali[0]["by_source"][0]["n_total"] == 23
+        assert sekali[1]["by_source"][0]["n_total"] == 23
+        # 23 baris dengan potongan 5: lima potongan, yang terakhir tidak penuh.
+        monkeypatch.setattr(signals_router, "_BATCH_ROWS", 5)
+        assert await _baca() == sekali
+
     async def test_ringkasan_selalu_membawa_batasan_sumber(self, client) -> None:
         """R1: sentimen sosial tidak boleh tampil tanpa peringatan self-selected."""
         headers, pid = await _new_project(client)
