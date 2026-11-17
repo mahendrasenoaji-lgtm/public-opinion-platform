@@ -62,8 +62,14 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 | 05 | 19.995 | **Terunggah 17 Nov** (19.724 baru) |
 | 06 | 19.995 | **Terunggah 17 Nov** (19.726 baru) |
 | 07 | 19.995 | **Terunggah 17 Nov** (19.702 baru) |
-| 08 | 19.995 | **Sebagian (17 Nov):** minimal 16.800 item masuk, lalu dijeda pemilik (komputer dimatikan). **Unggah ulang berkas tahap 08 utuh**; yang sudah ada otomatis dilewati. |
-| 09–10 | ±19.995 per tahap | belum diunggah (lokal) |
+| 08 | 19.995 | **Terunggah 17 Nov** (dijeda di ±16.800, lalu berkas utuh diunggah ulang: 777 baru, 19.013 sudah ada) |
+| 09 | 19.995 | **Terunggah 17 Nov** (19.708 baru; "Bad Gateway" di item 14.101, lalu dua kali "Internal Server Error" tepat di item 2.401 berkas sisa; dilanjutkan lewat `tahap_09_sisa.json`, `_sisa2`, `_sisa3`) |
+| 10 | 19.994 | **Sebagian (17 Nov, 11.40 WIB):** 1.200 item pertama masuk (1.182 baru), lalu "Internal Server Error" di item 1.201. Dijeda pemilik sampai 12.30. **Lanjutkan dengan `tahap_10_sisa.json`** (18.794 item, mulai item 1.201). |
+
+Catatan 17 Nov siang: sejak ±11.24 WIB server Render berkali-kali putus di tengah unggahan walau periode
+kosong dipakai (11.24 Bad Gateway, 11.27, 11.31, 11.38 Internal Server Error), padahal tahap 08 dan 14.100
+item pertama tahap 09 lancar. `/health` tetap 200. Sebabnya belum diketahui. Bila terulang: buat berkas sisa
+mulai dari item yang gagal, muat ulang `/sinyal` periode kosong, unggah berkas sisa.
 
 **Cara unggah yang terbukti lancar (17 Nov):** buka `/sinyal?dari=2026-01-01&sampai=2026-01-02&zona=WIB`
 (periode kosong) lalu unggah dari sana. Sebabnya: `ingestBatch` memanggil `revalidatePath("/sinyal")` tiap
