@@ -3,7 +3,7 @@
   "2026-11-10T00:00:00+07:00",
   "2026-11-18T00:00:00+07:00"
  ],
- "collected_at": "2026-11-16T19:42:01.062353+00:00",
+ "collected_at": "2026-11-17T15:44:25.365240+00:00",
  "queries": [
   "gibran mundur",
   "pengunduran diri gibran",
@@ -21,678 +21,678 @@
   "wakil presiden kosong gibran"
  ],
  "videos_found": 872,
- "videos_collected": 114,
- "videos_pending": 729,
- "comments_pending_est": 88452,
- "comments": 199974,
- "top_level": 159706,
- "replies": 40268,
- "unique_authors": 128842,
- "authors_once": 93868,
- "top20_authors_comments": 847,
- "identical_text_3plus_accounts": 4,
+ "videos_collected": 842,
+ "videos_pending": 0,
+ "comments_pending_est": 0,
+ "comments": 292377,
+ "top_level": 230460,
+ "replies": 61917,
+ "unique_authors": 165316,
+ "authors_once": 111927,
+ "top20_authors_comments": 1058,
+ "identical_text_3plus_accounts": 10,
  "model_version": "lexicon-id-1+informal-4",
  "overall": {
-  "n": 199974,
-  "scored": 109744,
-  "abstain": 90230,
-  "positif": 37116,
-  "negatif": 61529,
-  "netral": 11099,
-  "mean": -0.149
+  "n": 292377,
+  "scored": 158350,
+  "abstain": 134027,
+  "positif": 52401,
+  "negatif": 90092,
+  "netral": 15857,
+  "mean": -0.16
  },
  "overall_tanpa_kata_topik": {
-  "n": 199974,
-  "scored": 104222,
-  "abstain": 95752,
-  "positif": 39052,
-  "negatif": 55874,
-  "netral": 9296,
-  "mean": -0.114
+  "n": 292377,
+  "scored": 150219,
+  "abstain": 142158,
+  "positif": 55170,
+  "negatif": 81772,
+  "netral": 13277,
+  "mean": -0.125
  },
  "days_tanpa_kata_topik": [
   {
    "date": "2026-11-10",
-   "n": 21362,
-   "scored": 10895,
-   "abstain": 10467,
-   "positif": 4460,
-   "negatif": 5427,
-   "netral": 1008,
-   "mean": -0.07
+   "n": 30332,
+   "scored": 15493,
+   "abstain": 14839,
+   "positif": 6126,
+   "negatif": 7969,
+   "netral": 1398,
+   "mean": -0.089
   },
   {
    "date": "2026-11-11",
-   "n": 26741,
-   "scored": 14205,
-   "abstain": 12536,
-   "positif": 5440,
-   "negatif": 7526,
-   "netral": 1239,
-   "mean": -0.103
+   "n": 42733,
+   "scored": 22104,
+   "abstain": 20629,
+   "positif": 8018,
+   "negatif": 12201,
+   "netral": 1885,
+   "mean": -0.132
   },
   {
    "date": "2026-11-12",
-   "n": 58115,
-   "scored": 29339,
-   "abstain": 28776,
-   "positif": 11721,
-   "negatif": 15038,
-   "netral": 2580,
-   "mean": -0.082
+   "n": 85447,
+   "scored": 42994,
+   "abstain": 42453,
+   "positif": 16721,
+   "negatif": 22503,
+   "netral": 3770,
+   "mean": -0.098
   },
   {
    "date": "2026-11-13",
-   "n": 39576,
-   "scored": 21050,
-   "abstain": 18526,
-   "positif": 7142,
-   "negatif": 12083,
-   "netral": 1825,
-   "mean": -0.159
+   "n": 53950,
+   "scored": 27985,
+   "abstain": 25965,
+   "positif": 9684,
+   "negatif": 15830,
+   "netral": 2471,
+   "mean": -0.151
   },
   {
    "date": "2026-11-14",
-   "n": 22370,
-   "scored": 12366,
-   "abstain": 10004,
-   "positif": 4585,
-   "negatif": 6653,
-   "netral": 1128,
-   "mean": -0.124
+   "n": 30570,
+   "scored": 16374,
+   "abstain": 14196,
+   "positif": 6074,
+   "negatif": 8829,
+   "netral": 1471,
+   "mean": -0.123
   },
   {
    "date": "2026-11-15",
-   "n": 17649,
-   "scored": 9226,
-   "abstain": 8423,
-   "positif": 3292,
-   "negatif": 5047,
-   "netral": 887,
-   "mean": -0.134
+   "n": 23782,
+   "scored": 12305,
+   "abstain": 11477,
+   "positif": 4312,
+   "negatif": 6835,
+   "netral": 1158,
+   "mean": -0.144
   },
   {
    "date": "2026-11-16",
-   "n": 13834,
-   "scored": 6983,
-   "abstain": 6851,
-   "positif": 2360,
-   "negatif": 4005,
-   "netral": 618,
-   "mean": -0.158
+   "n": 20767,
+   "scored": 10544,
+   "abstain": 10223,
+   "positif": 3510,
+   "negatif": 6125,
+   "netral": 909,
+   "mean": -0.169
   },
   {
    "date": "2026-11-17",
-   "n": 327,
-   "scored": 158,
-   "abstain": 169,
-   "positif": 52,
-   "negatif": 95,
-   "netral": 11,
-   "mean": -0.168
+   "n": 4796,
+   "scored": 2420,
+   "abstain": 2376,
+   "positif": 725,
+   "negatif": 1480,
+   "netral": 215,
+   "mean": -0.217
   }
  ],
  "actors_tanpa_kata_topik": {
   "Gibran Rakabuming Raka": {
-   "n": 41718,
-   "scored": 26278,
-   "abstain": 15440,
-   "positif": 12151,
-   "negatif": 11132,
-   "netral": 2995,
-   "mean": 0.016
+   "n": 59304,
+   "scored": 37029,
+   "abstain": 22275,
+   "positif": 16632,
+   "negatif": 16202,
+   "netral": 4195,
+   "mean": -0.002
   },
   "Joko Widodo": {
-   "n": 10637,
-   "scored": 7094,
-   "abstain": 3543,
-   "positif": 2181,
-   "negatif": 3990,
-   "netral": 923,
-   "mean": -0.168
+   "n": 15255,
+   "scored": 10171,
+   "abstain": 5084,
+   "positif": 3189,
+   "negatif": 5705,
+   "netral": 1277,
+   "mean": -0.164
   },
   "Prabowo Subianto": {
-   "n": 16900,
-   "scored": 9712,
-   "abstain": 7188,
-   "positif": 3080,
-   "negatif": 5422,
-   "netral": 1210,
-   "mean": -0.165
+   "n": 24855,
+   "scored": 14171,
+   "abstain": 10684,
+   "positif": 4501,
+   "negatif": 7963,
+   "netral": 1707,
+   "mean": -0.167
   }
  },
  "days": [
   {
    "date": "2026-11-10",
-   "n": 21362,
-   "scored": 12283,
-   "abstain": 9079,
-   "positif": 3962,
-   "negatif": 6771,
-   "netral": 1550,
-   "mean": -0.152
+   "n": 30332,
+   "scored": 17573,
+   "abstain": 12759,
+   "positif": 5449,
+   "negatif": 9978,
+   "netral": 2146,
+   "mean": -0.17
   },
   {
    "date": "2026-11-11",
-   "n": 26741,
-   "scored": 15132,
-   "abstain": 11609,
-   "positif": 5085,
-   "negatif": 8492,
-   "netral": 1555,
-   "mean": -0.149
+   "n": 42733,
+   "scored": 23579,
+   "abstain": 19154,
+   "positif": 7489,
+   "negatif": 13719,
+   "netral": 2371,
+   "mean": -0.175
   },
   {
    "date": "2026-11-12",
-   "n": 58115,
-   "scored": 30866,
-   "abstain": 27249,
-   "positif": 11193,
-   "negatif": 16663,
-   "netral": 3010,
-   "mean": -0.119
+   "n": 85447,
+   "scored": 45271,
+   "abstain": 40176,
+   "positif": 15897,
+   "negatif": 24930,
+   "netral": 4444,
+   "mean": -0.135
   },
   {
    "date": "2026-11-13",
-   "n": 39576,
-   "scored": 21871,
-   "abstain": 17705,
-   "positif": 6884,
-   "negatif": 12893,
-   "netral": 2094,
-   "mean": -0.182
+   "n": 53950,
+   "scored": 29048,
+   "abstain": 24902,
+   "positif": 9344,
+   "negatif": 16887,
+   "netral": 2817,
+   "mean": -0.174
   },
   {
    "date": "2026-11-14",
-   "n": 22370,
-   "scored": 12789,
-   "abstain": 9581,
-   "positif": 4464,
-   "negatif": 7095,
-   "netral": 1230,
-   "mean": -0.145
+   "n": 30570,
+   "scored": 16927,
+   "abstain": 13643,
+   "positif": 5912,
+   "negatif": 9411,
+   "netral": 1604,
+   "mean": -0.144
   },
   {
    "date": "2026-11-15",
-   "n": 17649,
-   "scored": 9471,
-   "abstain": 8178,
-   "positif": 3193,
-   "negatif": 5314,
-   "netral": 964,
-   "mean": -0.153
+   "n": 23782,
+   "scored": 12615,
+   "abstain": 11167,
+   "positif": 4196,
+   "negatif": 7173,
+   "netral": 1246,
+   "mean": -0.161
   },
   {
    "date": "2026-11-16",
-   "n": 13834,
-   "scored": 7169,
-   "abstain": 6665,
-   "positif": 2285,
-   "negatif": 4201,
-   "netral": 683,
-   "mean": -0.176
+   "n": 20767,
+   "scored": 10827,
+   "abstain": 9940,
+   "positif": 3413,
+   "negatif": 6423,
+   "netral": 991,
+   "mean": -0.186
   },
   {
    "date": "2026-11-17",
-   "n": 327,
-   "scored": 163,
-   "abstain": 164,
-   "positif": 50,
-   "negatif": 100,
-   "netral": 13,
-   "mean": -0.194
+   "n": 4796,
+   "scored": 2510,
+   "abstain": 2286,
+   "positif": 701,
+   "negatif": 1571,
+   "netral": 238,
+   "mean": -0.237
   }
  ],
  "top_hours": [
   {
    "date": "2026-11-12",
    "hour": 19,
-   "n": 8129
+   "n": 9851
   },
   {
    "date": "2026-11-12",
    "hour": 20,
-   "n": 6931
+   "n": 8989
   },
   {
    "date": "2026-11-12",
    "hour": 16,
-   "n": 4465
+   "n": 6474
   },
   {
    "date": "2026-11-12",
    "hour": 21,
-   "n": 4221
+   "n": 6085
   },
   {
    "date": "2026-11-12",
    "hour": 15,
-   "n": 3800
-  },
-  {
-   "date": "2026-11-11",
-   "hour": 21,
-   "n": 3721
+   "n": 5729
   },
   {
    "date": "2026-11-10",
    "hour": 19,
-   "n": 3716
+   "n": 5304
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 14,
+   "n": 5030
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 17,
+   "n": 4993
   },
   {
    "date": "2026-11-10",
    "hour": 18,
-   "n": 3425
+   "n": 4896
   },
   {
-   "date": "2026-11-13",
-   "hour": 7,
-   "n": 3252
-  },
-  {
-   "date": "2026-11-10",
+   "date": "2026-11-11",
    "hour": 21,
-   "n": 3250
+   "n": 4726
   }
  ],
  "hour_of_day": [
-  5532,
-  3491,
-  2278,
-  1878,
-  3075,
-  5522,
-  7577,
-  7791,
-  7072,
-  6694,
-  6162,
-  6462,
-  8459,
-  8918,
-  8150,
-  8554,
-  11275,
-  11088,
-  11445,
-  18015,
-  16923,
-  15832,
-  9785,
-  7996
+  7733,
+  4807,
+  3263,
+  2825,
+  4322,
+  7550,
+  10252,
+  10522,
+  10017,
+  10020,
+  9822,
+  10427,
+  13633,
+  13807,
+  12940,
+  13301,
+  16882,
+  16815,
+  18005,
+  24912,
+  23322,
+  22030,
+  14136,
+  11034
  ],
  "themes": {
   "Ijazah / syarat pencalonan": {
-   "n": 11852,
-   "scored": 7490,
-   "abstain": 4362,
-   "positif": 1707,
-   "negatif": 4737,
-   "netral": 1046,
+   "n": 17374,
+   "scored": 10848,
+   "abstain": 6526,
+   "positif": 2496,
+   "negatif": 6862,
+   "netral": 1490,
    "mean": -0.25
   },
   "Putusan MK 2023 / jalur pencalonan": {
-   "n": 5491,
-   "scored": 3373,
-   "abstain": 2118,
-   "positif": 614,
-   "negatif": 2283,
-   "netral": 476,
-   "mean": -0.305
+   "n": 7589,
+   "scored": 4654,
+   "abstain": 2935,
+   "positif": 847,
+   "negatif": 3154,
+   "netral": 653,
+   "mean": -0.307
   },
   "Pemakzulan / DPR / hak menyatakan pendapat": {
-   "n": 11840,
-   "scored": 7925,
-   "abstain": 3915,
-   "positif": 1595,
-   "negatif": 5235,
-   "netral": 1095,
-   "mean": -0.291
+   "n": 18707,
+   "scored": 12488,
+   "abstain": 6219,
+   "positif": 2533,
+   "negatif": 8319,
+   "netral": 1636,
+   "mean": -0.297
   },
   "Jokowi / keluarga / dinasti": {
-   "n": 12221,
-   "scored": 8247,
-   "abstain": 3974,
-   "positif": 2295,
-   "negatif": 4881,
-   "netral": 1071,
-   "mean": -0.201
+   "n": 17612,
+   "scored": 11801,
+   "abstain": 5811,
+   "positif": 3352,
+   "negatif": 6954,
+   "netral": 1495,
+   "mean": -0.197
   },
   "Prabowo / presiden": {
-   "n": 23798,
-   "scored": 14837,
-   "abstain": 8961,
-   "positif": 4431,
-   "negatif": 8437,
-   "netral": 1969,
-   "mean": -0.174
+   "n": 35034,
+   "scored": 21532,
+   "abstain": 13502,
+   "positif": 6468,
+   "negatif": 12290,
+   "netral": 2774,
+   "mean": -0.175
   },
   "Pengganti wapres / MPR": {
-   "n": 5656,
-   "scored": 3199,
-   "abstain": 2457,
-   "positif": 971,
-   "negatif": 1846,
-   "netral": 382,
-   "mean": -0.176
+   "n": 9239,
+   "scored": 5154,
+   "abstain": 4085,
+   "positif": 1624,
+   "negatif": 2907,
+   "netral": 623,
+   "mean": -0.161
   },
   "Tuntutan hukum lanjut": {
-   "n": 8000,
-   "scored": 6974,
-   "abstain": 1026,
-   "positif": 881,
-   "negatif": 5240,
-   "netral": 853,
-   "mean": -0.379
+   "n": 11315,
+   "scored": 9847,
+   "abstain": 1468,
+   "positif": 1248,
+   "negatif": 7410,
+   "netral": 1189,
+   "mean": -0.385
   },
   "Simpati / dukungan kepada Gibran": {
-   "n": 6153,
-   "scored": 5400,
-   "abstain": 753,
-   "positif": 2385,
-   "negatif": 2289,
-   "netral": 726,
-   "mean": 0.046
+   "n": 8522,
+   "scored": 7431,
+   "abstain": 1091,
+   "positif": 3156,
+   "negatif": 3252,
+   "netral": 1023,
+   "mean": 0.027
   },
   "Syukur / merayakan mundurnya": {
-   "n": 6403,
-   "scored": 5740,
-   "abstain": 663,
-   "positif": 2559,
-   "negatif": 2332,
-   "netral": 849,
-   "mean": 0.043
+   "n": 8803,
+   "scored": 7870,
+   "abstain": 933,
+   "positif": 3478,
+   "negatif": 3237,
+   "netral": 1155,
+   "mean": 0.038
   },
   "Relawan / pendukung (termul, projo)": {
-   "n": 11274,
-   "scored": 6234,
-   "abstain": 5040,
-   "positif": 968,
-   "negatif": 4742,
-   "netral": 524,
-   "mean": -0.375
+   "n": 15152,
+   "scored": 8098,
+   "abstain": 7054,
+   "positif": 1317,
+   "negatif": 6086,
+   "netral": 695,
+   "mean": -0.365
   },
   "Fufufafa / akun lama": {
-   "n": 1183,
-   "scored": 556,
-   "abstain": 627,
-   "positif": 146,
-   "negatif": 361,
-   "netral": 49,
-   "mean": -0.238
+   "n": 1585,
+   "scored": 740,
+   "abstain": 845,
+   "positif": 173,
+   "negatif": 494,
+   "netral": 73,
+   "mean": -0.263
   },
   "Curiga skenario / deal politik": {
-   "n": 9813,
-   "scored": 5823,
-   "abstain": 3990,
-   "positif": 2458,
-   "negatif": 2619,
-   "netral": 746,
-   "mean": -0.023
+   "n": 14127,
+   "scored": 8312,
+   "abstain": 5815,
+   "positif": 3356,
+   "negatif": 3866,
+   "netral": 1090,
+   "mean": -0.044
   }
  },
  "actors": [
   {
    "name": "Gibran Rakabuming Raka",
-   "n": 41718,
-   "scored": 28298,
-   "abstain": 13420,
-   "positif": 11215,
-   "negatif": 13360,
-   "netral": 3723,
-   "mean": -0.051
+   "n": 59304,
+   "scored": 40063,
+   "abstain": 19241,
+   "positif": 15327,
+   "negatif": 19504,
+   "netral": 5232,
+   "mean": -0.069
   },
   {
    "name": "Prabowo Subianto",
-   "n": 16900,
-   "scored": 10426,
-   "abstain": 6474,
-   "positif": 2830,
-   "negatif": 6228,
-   "netral": 1368,
-   "mean": -0.21
+   "n": 24855,
+   "scored": 15191,
+   "abstain": 9664,
+   "positif": 4143,
+   "negatif": 9113,
+   "netral": 1935,
+   "mean": -0.212
   },
   {
    "name": "Joko Widodo",
-   "n": 10637,
-   "scored": 7263,
-   "abstain": 3374,
-   "positif": 2085,
-   "negatif": 4199,
-   "netral": 979,
-   "mean": -0.186
+   "n": 15255,
+   "scored": 10400,
+   "abstain": 4855,
+   "positif": 3048,
+   "negatif": 5989,
+   "netral": 1363,
+   "mean": -0.182
   },
   {
    "name": "DPR",
-   "n": 7368,
-   "scored": 4978,
-   "abstain": 2390,
-   "positif": 869,
-   "negatif": 3445,
-   "netral": 664,
-   "mean": -0.337
+   "n": 12133,
+   "scored": 8172,
+   "abstain": 3961,
+   "positif": 1448,
+   "negatif": 5707,
+   "netral": 1017,
+   "mean": -0.344
   },
   {
    "name": "Mahkamah Konstitusi",
-   "n": 4330,
-   "scored": 2673,
-   "abstain": 1657,
-   "positif": 508,
-   "negatif": 1794,
-   "netral": 371,
-   "mean": -0.297
+   "n": 6028,
+   "scored": 3730,
+   "abstain": 2298,
+   "positif": 708,
+   "negatif": 2503,
+   "netral": 519,
+   "mean": -0.299
   },
   {
    "name": "Agus Harimurti Yudhoyono",
-   "n": 2324,
-   "scored": 1031,
-   "abstain": 1293,
-   "positif": 519,
-   "negatif": 421,
-   "netral": 91,
-   "mean": 0.055
+   "n": 3616,
+   "scored": 1587,
+   "abstain": 2029,
+   "positif": 798,
+   "negatif": 648,
+   "netral": 141,
+   "mean": 0.057
   },
   {
    "name": "Megawati / PDIP",
-   "n": 1880,
-   "scored": 1042,
-   "abstain": 838,
-   "positif": 227,
-   "negatif": 686,
-   "netral": 129,
-   "mean": -0.273
+   "n": 2803,
+   "scored": 1572,
+   "abstain": 1231,
+   "positif": 367,
+   "negatif": 1022,
+   "netral": 183,
+   "mean": -0.258
   },
   {
    "name": "Roy Suryo",
-   "n": 1716,
-   "scored": 1074,
-   "abstain": 642,
-   "positif": 319,
-   "negatif": 656,
-   "netral": 99,
-   "mean": -0.218
+   "n": 2637,
+   "scored": 1531,
+   "abstain": 1106,
+   "positif": 444,
+   "negatif": 957,
+   "netral": 130,
+   "mean": -0.235
   },
   {
    "name": "Puan Maharani",
-   "n": 1604,
-   "scored": 705,
-   "abstain": 899,
-   "positif": 190,
-   "negatif": 444,
-   "netral": 71,
-   "mean": -0.254
-  },
-  {
-   "name": "PSI",
-   "n": 1548,
-   "scored": 837,
-   "abstain": 711,
-   "positif": 390,
-   "negatif": 362,
-   "netral": 85,
-   "mean": 0.029
+   "n": 2373,
+   "scored": 1035,
+   "abstain": 1338,
+   "positif": 303,
+   "negatif": 630,
+   "netral": 102,
+   "mean": -0.221
   },
   {
    "name": "MPR",
-   "n": 1249,
-   "scored": 823,
-   "abstain": 426,
-   "positif": 157,
-   "negatif": 557,
-   "netral": 109,
-   "mean": -0.292
+   "n": 2118,
+   "scored": 1330,
+   "abstain": 788,
+   "positif": 283,
+   "negatif": 879,
+   "netral": 168,
+   "mean": -0.274
   },
   {
    "name": "Mahfud MD",
-   "n": 1171,
-   "scored": 576,
-   "abstain": 595,
-   "positif": 261,
-   "negatif": 253,
-   "netral": 62,
-   "mean": 0.004
+   "n": 2043,
+   "scored": 949,
+   "abstain": 1094,
+   "positif": 419,
+   "negatif": 435,
+   "netral": 95,
+   "mean": -0.007
+  },
+  {
+   "name": "PSI",
+   "n": 2012,
+   "scored": 1094,
+   "abstain": 918,
+   "positif": 483,
+   "negatif": 493,
+   "netral": 118,
+   "mean": 0.003
   },
   {
    "name": "Gerindra",
-   "n": 902,
-   "scored": 499,
-   "abstain": 403,
-   "positif": 153,
-   "negatif": 297,
-   "netral": 49,
-   "mean": -0.22
-  },
-  {
-   "name": "KPU",
-   "n": 750,
-   "scored": 492,
-   "abstain": 258,
-   "positif": 106,
-   "negatif": 299,
-   "netral": 87,
+   "n": 1526,
+   "scored": 846,
+   "abstain": 680,
+   "positif": 240,
+   "negatif": 511,
+   "netral": 95,
    "mean": -0.233
   },
   {
    "name": "Anies Baswedan",
-   "n": 748,
-   "scored": 359,
-   "abstain": 389,
-   "positif": 170,
-   "negatif": 146,
-   "netral": 43,
-   "mean": 0.044
+   "n": 1164,
+   "scored": 555,
+   "abstain": 609,
+   "positif": 258,
+   "negatif": 232,
+   "netral": 65,
+   "mean": 0.034
+  },
+  {
+   "name": "KPU",
+   "n": 1138,
+   "scored": 728,
+   "abstain": 410,
+   "positif": 159,
+   "negatif": 444,
+   "netral": 125,
+   "mean": -0.236
   },
   {
    "name": "Anwar Usman",
-   "n": 573,
-   "scored": 320,
-   "abstain": 253,
-   "positif": 66,
-   "negatif": 202,
-   "netral": 52,
-   "mean": -0.259
+   "n": 750,
+   "scored": 403,
+   "abstain": 347,
+   "positif": 77,
+   "negatif": 265,
+   "netral": 61,
+   "mean": -0.281
   },
   {
    "name": "Sufmi Dasco Ahmad",
-   "n": 338,
-   "scored": 159,
-   "abstain": 179,
-   "positif": 58,
-   "negatif": 89,
-   "netral": 12,
-   "mean": -0.105
+   "n": 643,
+   "scored": 287,
+   "abstain": 356,
+   "positif": 103,
+   "negatif": 163,
+   "netral": 21,
+   "mean": -0.115
   },
   {
    "name": "Ganjar Pranowo",
-   "n": 335,
-   "scored": 185,
-   "abstain": 150,
-   "positif": 64,
-   "negatif": 77,
-   "netral": 44,
-   "mean": -0.052
+   "n": 589,
+   "scored": 302,
+   "abstain": 287,
+   "positif": 100,
+   "negatif": 143,
+   "netral": 59,
+   "mean": -0.09
   },
   {
    "name": "Kaesang Pangarep",
-   "n": 194,
-   "scored": 95,
-   "abstain": 99,
-   "positif": 34,
-   "negatif": 50,
-   "netral": 11,
-   "mean": -0.109
+   "n": 359,
+   "scored": 153,
+   "abstain": 206,
+   "positif": 50,
+   "negatif": 87,
+   "netral": 16,
+   "mean": -0.148
   },
   {
    "name": "Golkar",
-   "n": 167,
-   "scored": 93,
-   "abstain": 74,
-   "positif": 30,
-   "negatif": 51,
-   "netral": 12,
-   "mean": -0.174
+   "n": 323,
+   "scored": 162,
+   "abstain": 161,
+   "positif": 57,
+   "negatif": 84,
+   "netral": 21,
+   "mean": -0.125
   },
   {
    "name": "Bobby Nasution",
-   "n": 60,
-   "scored": 18,
-   "abstain": 42,
-   "positif": 5,
-   "negatif": 12,
+   "n": 103,
+   "scored": 33,
+   "abstain": 70,
+   "positif": 8,
+   "negatif": 24,
    "netral": 1,
-   "mean": -0.245
-  },
-  {
-   "name": "Purnawirawan TNI",
-   "n": 24,
-   "scored": 17,
-   "abstain": 7,
-   "positif": 5,
-   "negatif": 9,
-   "netral": 3,
-   "mean": -0.112
+   "mean": -0.299
   },
   {
    "name": "Ahmad Muzani",
-   "n": 16,
-   "scored": 4,
-   "abstain": 12,
-   "positif": 3,
-   "negatif": 1,
-   "netral": 0,
-   "mean": 0.119
+   "n": 60,
+   "scored": 16,
+   "abstain": 44,
+   "positif": 11,
+   "negatif": 4,
+   "netral": 1,
+   "mean": 0.249
+  },
+  {
+   "name": "Purnawirawan TNI",
+   "n": 38,
+   "scored": 28,
+   "abstain": 10,
+   "positif": 11,
+   "negatif": 13,
+   "netral": 4,
+   "mean": -0.034
   }
  ],
  "actor_by_day": {
   "Gibran Rakabuming Raka": {
-   "2026-11-10": 5364,
-   "2026-11-11": 6621,
-   "2026-11-12": 13029,
-   "2026-11-13": 6909,
-   "2026-11-14": 4424,
-   "2026-11-15": 3123,
-   "2026-11-16": 2192,
-   "2026-11-17": 56
+   "2026-11-10": 7592,
+   "2026-11-11": 9900,
+   "2026-11-12": 18543,
+   "2026-11-13": 9366,
+   "2026-11-14": 5937,
+   "2026-11-15": 4045,
+   "2026-11-16": 3247,
+   "2026-11-17": 674
   },
   "Joko Widodo": {
-   "2026-11-10": 971,
-   "2026-11-11": 1288,
-   "2026-11-12": 3370,
-   "2026-11-13": 1902,
-   "2026-11-14": 1184,
-   "2026-11-15": 1083,
-   "2026-11-16": 822,
-   "2026-11-17": 17
+   "2026-11-10": 1397,
+   "2026-11-11": 1962,
+   "2026-11-12": 4875,
+   "2026-11-13": 2617,
+   "2026-11-14": 1493,
+   "2026-11-15": 1395,
+   "2026-11-16": 1218,
+   "2026-11-17": 298
   },
   "Prabowo Subianto": {
-   "2026-11-10": 2020,
-   "2026-11-11": 2333,
-   "2026-11-12": 5586,
-   "2026-11-13": 2458,
-   "2026-11-14": 1869,
-   "2026-11-15": 1613,
-   "2026-11-16": 1000,
-   "2026-11-17": 21
+   "2026-11-10": 2787,
+   "2026-11-11": 3449,
+   "2026-11-12": 7842,
+   "2026-11-13": 3711,
+   "2026-11-14": 2507,
+   "2026-11-15": 2151,
+   "2026-11-16": 1785,
+   "2026-11-17": 623
   }
  },
  "top_videos": [
@@ -960,63 +960,63 @@
  "top_channels": [
   {
    "channel": "Official iNews",
-   "n": 16943
+   "n": 23693
+  },
+  {
+   "channel": "KOMPASTV",
+   "n": 18890
+  },
+  {
+   "channel": "Tribunnews",
+   "n": 17651
   },
   {
    "channel": "Nusantara TV",
-   "n": 12815
+   "n": 14659
   },
   {
    "channel": "INTIP SUARA RAKYAT",
    "n": 11434
   },
   {
-   "channel": "KOMPASTV",
-   "n": 9895
+   "channel": "tvOneNews ",
+   "n": 8856
   },
   {
-   "channel": "Tribunnews",
-   "n": 9012
+   "channel": "METRO TV ",
+   "n": 7952
   },
   {
    "channel": "Wakil Presiden Republik Indonesia",
    "n": 6708
   },
   {
-   "channel": "tvOneNews ",
+   "channel": "SINDOnews",
    "n": 6383
   },
   {
    "channel": "Cumicumi",
-   "n": 5368
+   "n": 6106
+  },
+  {
+   "channel": "CNN Indonesia",
+   "n": 5370
   },
   {
    "channel": "Felix Siauw",
    "n": 5113
   },
   {
+   "channel": "VIVA.CO.ID",
+   "n": 4911
+  },
+  {
    "channel": "AGRI FANANI",
    "n": 4799
   },
   {
-   "channel": "CNN Indonesia",
-   "n": 4130
-  },
-  {
-   "channel": "VIVA.CO.ID",
-   "n": 4110
-  },
-  {
-   "channel": "SINDOnews",
-   "n": 4046
-  },
-  {
    "channel": "Tribun Sumsel",
-   "n": 3914
-  },
-  {
-   "channel": "GIBRAN DAY ",
-   "n": 3717
+   "n": 4722
   }
  ],
  "top_liked": [
@@ -1714,6 +1714,17 @@
     "aktor": "Gibran Rakabuming Raka; DPR"
    },
    {
+    "waktu_wib": "2026-11-14 14:45",
+    "text": "Akhirnya mas gibran kembali ke setelan awal,,",
+    "likes": 269,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=U5UbCiSPfy0&lc=UgyoqMr6sK4XKmNjj6F4AaABAg",
+    "video_title": "Usai Berhenti Jadi Wapres, Gibran Balas Ajakan Warganet Main GTA: Gas, Doksli Bukan Nimpa",
+    "channel": "Tribunnews",
+    "themes": "Syukur / merayakan mundurnya",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
     "waktu_wib": "2026-11-14 18:24",
     "text": "Prabowonomics meremehkan sdm Indonesia yg justru potensi terbesarnya. Halu nyawit beliaunya ✊",
     "likes": 268,
@@ -1725,25 +1736,14 @@
     "aktor": "Prabowo Subianto"
    },
    {
-    "waktu_wib": "2026-11-14 19:22",
-    "text": "Biar dapet fasilitas dari negara dan gaji, beda cerita kalau di makzulkan alias pemecatan dengan tidak hormat,",
+    "waktu_wib": "2026-11-14 16:54",
+    "text": "Refreshing mabar, sambil melihat para pejabat berebut kursi cakar cakaran 😂😂",
     "likes": 243,
     "sentiment_label": "abstain",
-    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgznHw-KSv1iNIE-7cB4AaABAg",
-    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
-    "channel": "Kamar JERI",
-    "themes": "Pemakzulan / DPR / hak menyatakan pendapat; Simpati / dukungan kepada Gibran",
-    "aktor": ""
-   },
-   {
-    "waktu_wib": "2026-11-14 19:22",
-    "text": "Biar dapet fasilitas dari negara dan gaji, beda cerita kalau di makzulkan alias pemecatan dengan tidak hormat,",
-    "likes": 243,
-    "sentiment_label": "abstain",
-    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgznHw-KSv1iNIE-7cB4AaABAg",
-    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
-    "channel": "Kamar JERI",
-    "themes": "Pemakzulan / DPR / hak menyatakan pendapat; Simpati / dukungan kepada Gibran",
+    "url": "https://www.youtube.com/watch?v=U5UbCiSPfy0&lc=Ugz4EWYm0C85iv-8rm54AaABAg",
+    "video_title": "Usai Berhenti Jadi Wapres, Gibran Balas Ajakan Warganet Main GTA: Gas, Doksli Bukan Nimpa",
+    "channel": "Tribunnews",
+    "themes": "",
     "aktor": ""
    }
   ],
@@ -1863,57 +1863,57 @@
   ],
   "2026-11-17": [
    {
-    "waktu_wib": "2026-11-17 00:02",
-    "text": "Anjay pinter amat gibran, gak ada pengabdian buat negara malah mau menguras keuwangan negara",
-    "likes": 1,
-    "sentiment_label": "abstain",
-    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=Ugz6XPATV8RU1RwFph54AaABAg",
-    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
-    "channel": "Kamar JERI",
-    "themes": "",
+    "waktu_wib": "2026-11-17 01:42",
+    "text": "sebetulnya kan kasus gibran goblok cuma ijazah sama kaya bapaknya...akhirnya dia mengundurkan diri biar aman dapet pesangon..narasi dipaksa terlalu lucu karena rakyat juga menuntut keterbukaan ijazah dan dia mengundurkan diri karena 'KALAH\"",
+    "likes": 72,
+    "sentiment_label": "netral",
+    "url": "https://www.youtube.com/watch?v=rxrcaKSSheg&lc=Ugyvnte24y2nz9WBlZt4AaABAg",
+    "video_title": "Gibran mundur karna dipaksa? #dialectique #dialektika #prabowo #gibran #jokowi #yusrilihzamahendra",
+    "channel": "Dialectique",
+    "themes": "Ijazah / syarat pencalonan; Syukur / merayakan mundurnya",
     "aktor": "Gibran Rakabuming Raka"
    },
    {
-    "waktu_wib": "2026-11-17 00:07",
-    "text": "BETUL BETUL  SEMUA  PEJABAT   HARUS     DI PERIKSA  IJAZA  NY  \n\n\nSEHAT SELALU  MAS GIBRAN   SABAR ALLAH  MAHA BESAR  ALLAH  KARIM AMINN YA ROB 🙏 ❤❤❤",
-    "likes": 1,
+    "waktu_wib": "2026-11-17 00:13",
+    "text": "Semua partai yang kemaren dukung angket sudah di tandai rakyat, liat aja",
+    "likes": 43,
     "sentiment_label": "positif",
-    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgwmpSVtBe8H4Qo0znF4AaABAg",
-    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
-    "channel": "Kamar JERI",
-    "themes": "Ijazah / syarat pencalonan",
-    "aktor": "Gibran Rakabuming Raka"
-   },
-   {
-    "waktu_wib": "2026-11-17 00:16",
-    "text": "saya siap jadi mata2 partai psi",
-    "likes": 1,
-    "sentiment_label": "abstain",
-    "url": "https://www.youtube.com/watch?v=GrQVv98uq4A&lc=UgwLGUzQHDYTGBrAXk14AaABAg",
-    "video_title": "Gibran Mundur dari Wapres, Muncul Gelombang Besar besaran Warga Daftar Jadi Kader PSI & Dukung 2029",
-    "channel": "Tribunnews",
+    "url": "https://www.youtube.com/watch?v=QtdU2cAuJkM&lc=UgwmdGpGoMfbojv3mq94AaABAg",
+    "video_title": "[FULL] Gibran Mundur, Kursi Panas Wapres Kosong! Burhanuddin: Parpol Takut Usul, Situasi Lagi Panas!",
+    "channel": "Nusantara TV",
     "themes": "",
-    "aktor": "PSI"
+    "aktor": ""
    },
    {
-    "waktu_wib": "2026-11-17 00:29",
-    "text": "Bang Ahmad \" trus Main full\"  Gibran Harus di PECAT,    .,",
-    "likes": 1,
-    "sentiment_label": "negatif",
-    "url": "https://www.youtube.com/watch?v=4sYGaDVKous&lc=Ugw01j_38M10TISI2RZ4AaABAg",
-    "video_title": "Khozinudin Bongkar Siasat Culas Pengunduran Diri Gibran. Gibran Diduga Lakukan Tindak Pidana",
-    "channel": "Abraham Samad SPEAK UP",
-    "themes": "",
-    "aktor": "Gibran Rakabuming Raka"
-   },
-   {
-    "waktu_wib": "2026-11-17 00:49",
-    "text": "@charleskurniawan2950 Yes, he is. Almarhum ayahnya Raymond itu Chinese Singapore, ibunya Raymond wong Jowo asli Jogja.",
-    "likes": 1,
+    "waktu_wib": "2026-11-17 03:53",
+    "text": "Emang Kutu loncat kok dia....",
+    "likes": 41,
     "sentiment_label": "abstain",
-    "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=UgzJZz6jze5P_d1NVQF4AaABAg.AdBtZB3feXlAdHRRLqct4m",
-    "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
-    "channel": "Raymond Chin",
+    "url": "https://www.youtube.com/watch?v=rxrcaKSSheg&lc=Ugzb1nrBN-_jZWg9rZp4AaABAg.AdHIGOaA3B2AdHlRYeVYze",
+    "video_title": "Gibran mundur karna dipaksa? #dialectique #dialektika #prabowo #gibran #jokowi #yusrilihzamahendra",
+    "channel": "Dialectique",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-17 02:00",
+    "text": "Loe gak mundur atau bapak loe pakai baju oren, begitulah kira2 🫪",
+    "likes": 36,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=rxrcaKSSheg&lc=UgxqnWnPb7AYkbt5h0h4AaABAg",
+    "video_title": "Gibran mundur karna dipaksa? #dialectique #dialektika #prabowo #gibran #jokowi #yusrilihzamahendra",
+    "channel": "Dialectique",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-17 00:06",
+    "text": "Jangan terlalu percaya bang,sama orang2 politik ,di depan ngomong nya begini debelakang ngomongnya begitu,orang politik jugaa lempar batu sembunyi tangan",
+    "likes": 31,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=rxrcaKSSheg&lc=UgwNYc_DXQ-ELQLZK894AaABAg",
+    "video_title": "Gibran mundur karna dipaksa? #dialectique #dialektika #prabowo #gibran #jokowi #yusrilihzamahendra",
+    "channel": "Dialectique",
     "themes": "",
     "aktor": ""
    }

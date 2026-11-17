@@ -1,0 +1,58 @@
+{
+ "meta": {
+  "bulan": "2026-10",
+  "captured_at": "2026-11-17T15:42:02.485618+00:00",
+  "quota_units": 18,
+  "catatan": "angka publik saat diambil; share tidak tersedia di YouTube"
+ },
+ "ringkasan": [
+  {
+   "lembaga": "Kementan",
+   "kanal": "@kementanri",
+   "pelanggan": 239000,
+   "video": 26,
+   "median_tayangan": 2654.5,
+   "median_er_per_pelanggan": 0.001354
+  },
+  {
+   "lembaga": "KKP",
+   "kanal": "@kkp_ri",
+   "pelanggan": 99200,
+   "video": 4,
+   "median_tayangan": null,
+   "median_er_per_pelanggan": null
+  },
+  {
+   "lembaga": "Kemenhut",
+   "kanal": "@kemenhut_ri",
+   "pelanggan": 54100,
+   "video": 1,
+   "median_tayangan": null,
+   "median_er_per_pelanggan": null
+  },
+  {
+   "lembaga": "BGN",
+   "kanal": "@badangizinasional",
+   "pelanggan": 13700,
+   "video": 7,
+   "median_tayangan": 1537,
+   "median_er_per_pelanggan": 0.00219
+  },
+  {
+   "lembaga": "KLH/BPLH",
+   "kanal": "@klh-bplh",
+   "pelanggan": 171000,
+   "video": 10,
+   "median_tayangan": 1664.5,
+   "median_er_per_pelanggan": 0.000152
+  },
+  {
+   "lembaga": "Bapanas",
+   "kanal": "@badanpangannasionalofficial",
+   "pelanggan": 7180,
+   "video": 6,
+   "median_tayangan": 108.5,
+   "median_er_per_pelanggan": 0.000278
+  }
+ ]
+}
