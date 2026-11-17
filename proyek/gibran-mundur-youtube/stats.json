@@ -1,0 +1,1922 @@
+{
+ "window": [
+  "2026-11-10T00:00:00+07:00",
+  "2026-11-18T00:00:00+07:00"
+ ],
+ "collected_at": "2026-11-16T19:42:01.062353+00:00",
+ "queries": [
+  "gibran mundur",
+  "pengunduran diri gibran",
+  "gibran mengundurkan diri wapres",
+  "gibran berhenti wakil presiden",
+  "surat pengunduran diri gibran",
+  "gibran mundur ijazah",
+  "pemakzulan gibran",
+  "hak menyatakan pendapat gibran dpr",
+  "pengganti gibran wapres",
+  "wapres baru pengganti gibran mpr",
+  "prabowo gibran mundur",
+  "jokowi gibran mundur",
+  "gibran mundur reaksi",
+  "wakil presiden kosong gibran"
+ ],
+ "videos_found": 872,
+ "videos_collected": 114,
+ "videos_pending": 729,
+ "comments_pending_est": 88452,
+ "comments": 199974,
+ "top_level": 159706,
+ "replies": 40268,
+ "unique_authors": 128842,
+ "authors_once": 93868,
+ "top20_authors_comments": 847,
+ "identical_text_3plus_accounts": 4,
+ "model_version": "lexicon-id-1+informal-4",
+ "overall": {
+  "n": 199974,
+  "scored": 109744,
+  "abstain": 90230,
+  "positif": 37116,
+  "negatif": 61529,
+  "netral": 11099,
+  "mean": -0.149
+ },
+ "overall_tanpa_kata_topik": {
+  "n": 199974,
+  "scored": 104222,
+  "abstain": 95752,
+  "positif": 39052,
+  "negatif": 55874,
+  "netral": 9296,
+  "mean": -0.114
+ },
+ "days_tanpa_kata_topik": [
+  {
+   "date": "2026-11-10",
+   "n": 21362,
+   "scored": 10895,
+   "abstain": 10467,
+   "positif": 4460,
+   "negatif": 5427,
+   "netral": 1008,
+   "mean": -0.07
+  },
+  {
+   "date": "2026-11-11",
+   "n": 26741,
+   "scored": 14205,
+   "abstain": 12536,
+   "positif": 5440,
+   "negatif": 7526,
+   "netral": 1239,
+   "mean": -0.103
+  },
+  {
+   "date": "2026-11-12",
+   "n": 58115,
+   "scored": 29339,
+   "abstain": 28776,
+   "positif": 11721,
+   "negatif": 15038,
+   "netral": 2580,
+   "mean": -0.082
+  },
+  {
+   "date": "2026-11-13",
+   "n": 39576,
+   "scored": 21050,
+   "abstain": 18526,
+   "positif": 7142,
+   "negatif": 12083,
+   "netral": 1825,
+   "mean": -0.159
+  },
+  {
+   "date": "2026-11-14",
+   "n": 22370,
+   "scored": 12366,
+   "abstain": 10004,
+   "positif": 4585,
+   "negatif": 6653,
+   "netral": 1128,
+   "mean": -0.124
+  },
+  {
+   "date": "2026-11-15",
+   "n": 17649,
+   "scored": 9226,
+   "abstain": 8423,
+   "positif": 3292,
+   "negatif": 5047,
+   "netral": 887,
+   "mean": -0.134
+  },
+  {
+   "date": "2026-11-16",
+   "n": 13834,
+   "scored": 6983,
+   "abstain": 6851,
+   "positif": 2360,
+   "negatif": 4005,
+   "netral": 618,
+   "mean": -0.158
+  },
+  {
+   "date": "2026-11-17",
+   "n": 327,
+   "scored": 158,
+   "abstain": 169,
+   "positif": 52,
+   "negatif": 95,
+   "netral": 11,
+   "mean": -0.168
+  }
+ ],
+ "actors_tanpa_kata_topik": {
+  "Gibran Rakabuming Raka": {
+   "n": 41718,
+   "scored": 26278,
+   "abstain": 15440,
+   "positif": 12151,
+   "negatif": 11132,
+   "netral": 2995,
+   "mean": 0.016
+  },
+  "Joko Widodo": {
+   "n": 10637,
+   "scored": 7094,
+   "abstain": 3543,
+   "positif": 2181,
+   "negatif": 3990,
+   "netral": 923,
+   "mean": -0.168
+  },
+  "Prabowo Subianto": {
+   "n": 16900,
+   "scored": 9712,
+   "abstain": 7188,
+   "positif": 3080,
+   "negatif": 5422,
+   "netral": 1210,
+   "mean": -0.165
+  }
+ },
+ "days": [
+  {
+   "date": "2026-11-10",
+   "n": 21362,
+   "scored": 12283,
+   "abstain": 9079,
+   "positif": 3962,
+   "negatif": 6771,
+   "netral": 1550,
+   "mean": -0.152
+  },
+  {
+   "date": "2026-11-11",
+   "n": 26741,
+   "scored": 15132,
+   "abstain": 11609,
+   "positif": 5085,
+   "negatif": 8492,
+   "netral": 1555,
+   "mean": -0.149
+  },
+  {
+   "date": "2026-11-12",
+   "n": 58115,
+   "scored": 30866,
+   "abstain": 27249,
+   "positif": 11193,
+   "negatif": 16663,
+   "netral": 3010,
+   "mean": -0.119
+  },
+  {
+   "date": "2026-11-13",
+   "n": 39576,
+   "scored": 21871,
+   "abstain": 17705,
+   "positif": 6884,
+   "negatif": 12893,
+   "netral": 2094,
+   "mean": -0.182
+  },
+  {
+   "date": "2026-11-14",
+   "n": 22370,
+   "scored": 12789,
+   "abstain": 9581,
+   "positif": 4464,
+   "negatif": 7095,
+   "netral": 1230,
+   "mean": -0.145
+  },
+  {
+   "date": "2026-11-15",
+   "n": 17649,
+   "scored": 9471,
+   "abstain": 8178,
+   "positif": 3193,
+   "negatif": 5314,
+   "netral": 964,
+   "mean": -0.153
+  },
+  {
+   "date": "2026-11-16",
+   "n": 13834,
+   "scored": 7169,
+   "abstain": 6665,
+   "positif": 2285,
+   "negatif": 4201,
+   "netral": 683,
+   "mean": -0.176
+  },
+  {
+   "date": "2026-11-17",
+   "n": 327,
+   "scored": 163,
+   "abstain": 164,
+   "positif": 50,
+   "negatif": 100,
+   "netral": 13,
+   "mean": -0.194
+  }
+ ],
+ "top_hours": [
+  {
+   "date": "2026-11-12",
+   "hour": 19,
+   "n": 8129
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 20,
+   "n": 6931
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 16,
+   "n": 4465
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 21,
+   "n": 4221
+  },
+  {
+   "date": "2026-11-12",
+   "hour": 15,
+   "n": 3800
+  },
+  {
+   "date": "2026-11-11",
+   "hour": 21,
+   "n": 3721
+  },
+  {
+   "date": "2026-11-10",
+   "hour": 19,
+   "n": 3716
+  },
+  {
+   "date": "2026-11-10",
+   "hour": 18,
+   "n": 3425
+  },
+  {
+   "date": "2026-11-13",
+   "hour": 7,
+   "n": 3252
+  },
+  {
+   "date": "2026-11-10",
+   "hour": 21,
+   "n": 3250
+  }
+ ],
+ "hour_of_day": [
+  5532,
+  3491,
+  2278,
+  1878,
+  3075,
+  5522,
+  7577,
+  7791,
+  7072,
+  6694,
+  6162,
+  6462,
+  8459,
+  8918,
+  8150,
+  8554,
+  11275,
+  11088,
+  11445,
+  18015,
+  16923,
+  15832,
+  9785,
+  7996
+ ],
+ "themes": {
+  "Ijazah / syarat pencalonan": {
+   "n": 11852,
+   "scored": 7490,
+   "abstain": 4362,
+   "positif": 1707,
+   "negatif": 4737,
+   "netral": 1046,
+   "mean": -0.25
+  },
+  "Putusan MK 2023 / jalur pencalonan": {
+   "n": 5491,
+   "scored": 3373,
+   "abstain": 2118,
+   "positif": 614,
+   "negatif": 2283,
+   "netral": 476,
+   "mean": -0.305
+  },
+  "Pemakzulan / DPR / hak menyatakan pendapat": {
+   "n": 11840,
+   "scored": 7925,
+   "abstain": 3915,
+   "positif": 1595,
+   "negatif": 5235,
+   "netral": 1095,
+   "mean": -0.291
+  },
+  "Jokowi / keluarga / dinasti": {
+   "n": 12221,
+   "scored": 8247,
+   "abstain": 3974,
+   "positif": 2295,
+   "negatif": 4881,
+   "netral": 1071,
+   "mean": -0.201
+  },
+  "Prabowo / presiden": {
+   "n": 23798,
+   "scored": 14837,
+   "abstain": 8961,
+   "positif": 4431,
+   "negatif": 8437,
+   "netral": 1969,
+   "mean": -0.174
+  },
+  "Pengganti wapres / MPR": {
+   "n": 5656,
+   "scored": 3199,
+   "abstain": 2457,
+   "positif": 971,
+   "negatif": 1846,
+   "netral": 382,
+   "mean": -0.176
+  },
+  "Tuntutan hukum lanjut": {
+   "n": 8000,
+   "scored": 6974,
+   "abstain": 1026,
+   "positif": 881,
+   "negatif": 5240,
+   "netral": 853,
+   "mean": -0.379
+  },
+  "Simpati / dukungan kepada Gibran": {
+   "n": 6153,
+   "scored": 5400,
+   "abstain": 753,
+   "positif": 2385,
+   "negatif": 2289,
+   "netral": 726,
+   "mean": 0.046
+  },
+  "Syukur / merayakan mundurnya": {
+   "n": 6403,
+   "scored": 5740,
+   "abstain": 663,
+   "positif": 2559,
+   "negatif": 2332,
+   "netral": 849,
+   "mean": 0.043
+  },
+  "Relawan / pendukung (termul, projo)": {
+   "n": 11274,
+   "scored": 6234,
+   "abstain": 5040,
+   "positif": 968,
+   "negatif": 4742,
+   "netral": 524,
+   "mean": -0.375
+  },
+  "Fufufafa / akun lama": {
+   "n": 1183,
+   "scored": 556,
+   "abstain": 627,
+   "positif": 146,
+   "negatif": 361,
+   "netral": 49,
+   "mean": -0.238
+  },
+  "Curiga skenario / deal politik": {
+   "n": 9813,
+   "scored": 5823,
+   "abstain": 3990,
+   "positif": 2458,
+   "negatif": 2619,
+   "netral": 746,
+   "mean": -0.023
+  }
+ },
+ "actors": [
+  {
+   "name": "Gibran Rakabuming Raka",
+   "n": 41718,
+   "scored": 28298,
+   "abstain": 13420,
+   "positif": 11215,
+   "negatif": 13360,
+   "netral": 3723,
+   "mean": -0.051
+  },
+  {
+   "name": "Prabowo Subianto",
+   "n": 16900,
+   "scored": 10426,
+   "abstain": 6474,
+   "positif": 2830,
+   "negatif": 6228,
+   "netral": 1368,
+   "mean": -0.21
+  },
+  {
+   "name": "Joko Widodo",
+   "n": 10637,
+   "scored": 7263,
+   "abstain": 3374,
+   "positif": 2085,
+   "negatif": 4199,
+   "netral": 979,
+   "mean": -0.186
+  },
+  {
+   "name": "DPR",
+   "n": 7368,
+   "scored": 4978,
+   "abstain": 2390,
+   "positif": 869,
+   "negatif": 3445,
+   "netral": 664,
+   "mean": -0.337
+  },
+  {
+   "name": "Mahkamah Konstitusi",
+   "n": 4330,
+   "scored": 2673,
+   "abstain": 1657,
+   "positif": 508,
+   "negatif": 1794,
+   "netral": 371,
+   "mean": -0.297
+  },
+  {
+   "name": "Agus Harimurti Yudhoyono",
+   "n": 2324,
+   "scored": 1031,
+   "abstain": 1293,
+   "positif": 519,
+   "negatif": 421,
+   "netral": 91,
+   "mean": 0.055
+  },
+  {
+   "name": "Megawati / PDIP",
+   "n": 1880,
+   "scored": 1042,
+   "abstain": 838,
+   "positif": 227,
+   "negatif": 686,
+   "netral": 129,
+   "mean": -0.273
+  },
+  {
+   "name": "Roy Suryo",
+   "n": 1716,
+   "scored": 1074,
+   "abstain": 642,
+   "positif": 319,
+   "negatif": 656,
+   "netral": 99,
+   "mean": -0.218
+  },
+  {
+   "name": "Puan Maharani",
+   "n": 1604,
+   "scored": 705,
+   "abstain": 899,
+   "positif": 190,
+   "negatif": 444,
+   "netral": 71,
+   "mean": -0.254
+  },
+  {
+   "name": "PSI",
+   "n": 1548,
+   "scored": 837,
+   "abstain": 711,
+   "positif": 390,
+   "negatif": 362,
+   "netral": 85,
+   "mean": 0.029
+  },
+  {
+   "name": "MPR",
+   "n": 1249,
+   "scored": 823,
+   "abstain": 426,
+   "positif": 157,
+   "negatif": 557,
+   "netral": 109,
+   "mean": -0.292
+  },
+  {
+   "name": "Mahfud MD",
+   "n": 1171,
+   "scored": 576,
+   "abstain": 595,
+   "positif": 261,
+   "negatif": 253,
+   "netral": 62,
+   "mean": 0.004
+  },
+  {
+   "name": "Gerindra",
+   "n": 902,
+   "scored": 499,
+   "abstain": 403,
+   "positif": 153,
+   "negatif": 297,
+   "netral": 49,
+   "mean": -0.22
+  },
+  {
+   "name": "KPU",
+   "n": 750,
+   "scored": 492,
+   "abstain": 258,
+   "positif": 106,
+   "negatif": 299,
+   "netral": 87,
+   "mean": -0.233
+  },
+  {
+   "name": "Anies Baswedan",
+   "n": 748,
+   "scored": 359,
+   "abstain": 389,
+   "positif": 170,
+   "negatif": 146,
+   "netral": 43,
+   "mean": 0.044
+  },
+  {
+   "name": "Anwar Usman",
+   "n": 573,
+   "scored": 320,
+   "abstain": 253,
+   "positif": 66,
+   "negatif": 202,
+   "netral": 52,
+   "mean": -0.259
+  },
+  {
+   "name": "Sufmi Dasco Ahmad",
+   "n": 338,
+   "scored": 159,
+   "abstain": 179,
+   "positif": 58,
+   "negatif": 89,
+   "netral": 12,
+   "mean": -0.105
+  },
+  {
+   "name": "Ganjar Pranowo",
+   "n": 335,
+   "scored": 185,
+   "abstain": 150,
+   "positif": 64,
+   "negatif": 77,
+   "netral": 44,
+   "mean": -0.052
+  },
+  {
+   "name": "Kaesang Pangarep",
+   "n": 194,
+   "scored": 95,
+   "abstain": 99,
+   "positif": 34,
+   "negatif": 50,
+   "netral": 11,
+   "mean": -0.109
+  },
+  {
+   "name": "Golkar",
+   "n": 167,
+   "scored": 93,
+   "abstain": 74,
+   "positif": 30,
+   "negatif": 51,
+   "netral": 12,
+   "mean": -0.174
+  },
+  {
+   "name": "Bobby Nasution",
+   "n": 60,
+   "scored": 18,
+   "abstain": 42,
+   "positif": 5,
+   "negatif": 12,
+   "netral": 1,
+   "mean": -0.245
+  },
+  {
+   "name": "Purnawirawan TNI",
+   "n": 24,
+   "scored": 17,
+   "abstain": 7,
+   "positif": 5,
+   "negatif": 9,
+   "netral": 3,
+   "mean": -0.112
+  },
+  {
+   "name": "Ahmad Muzani",
+   "n": 16,
+   "scored": 4,
+   "abstain": 12,
+   "positif": 3,
+   "negatif": 1,
+   "netral": 0,
+   "mean": 0.119
+  }
+ ],
+ "actor_by_day": {
+  "Gibran Rakabuming Raka": {
+   "2026-11-10": 5364,
+   "2026-11-11": 6621,
+   "2026-11-12": 13029,
+   "2026-11-13": 6909,
+   "2026-11-14": 4424,
+   "2026-11-15": 3123,
+   "2026-11-16": 2192,
+   "2026-11-17": 56
+  },
+  "Joko Widodo": {
+   "2026-11-10": 971,
+   "2026-11-11": 1288,
+   "2026-11-12": 3370,
+   "2026-11-13": 1902,
+   "2026-11-14": 1184,
+   "2026-11-15": 1083,
+   "2026-11-16": 822,
+   "2026-11-17": 17
+  },
+  "Prabowo Subianto": {
+   "2026-11-10": 2020,
+   "2026-11-11": 2333,
+   "2026-11-12": 5586,
+   "2026-11-13": 2458,
+   "2026-11-14": 1869,
+   "2026-11-15": 1613,
+   "2026-11-16": 1000,
+   "2026-11-17": 21
+  }
+ },
+ "top_videos": [
+  {
+   "title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc",
+   "published_at": "2026-11-12T12:18:52Z",
+   "views": 2297187,
+   "comment_count": 12815,
+   "comments_in_window": 12815,
+   "scored": 7300,
+   "positif": 3357,
+   "negatif": 3139,
+   "mean": 0.018
+  },
+  {
+   "title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI",
+   "published_at": "2026-11-12T16:48:37Z",
+   "views": 1352162,
+   "comment_count": 11434,
+   "comments_in_window": 11434,
+   "scored": 5806,
+   "positif": 854,
+   "negatif": 4534,
+   "mean": -0.406
+  },
+  {
+   "title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4",
+   "published_at": "2026-11-12T11:38:18Z",
+   "views": 812685,
+   "comment_count": 6708,
+   "comments_in_window": 6708,
+   "scored": 4290,
+   "positif": 2804,
+   "negatif": 1062,
+   "mean": 0.245
+  },
+  {
+   "title": "Gibran Mundur, Relawan Ngamuk ke Prabowo: Tanpa Jokowi Belum Tentu Jadi Presiden, Kini Amnesia",
+   "channel": "Tribunnews",
+   "url": "https://www.youtube.com/watch?v=I_OfUYxmRD0",
+   "published_at": "2026-11-12T07:45:10Z",
+   "views": 342741,
+   "comment_count": 5755,
+   "comments_in_window": 5755,
+   "scored": 3464,
+   "positif": 913,
+   "negatif": 2187,
+   "mean": -0.223
+  },
+  {
+   "title": "PRESIDEN PRABOWO.. ROBEK SURAT P3NGUNDURAN DIRI GIBRAN❗️PELAKU M4KAR PADA WAPRES DI T4NGKAP",
+   "channel": "GIBRAN DAY ",
+   "url": "https://www.youtube.com/watch?v=jyfODX_eCLE",
+   "published_at": "2026-11-11T07:41:24Z",
+   "views": 652252,
+   "comment_count": 3717,
+   "comments_in_window": 3717,
+   "scored": 2458,
+   "positif": 1017,
+   "negatif": 1151,
+   "mean": -0.035
+  },
+  {
+   "title": "GIBRAN MENYAMPAIKAN MUNDUR DARI WAPRES KE PAK PRABOWO.!! #gibran #jokowi #shorts #fyp #viralvideo",
+   "channel": "Jejak Nyata",
+   "url": "https://www.youtube.com/watch?v=-2ThxInzDjc",
+   "published_at": "2026-11-10T10:25:00Z",
+   "views": 854386,
+   "comment_count": 3412,
+   "comments_in_window": 3412,
+   "scored": 2209,
+   "positif": 1030,
+   "negatif": 952,
+   "mean": -0.001
+  },
+  {
+   "title": "5 Reaksi Keras Tim Hukum Gibran Soal Aksi Pencoretan Foto Wapres, Siap Lapor Kemendagri! |CUMI TOP V",
+   "channel": "Cumicumi",
+   "url": "https://www.youtube.com/watch?v=2xSDS9xJkyg",
+   "published_at": "2026-11-11T03:08:32Z",
+   "views": 273342,
+   "comment_count": 3304,
+   "comments_in_window": 3304,
+   "scored": 2066,
+   "positif": 336,
+   "negatif": 1506,
+   "mean": -0.358
+  },
+  {
+   "title": "ADA DEAL? Bab Baru Perjalanan Gibran Usai Mundur Dari Wakil Presiden",
+   "channel": "SAMPUL INDONESIA",
+   "url": "https://www.youtube.com/watch?v=Ygi7M7_xoIs",
+   "published_at": "2026-11-13T03:37:10Z",
+   "views": 887094,
+   "comment_count": 3217,
+   "comments_in_window": 3216,
+   "scored": 2023,
+   "positif": 555,
+   "negatif": 1287,
+   "mean": -0.261
+  },
+  {
+   "title": "RAHASIA ISTANA PENYEBAB UTAMA MAS GIBRAN MUNDUR, MENCENGANGKAN DAN JARANG PUBLIK TAHU",
+   "channel": "AGRI FANANI",
+   "url": "https://www.youtube.com/watch?v=TatIZeT-C_I",
+   "published_at": "2026-11-13T13:55:09Z",
+   "views": 613226,
+   "comment_count": 3160,
+   "comments_in_window": 3160,
+   "scored": 2008,
+   "positif": 577,
+   "negatif": 1205,
+   "mean": -0.222
+  },
+  {
+   "title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+   "channel": "Official iNews",
+   "url": "https://www.youtube.com/watch?v=XOnU3XRRaug",
+   "published_at": "2026-11-10T08:52:04Z",
+   "views": 1214244,
+   "comment_count": 2996,
+   "comments_in_window": 2996,
+   "scored": 1818,
+   "positif": 755,
+   "negatif": 829,
+   "mean": -0.036
+  },
+  {
+   "title": "Gibran Berniat Mundur Saat Akan Dimakzulkan | Kasus Ijazah Gibran",
+   "channel": "3D Case Blueprint",
+   "url": "https://www.youtube.com/watch?v=T9Zsd4aJr50",
+   "published_at": "2026-11-10T10:27:43Z",
+   "views": 1116423,
+   "comment_count": 2992,
+   "comments_in_window": 2991,
+   "scored": 1797,
+   "positif": 378,
+   "negatif": 1174,
+   "mean": -0.282
+  },
+  {
+   "title": "SURVEI PENGGANTI GIBRAN DIRILIS! Anies, AHY, Dasco, Puan hingga KDM Mencuat, Siapa Pilihan Prabowo?",
+   "channel": "Official iNews",
+   "url": "https://www.youtube.com/watch?v=nvXZxCs49Mw",
+   "published_at": "2026-11-15T11:55:54Z",
+   "views": 594641,
+   "comment_count": 2783,
+   "comments_in_window": 2783,
+   "scored": 1119,
+   "positif": 575,
+   "negatif": 458,
+   "mean": 0.064
+  },
+  {
+   "title": "TANGGAPI ISU PENGUNDURAN DIRI GIBRAN, AHY: DEMOKRAT MASIH BERKOMUNIKASI DENGAN FRAKSI LAIN #short",
+   "channel": "KOMPASTV",
+   "url": "https://www.youtube.com/watch?v=ALQr7B8UAaU",
+   "published_at": "2026-11-10T11:02:22Z",
+   "views": 824160,
+   "comment_count": 2770,
+   "comments_in_window": 2770,
+   "scored": 1203,
+   "positif": 419,
+   "negatif": 688,
+   "mean": -0.157
+  },
+  {
+   "title": "[FULL] Pernyataan Resmi Gibran Usai Mengundurkan Diri, Ceritakan Perjalanan Jadi Wakil Presiden",
+   "channel": "Official iNews",
+   "url": "https://www.youtube.com/watch?v=EipBFQIn1-w",
+   "published_at": "2026-11-12T12:04:22Z",
+   "views": 360828,
+   "comment_count": 2767,
+   "comments_in_window": 2767,
+   "scored": 1415,
+   "positif": 654,
+   "negatif": 621,
+   "mean": 0.013
+  },
+  {
+   "title": "Diterpa Isu Pemakzulan, Gibran akan Lepas Jabatan? | Head To Head With Elvira",
+   "channel": "CNN Indonesia",
+   "url": "https://www.youtube.com/watch?v=-drx2mlNrkk",
+   "published_at": "2026-11-11T15:17:11Z",
+   "views": 253385,
+   "comment_count": 2695,
+   "comments_in_window": 2695,
+   "scored": 1394,
+   "positif": 254,
+   "negatif": 1042,
+   "mean": -0.365
+  },
+  {
+   "title": "[FULL] Pernyataan Pertama Gibran Rakabuming Usai Mundur sebagai Wapres | BREAKING NEWS",
+   "channel": "Liputan6",
+   "url": "https://www.youtube.com/watch?v=kSRj6Toi8vU",
+   "published_at": "2026-11-12T12:12:15Z",
+   "views": 439519,
+   "comment_count": 2651,
+   "comments_in_window": 2651,
+   "scored": 1465,
+   "positif": 781,
+   "negatif": 533,
+   "mean": 0.1
+  },
+  {
+   "title": "BREAKING NEWS! 11/11 Gibran Resmi Mengundurkan Diri dari Wakil Presiden",
+   "channel": "VIVA.CO.ID",
+   "url": "https://www.youtube.com/watch?v=tozGCh4Bh0I",
+   "published_at": "2026-11-11T13:19:52Z",
+   "views": 582944,
+   "comment_count": 2625,
+   "comments_in_window": 2625,
+   "scored": 1493,
+   "positif": 446,
+   "negatif": 881,
+   "mean": -0.194
+  },
+  {
+   "title": "Benarkah Gibran Mundur Karena Rakyat? - Felix Siauw",
+   "channel": "Felix Siauw",
+   "url": "https://www.youtube.com/watch?v=Y_N0nrj9wjA",
+   "published_at": "2026-11-11T13:30:22Z",
+   "views": 1096684,
+   "comment_count": 2587,
+   "comments_in_window": 2587,
+   "scored": 1426,
+   "positif": 449,
+   "negatif": 788,
+   "mean": -0.153
+  },
+  {
+   "title": "MOMEN TERAKHIR! Detik-Detik Gibran Tinggalkan Istana Wapres Usai Resmi Mundur | Sindo Sore | 12/11",
+   "channel": "SINDOnews",
+   "url": "https://www.youtube.com/watch?v=4KaHxLaer8k",
+   "published_at": "2026-11-12T11:57:05Z",
+   "views": 695582,
+   "comment_count": 2394,
+   "comments_in_window": 2394,
+   "scored": 1302,
+   "positif": 513,
+   "negatif": 653,
+   "mean": -0.076
+  },
+  {
+   "title": "Daftar nama2 anggota praksi yg Tandatangann Hak MP pemakzulan Gibran #Jokowi #Gibran #Gibranmundur",
+   "channel": "Kasinfo II",
+   "url": "https://www.youtube.com/watch?v=gkwbTu3P12c",
+   "published_at": "2026-11-12T01:17:37Z",
+   "views": 595773,
+   "comment_count": 2348,
+   "comments_in_window": 2348,
+   "scored": 1103,
+   "positif": 216,
+   "negatif": 810,
+   "mean": -0.378
+  }
+ ],
+ "top_channels": [
+  {
+   "channel": "Official iNews",
+   "n": 16943
+  },
+  {
+   "channel": "Nusantara TV",
+   "n": 12815
+  },
+  {
+   "channel": "INTIP SUARA RAKYAT",
+   "n": 11434
+  },
+  {
+   "channel": "KOMPASTV",
+   "n": 9895
+  },
+  {
+   "channel": "Tribunnews",
+   "n": 9012
+  },
+  {
+   "channel": "Wakil Presiden Republik Indonesia",
+   "n": 6708
+  },
+  {
+   "channel": "tvOneNews ",
+   "n": 6383
+  },
+  {
+   "channel": "Cumicumi",
+   "n": 5368
+  },
+  {
+   "channel": "Felix Siauw",
+   "n": 5113
+  },
+  {
+   "channel": "AGRI FANANI",
+   "n": 4799
+  },
+  {
+   "channel": "CNN Indonesia",
+   "n": 4130
+  },
+  {
+   "channel": "VIVA.CO.ID",
+   "n": 4110
+  },
+  {
+   "channel": "SINDOnews",
+   "n": 4046
+  },
+  {
+   "channel": "Tribun Sumsel",
+   "n": 3914
+  },
+  {
+   "channel": "GIBRAN DAY ",
+   "n": 3717
+  }
+ ],
+ "top_liked": [
+  {
+   "waktu_wib": "2026-11-12 21:55",
+   "text": "Raihlah segala sesuatu dgn cara yg baik dan jujur",
+   "likes": 2617,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgzLAal1Yi2PaHPO3j94AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 13:00",
+   "text": "Sekarang, kurang wowo juga mengundurkan diri",
+   "likes": 2482,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgxRmU23r7nb7sQu_554AaABAg",
+   "video_title": "Wapres Gibran MUNDUR? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "",
+   "aktor": "Prabowo Subianto"
+  },
+  {
+   "waktu_wib": "2026-11-16 12:18",
+   "text": "Awalnya hanya konspirasi, ternyata menjadi kenyataan✋🗿🤚",
+   "likes": 1751,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgyqJAlTxN1-zPCSeDN4AaABAg",
+   "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 01:45",
+   "text": "Sesempurna apapun niat jahat, kebaikan/ kebenaran yg akan selalu menang",
+   "likes": 1584,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgyvfQ34HFjQA0UIZ4N4AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 22:37",
+   "text": "Kembalilah dengan tenang,..\nRaihlah segala sesuatu dengan cara yang benar dan jujur.",
+   "likes": 1488,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgyyJZ6Dp0yo5RxIx2R4AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-16 12:25",
+   "text": "Akhirnya beliau memilih profesi yang cocok dengan beliau😂👍",
+   "likes": 1294,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgwVZr30tRlDqN_MqMJ4AaABAg",
+   "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "Syukur / merayakan mundurnya",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 00:06",
+   "text": "lagi dapat kesulitan bawa bawa rakyat eh pas dapat amplop diam",
+   "likes": 1244,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=UgwiANQCey-x8Nhvu3d4AaABAg",
+   "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 12:36",
+   "text": "Fufufafa: I'm back beby😹",
+   "likes": 1182,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgxFw_5CT9yrvbJyuiV4AaABAg",
+   "video_title": "Wapres Gibran MUNDUR? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "Fufufafa / akun lama",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-12 12:34",
+   "text": "Yah sekarang yang pengangguran ada 19.000.001 orang deh🥀\nWaktu itu aku liat list orang-orang yang kemungkinan bakal jadi pengganti wapres, isinya orang kocak semua loh ya🗿",
+   "likes": 1171,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgyAiLug4fCG-C9bWLZ4AaABAg",
+   "video_title": "Wapres Gibran MUNDUR? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "Pengganti wapres / MPR",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 00:11",
+   "text": "Kata bijak : kebenaran akan menemukan jalannya sendiri",
+   "likes": 1051,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=Ugw9QFIlnHTK0ZR5U414AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 00:28",
+   "text": "Rakyat yg mana\nRakyat yg rugi di bohongi\nOrg yg membela kebohongan akan ada hisab dan pertanggung jawabannya baik dunia maupun akhirat",
+   "likes": 926,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=Ugzzv322DUpzDC2Sbz54AaABAg",
+   "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-14 18:53",
+   "text": "Rakyat Indonesia mikir gak sihh,,??! Jangan ikut Mereka saling ribut mikir kekuasaan,,!!! Fokus Tuntut hak kalian sebagai warga negara, gak usahh ikut dukung sana sinii. Siapapun presidennya fokus Tuntut hak kalian sebagai warga negara!!! Percuma lu ribut dukung sana sini ehh tiba2 pajak naik lagii.. !!!",
+   "likes": 838,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=UgzSHsSJO2GZKfN42Z14AaABAg",
+   "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
+   "channel": "Raymond Chin",
+   "themes": "Prabowo / presiden",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-11 22:43",
+   "text": "Ngurusin ginian DPR cepat kerjanya, giliran ngurus perampasan aset koruptor gak kelar-kelar",
+   "likes": 827,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=Y_N0nrj9wjA&lc=UgxpBk9IYlk7WecB4Rt4AaABAg",
+   "video_title": "Benarkah Gibran Mundur Karena Rakyat? - Felix Siauw",
+   "channel": "Felix Siauw",
+   "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+   "aktor": "DPR"
+  },
+  {
+   "waktu_wib": "2026-11-12 19:20",
+   "text": "Tuhan memberkati Mas Gibran.🙏",
+   "likes": 759,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4&lc=UgxeVgSaBDf2sfJ2VUl4AaABAg",
+   "video_title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "themes": "",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-16 12:19",
+   "text": "soal politik saya sudah mundur\nsoal GTA saya maju sampe tempur 🗿",
+   "likes": 741,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgxJB7WUfZEukb9x9y14AaABAg",
+   "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 00:32",
+   "text": "Gogon katanya pengacara, tapi ketahuan nggak tahu hukum😅",
+   "likes": 684,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=Ugyv5Re-Z3j9dWELfJN4AaABAg",
+   "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 19:43",
+   "text": "Kalo ngga mundur takut dikuliti... 😂😂",
+   "likes": 645,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=Ugwg-tjsaKARbkwyj994AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 12:33",
+   "text": "DPR klo politik cepet ngesahkan, buat urusan rakyat lamaaaaanya minta ampuun!!",
+   "likes": 640,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgzHnS7O4qHI93oFHwh4AaABAg",
+   "video_title": "Wapres Gibran MUNDUR? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+   "aktor": "DPR"
+  },
+  {
+   "waktu_wib": "2026-11-13 08:50",
+   "text": "Hukum tabur tuai,dulu menabur sekarang saat menuai hasilnya",
+   "likes": 633,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=Ugzbqm98vmIF6PyAEa94AaABAg",
+   "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-10 16:25",
+   "text": "Alhamdulillah..semoga betul2 terjadi.",
+   "likes": 624,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=XOnU3XRRaug&lc=Ugw8EN4WpFnvXJ1udJ14AaABAg",
+   "video_title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+   "channel": "Official iNews",
+   "themes": "Syukur / merayakan mundurnya",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-10 17:02",
+   "text": "Terimakasih kpd Pak Denny Indrayana, Pak Roy Suryo & Bu Dr Tifa dkk.. \nBerkat kalian semua, Alhamdulillah wapres benalu akhirnya lepas juga!!",
+   "likes": 614,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=cPTQs82aW28&lc=UgyKrTpOIiV6xFwqgHJ4AaABAg",
+   "video_title": "BREAKING NEWS! RESMI MENGUNDURKAN DIRI, GIBRAN RAKABUMING RAKA TEMUI PRESIDEN PRABOWO",
+   "channel": "Hersubeno Point",
+   "themes": "Syukur / merayakan mundurnya",
+   "aktor": "Roy Suryo"
+  },
+  {
+   "waktu_wib": "2026-11-10 17:43",
+   "text": "Apapun yg di lakukan oleh mas Gibran bagi kami para pendukung mas gibran tetap setia mendukungmu, tetap semangat mas wapres 💪💪💪",
+   "likes": 607,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=-2ThxInzDjc&lc=UgymYKIzxWs7-6kqolN4AaABAg",
+   "video_title": "GIBRAN MENYAMPAIKAN MUNDUR DARI WAPRES KE PAK PRABOWO.!! #gibran #jokowi #shorts #fyp #viralvideo",
+   "channel": "Jejak Nyata",
+   "themes": "Simpati / dukungan kepada Gibran",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-13 07:02",
+   "text": "Di balik ini, ada sesuatu yg blm kita tahu\nYa Allah jagalah Negaraku",
+   "likes": 586,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgxM8Birb1sac7XZfPx4AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-10 16:13",
+   "text": "Alhamdulillah\nGame over genk oslo..",
+   "likes": 565,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=XOnU3XRRaug&lc=UgxZbSfkKIpf2n2WJ6V4AaABAg",
+   "video_title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+   "channel": "Official iNews",
+   "themes": "Syukur / merayakan mundurnya",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 18:57",
+   "text": "Rela mundur demi Indonesia damai, tidak ribut",
+   "likes": 547,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4&lc=UgxP3kA6pMKlYG1-ilF4AaABAg",
+   "video_title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 02:45",
+   "text": "Ingat jgn sampe lupa kasus karhutla belum selesai",
+   "likes": 517,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=YmEGnxmLsp8&lc=UgzZ2drEYL_p9c8Ghwp4AaABAg",
+   "video_title": "Alasan Wapres Gibran Mundur #gibran #wapres",
+   "channel": "Hanif Produktif",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-11 19:12",
+   "text": "Yg jls mrk berantem bukan krn belain rakyat...tp krn kepentingan mrk masing2\nRakyat maah...ttp sj sengsara...\nKshn..kshn..kshn wni",
+   "likes": 513,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=KBsZ6j_CAoM&lc=UgxOyVIPnZG87fuw6qp4AaABAg",
+   "video_title": "GIBRAN MUNDUR? KENAPA?",
+   "channel": "Felix Siauw",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-11 12:56",
+   "text": "Cepatlah wahai DPR... Licin ini barang.. Kesempatan emas ini..",
+   "likes": 497,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=UMZnTVaf6eo&lc=Ugyz_lnUbcgVBuTYYi14AaABAg",
+   "video_title": "DPR INISIASI PEMAKZULAN GIBRAN RAKABUMING RAKA DI SENAYAN",
+   "channel": "Obor Rakyat Reborn",
+   "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+   "aktor": "DPR"
+  },
+  {
+   "waktu_wib": "2026-11-12 21:41",
+   "text": "Iya...semoga ke depan ada keadilan untuk semua anak bangsa, fasilitas MUDAH mencari kerja bukan hanya untuk anak pejabat/ anak presiden😂😂",
+   "likes": 493,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgxkqZcod284k8-c_654AaABAg",
+   "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+   "channel": "Nusantara TV",
+   "themes": "Prabowo / presiden",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 14:43",
+   "text": "Sungguh maen cantik politik di negara ini dan sangat jelas di setting soalnya kenapa pas dari awal Pemilu soal dokumen Gibran yg di acc untuk jadi Wapres dan plot twistnya karena si Gibran masih punya malu dia mengundurkan diri dan tinggal pemain utama di belakang layar yg sudah di siapkan oleh mereka dan saya yakin ga sampe 60 hari pengumuman Wapres baru akan di publikasian, sungguh absolute politik di negara ini!!!",
+   "likes": 478,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgwMlgd7THW-mGaHdjB4AaABAg",
+   "video_title": "Wapres Gibran MUNDUR? #shorts",
+   "channel": "Gerald Vincent (geraldvincentt)",
+   "themes": "Pengganti wapres / MPR; Simpati / dukungan kepada Gibran; Curiga skenario / deal politik",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-12 17:21",
+   "text": "Segera usut kasus pemalsuan dokumen dan fufufafa... Seret ke penjara",
+   "likes": 473,
+   "sentiment_label": "negatif",
+   "url": "https://www.youtube.com/watch?v=VeIun2N-4iA&lc=Ugwl0r1JFPwQ0EKyWO14AaABAg",
+   "video_title": "Eks Wakapolri Bongkar Rahasia Pengunduran Diri Gibran Wapres Lewat Kasus Penyadapan | #SPEAKUP",
+   "channel": "Abraham Samad SPEAK UP",
+   "themes": "Tuntutan hukum lanjut; Fufufafa / akun lama",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-11 16:09",
+   "text": "YANG SUDAH GAK SABAR MENUNGGU GIBRAN LENGSER.. \nMANA SUARANYA.???!!👆🔥",
+   "likes": 469,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=4BQkQ-AOfms&lc=Ugzi9vgdakFjevcq4714AaABAg",
+   "video_title": "PARIPURNA DPR PEMAKZULAN GIBRAN DIGELAR BESOK! SEMUA FRAKSI SDH TANDATANGAN HAK MENYATAKAN PENDAPAT",
+   "channel": "Hersubeno Point",
+   "themes": "",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-12 18:49",
+   "text": "Tuhan Memberkati mu Pak Gibran Rakabuming, tahun 2029 Go RI 1 Pak Gibran",
+   "likes": 468,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4&lc=Ugy5LxQaL3SEnZkoeGJ4AaABAg",
+   "video_title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "themes": "Curiga skenario / deal politik",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-10 17:42",
+   "text": "Sehat sehat mas Gibran 👍 \n. Semoga Allah SWT selalu menjaga dan melindungi",
+   "likes": 458,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=-2ThxInzDjc&lc=Ugz6nIjxOpBzz7R6UVt4AaABAg",
+   "video_title": "GIBRAN MENYAMPAIKAN MUNDUR DARI WAPRES KE PAK PRABOWO.!! #gibran #jokowi #shorts #fyp #viralvideo",
+   "channel": "Jejak Nyata",
+   "themes": "",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-12 19:31",
+   "text": "The best WaPres Gibran pilihanku,,\nsaya akan tetap tegak lurus mendukung Mas Gibran 2029,",
+   "likes": 457,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4&lc=UgwxbEhjqV-APwe1FB14AaABAg",
+   "video_title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "themes": "Curiga skenario / deal politik",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-10 18:45",
+   "text": "Sembah sujudKu kepada Mu yaa Allah engkau telah mendengar rintihan seluruh Rakyat Indonesia ..",
+   "likes": 441,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=XOnU3XRRaug&lc=UgzbSqWH3ZxXe0bNpaB4AaABAg",
+   "video_title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+   "channel": "Official iNews",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 19:26",
+   "text": "Salut  atas kedewasaan berbangsa dan bernegara,ihklas,sabar   nya mas Wapres Gibran Rakabuming Raka....future  menunggumu..",
+   "likes": 439,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=S60nZpfzhb4&lc=Ugxzi1XskwoaEvXWu4R4AaABAg",
+   "video_title": "Pernyataan Resmi Gibran Rakabuming Terkait Pengunduran Diri sebagai Wakil Presiden RI",
+   "channel": "Wakil Presiden Republik Indonesia",
+   "themes": "Simpati / dukungan kepada Gibran",
+   "aktor": "Gibran Rakabuming Raka"
+  },
+  {
+   "waktu_wib": "2026-11-11 15:17",
+   "text": "Hanya karna suket mereka semangat sekali membahasnya.kalau masalah UU perampasan aset koruptor mereka diam.padahal rakyat yang minta.",
+   "likes": 435,
+   "sentiment_label": "netral",
+   "url": "https://www.youtube.com/watch?v=YwaU84Fg9gs&lc=Ugw7vCKfsScKCVj-7B54AaABAg",
+   "video_title": "Suasana di Istana Wakil Presiden Pasca Pemakzulan & Pengunduran Diri Gibran | KOMPAS SIANG",
+   "channel": "KOMPASTV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-12 12:22",
+   "text": "Jabatan itu sementara\nAmbisi itu selamanya\n😅😅😅",
+   "likes": 424,
+   "sentiment_label": "abstain",
+   "url": "https://www.youtube.com/watch?v=g5V87FvFNOs&lc=UgwhNGYCg7C-bakZ0vp4AaABAg",
+   "video_title": "Jokowi soal Gibran Mundur Sebagai Wapres: Jabatan Itu Sementara #short",
+   "channel": "KOMPASTV",
+   "themes": "",
+   "aktor": ""
+  },
+  {
+   "waktu_wib": "2026-11-13 09:22",
+   "text": "Rakyat yg mana ? Yang Mau kau kerahkan\nSekarang masyarakat udah pada melek dan cerdas",
+   "likes": 419,
+   "sentiment_label": "positif",
+   "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=UgxBGyCZnXSF5kU-u-14AaABAg",
+   "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+   "channel": "INTIP SUARA RAKYAT",
+   "themes": "",
+   "aktor": ""
+  }
+ ],
+ "by_day_samples": {
+  "2026-11-10": [
+   {
+    "waktu_wib": "2026-11-10 16:25",
+    "text": "Alhamdulillah..semoga betul2 terjadi.",
+    "likes": 624,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=XOnU3XRRaug&lc=Ugw8EN4WpFnvXJ1udJ14AaABAg",
+    "video_title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+    "channel": "Official iNews",
+    "themes": "Syukur / merayakan mundurnya",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-10 17:02",
+    "text": "Terimakasih kpd Pak Denny Indrayana, Pak Roy Suryo & Bu Dr Tifa dkk.. \nBerkat kalian semua, Alhamdulillah wapres benalu akhirnya lepas juga!!",
+    "likes": 614,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=cPTQs82aW28&lc=UgyKrTpOIiV6xFwqgHJ4AaABAg",
+    "video_title": "BREAKING NEWS! RESMI MENGUNDURKAN DIRI, GIBRAN RAKABUMING RAKA TEMUI PRESIDEN PRABOWO",
+    "channel": "Hersubeno Point",
+    "themes": "Syukur / merayakan mundurnya",
+    "aktor": "Roy Suryo"
+   },
+   {
+    "waktu_wib": "2026-11-10 17:43",
+    "text": "Apapun yg di lakukan oleh mas Gibran bagi kami para pendukung mas gibran tetap setia mendukungmu, tetap semangat mas wapres 💪💪💪",
+    "likes": 607,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=-2ThxInzDjc&lc=UgymYKIzxWs7-6kqolN4AaABAg",
+    "video_title": "GIBRAN MENYAMPAIKAN MUNDUR DARI WAPRES KE PAK PRABOWO.!! #gibran #jokowi #shorts #fyp #viralvideo",
+    "channel": "Jejak Nyata",
+    "themes": "Simpati / dukungan kepada Gibran",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-10 16:13",
+    "text": "Alhamdulillah\nGame over genk oslo..",
+    "likes": 565,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=XOnU3XRRaug&lc=UgxZbSfkKIpf2n2WJ6V4AaABAg",
+    "video_title": "BREAKING NEWS! Istana: Gibran Berniat Mengundurkan Diri dari Jabatan Wapres",
+    "channel": "Official iNews",
+    "themes": "Syukur / merayakan mundurnya",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-10 17:42",
+    "text": "Sehat sehat mas Gibran 👍 \n. Semoga Allah SWT selalu menjaga dan melindungi",
+    "likes": 458,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=-2ThxInzDjc&lc=Ugz6nIjxOpBzz7R6UVt4AaABAg",
+    "video_title": "GIBRAN MENYAMPAIKAN MUNDUR DARI WAPRES KE PAK PRABOWO.!! #gibran #jokowi #shorts #fyp #viralvideo",
+    "channel": "Jejak Nyata",
+    "themes": "",
+    "aktor": "Gibran Rakabuming Raka"
+   }
+  ],
+  "2026-11-11": [
+   {
+    "waktu_wib": "2026-11-11 22:43",
+    "text": "Ngurusin ginian DPR cepat kerjanya, giliran ngurus perampasan aset koruptor gak kelar-kelar",
+    "likes": 827,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=Y_N0nrj9wjA&lc=UgxpBk9IYlk7WecB4Rt4AaABAg",
+    "video_title": "Benarkah Gibran Mundur Karena Rakyat? - Felix Siauw",
+    "channel": "Felix Siauw",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+    "aktor": "DPR"
+   },
+   {
+    "waktu_wib": "2026-11-11 19:12",
+    "text": "Yg jls mrk berantem bukan krn belain rakyat...tp krn kepentingan mrk masing2\nRakyat maah...ttp sj sengsara...\nKshn..kshn..kshn wni",
+    "likes": 513,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=KBsZ6j_CAoM&lc=UgxOyVIPnZG87fuw6qp4AaABAg",
+    "video_title": "GIBRAN MUNDUR? KENAPA?",
+    "channel": "Felix Siauw",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-11 12:56",
+    "text": "Cepatlah wahai DPR... Licin ini barang.. Kesempatan emas ini..",
+    "likes": 497,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=UMZnTVaf6eo&lc=Ugyz_lnUbcgVBuTYYi14AaABAg",
+    "video_title": "DPR INISIASI PEMAKZULAN GIBRAN RAKABUMING RAKA DI SENAYAN",
+    "channel": "Obor Rakyat Reborn",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+    "aktor": "DPR"
+   },
+   {
+    "waktu_wib": "2026-11-11 16:09",
+    "text": "YANG SUDAH GAK SABAR MENUNGGU GIBRAN LENGSER.. \nMANA SUARANYA.???!!👆🔥",
+    "likes": 469,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=4BQkQ-AOfms&lc=Ugzi9vgdakFjevcq4714AaABAg",
+    "video_title": "PARIPURNA DPR PEMAKZULAN GIBRAN DIGELAR BESOK! SEMUA FRAKSI SDH TANDATANGAN HAK MENYATAKAN PENDAPAT",
+    "channel": "Hersubeno Point",
+    "themes": "",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-11 15:17",
+    "text": "Hanya karna suket mereka semangat sekali membahasnya.kalau masalah UU perampasan aset koruptor mereka diam.padahal rakyat yang minta.",
+    "likes": 435,
+    "sentiment_label": "netral",
+    "url": "https://www.youtube.com/watch?v=YwaU84Fg9gs&lc=Ugw7vCKfsScKCVj-7B54AaABAg",
+    "video_title": "Suasana di Istana Wakil Presiden Pasca Pemakzulan & Pengunduran Diri Gibran | KOMPAS SIANG",
+    "channel": "KOMPASTV",
+    "themes": "",
+    "aktor": ""
+   }
+  ],
+  "2026-11-12": [
+   {
+    "waktu_wib": "2026-11-12 21:55",
+    "text": "Raihlah segala sesuatu dgn cara yg baik dan jujur",
+    "likes": 2617,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgzLAal1Yi2PaHPO3j94AaABAg",
+    "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+    "channel": "Nusantara TV",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-12 13:00",
+    "text": "Sekarang, kurang wowo juga mengundurkan diri",
+    "likes": 2482,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgxRmU23r7nb7sQu_554AaABAg",
+    "video_title": "Wapres Gibran MUNDUR? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "",
+    "aktor": "Prabowo Subianto"
+   },
+   {
+    "waktu_wib": "2026-11-12 22:37",
+    "text": "Kembalilah dengan tenang,..\nRaihlah segala sesuatu dengan cara yang benar dan jujur.",
+    "likes": 1488,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgyyJZ6Dp0yo5RxIx2R4AaABAg",
+    "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+    "channel": "Nusantara TV",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-12 12:36",
+    "text": "Fufufafa: I'm back beby😹",
+    "likes": 1182,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgxFw_5CT9yrvbJyuiV4AaABAg",
+    "video_title": "Wapres Gibran MUNDUR? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "Fufufafa / akun lama",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-12 12:34",
+    "text": "Yah sekarang yang pengangguran ada 19.000.001 orang deh🥀\nWaktu itu aku liat list orang-orang yang kemungkinan bakal jadi pengganti wapres, isinya orang kocak semua loh ya🗿",
+    "likes": 1171,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=AHjdS3o9xhs&lc=UgyAiLug4fCG-C9bWLZ4AaABAg",
+    "video_title": "Wapres Gibran MUNDUR? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "Pengganti wapres / MPR",
+    "aktor": ""
+   }
+  ],
+  "2026-11-13": [
+   {
+    "waktu_wib": "2026-11-13 01:45",
+    "text": "Sesempurna apapun niat jahat, kebaikan/ kebenaran yg akan selalu menang",
+    "likes": 1584,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=UgyvfQ34HFjQA0UIZ4N4AaABAg",
+    "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+    "channel": "Nusantara TV",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-13 00:06",
+    "text": "lagi dapat kesulitan bawa bawa rakyat eh pas dapat amplop diam",
+    "likes": 1244,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=UgwiANQCey-x8Nhvu3d4AaABAg",
+    "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+    "channel": "INTIP SUARA RAKYAT",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-13 00:11",
+    "text": "Kata bijak : kebenaran akan menemukan jalannya sendiri",
+    "likes": 1051,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=O7TdPpx5IXc&lc=Ugw9QFIlnHTK0ZR5U414AaABAg",
+    "video_title": "Gibran Blak-blakan Kenapa Harus Mundur dari Wapres: Bukan Karena Ijazah!",
+    "channel": "Nusantara TV",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-13 00:28",
+    "text": "Rakyat yg mana\nRakyat yg rugi di bohongi\nOrg yg membela kebohongan akan ada hisab dan pertanggung jawabannya baik dunia maupun akhirat",
+    "likes": 926,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=Ugzzv322DUpzDC2Sbz54AaABAg",
+    "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+    "channel": "INTIP SUARA RAKYAT",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-13 00:32",
+    "text": "Gogon katanya pengacara, tapi ketahuan nggak tahu hukum😅",
+    "likes": 684,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=_CkOmrz_9VI&lc=Ugyv5Re-Z3j9dWELfJN4AaABAg",
+    "video_title": "ANCAMAN TERMUL NGERI NGERI SEDAP 💥Setelah Gibran Mundur #shorts #gibran",
+    "channel": "INTIP SUARA RAKYAT",
+    "themes": "",
+    "aktor": ""
+   }
+  ],
+  "2026-11-14": [
+   {
+    "waktu_wib": "2026-11-14 18:53",
+    "text": "Rakyat Indonesia mikir gak sihh,,??! Jangan ikut Mereka saling ribut mikir kekuasaan,,!!! Fokus Tuntut hak kalian sebagai warga negara, gak usahh ikut dukung sana sinii. Siapapun presidennya fokus Tuntut hak kalian sebagai warga negara!!! Percuma lu ribut dukung sana sini ehh tiba2 pajak naik lagii.. !!!",
+    "likes": 838,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=UgzSHsSJO2GZKfN42Z14AaABAg",
+    "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
+    "channel": "Raymond Chin",
+    "themes": "Prabowo / presiden",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-14 19:10",
+    "text": "Bahas RUU gak pada Dateng, giliran Gibran mau dimakzulkan pada Dateng. 😂😂😂 Mending DPR juga ikut mundur ajaaa.",
+    "likes": 350,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=Ugzn-CZVkymLEa5Jdgt4AaABAg",
+    "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
+    "channel": "Raymond Chin",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+    "aktor": "Gibran Rakabuming Raka; DPR"
+   },
+   {
+    "waktu_wib": "2026-11-14 18:24",
+    "text": "Prabowonomics meremehkan sdm Indonesia yg justru potensi terbesarnya. Halu nyawit beliaunya ✊",
+    "likes": 268,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=Ugwee3ZRQGADWj6J_pF4AaABAg",
+    "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
+    "channel": "Raymond Chin",
+    "themes": "Prabowo / presiden",
+    "aktor": "Prabowo Subianto"
+   },
+   {
+    "waktu_wib": "2026-11-14 19:22",
+    "text": "Biar dapet fasilitas dari negara dan gaji, beda cerita kalau di makzulkan alias pemecatan dengan tidak hormat,",
+    "likes": 243,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgznHw-KSv1iNIE-7cB4AaABAg",
+    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
+    "channel": "Kamar JERI",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat; Simpati / dukungan kepada Gibran",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-14 19:22",
+    "text": "Biar dapet fasilitas dari negara dan gaji, beda cerita kalau di makzulkan alias pemecatan dengan tidak hormat,",
+    "likes": 243,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgznHw-KSv1iNIE-7cB4AaABAg",
+    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
+    "channel": "Kamar JERI",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat; Simpati / dukungan kepada Gibran",
+    "aktor": ""
+   }
+  ],
+  "2026-11-15": [
+   {
+    "waktu_wib": "2026-11-15 19:08",
+    "text": "Kami warga jabar gak mau melepas KDM. biarkan gubernur ini bekerja sampai akhir periode. Masih banyak tugas di jabar...",
+    "likes": 336,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=nvXZxCs49Mw&lc=UgwjFEoSf6oxHiupbvp4AaABAg",
+    "video_title": "SURVEI PENGGANTI GIBRAN DIRILIS! Anies, AHY, Dasco, Puan hingga KDM Mencuat, Siapa Pilihan Prabowo?",
+    "channel": "Official iNews",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-15 12:11",
+    "text": "Thn 2029 jgn pilih partai lain satu pn harus pilih partai ❤ PSI ❤",
+    "likes": 253,
+    "sentiment_label": "netral",
+    "url": "https://www.youtube.com/watch?v=XwFziF39WeE&lc=UgzNHFvn6q4oW2jATS94AaABAg",
+    "video_title": "INALILLAHI..!! BOHIR PEMAKZULAN GIBRAN MENINGGAL?😱 SUSI PUDJIASTUTI MASUK PSI?😱 KODE WAPRES BARU 😂😂😂",
+    "channel": "BLACKER MAJENANG",
+    "themes": "Curiga skenario / deal politik",
+    "aktor": "PSI"
+   },
+   {
+    "waktu_wib": "2026-11-15 07:15",
+    "text": "Harusnya semua anggota DPR juga diperiksa ijasanya",
+    "likes": 196,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgzzxhpFatx8YRMIdoF4AaABAg",
+    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
+    "channel": "Kamar JERI",
+    "themes": "Pemakzulan / DPR / hak menyatakan pendapat",
+    "aktor": "DPR"
+   },
+   {
+    "waktu_wib": "2026-11-15 11:48",
+    "text": "orang2 berkualitas orang pintar masuk PSI",
+    "likes": 195,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=XwFziF39WeE&lc=UgxgYcR5mMZl6afLQA54AaABAg",
+    "video_title": "INALILLAHI..!! BOHIR PEMAKZULAN GIBRAN MENINGGAL?😱 SUSI PUDJIASTUTI MASUK PSI?😱 KODE WAPRES BARU 😂😂😂",
+    "channel": "BLACKER MAJENANG",
+    "themes": "",
+    "aktor": "PSI"
+   },
+   {
+    "waktu_wib": "2026-11-15 11:50",
+    "text": "selamat bergabung Bu Susi, moga tambah bermanfaat PSI untuk Nusantara",
+    "likes": 191,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=XwFziF39WeE&lc=UgzOMz7P9eggdcD-FCt4AaABAg",
+    "video_title": "INALILLAHI..!! BOHIR PEMAKZULAN GIBRAN MENINGGAL?😱 SUSI PUDJIASTUTI MASUK PSI?😱 KODE WAPRES BARU 😂😂😂",
+    "channel": "BLACKER MAJENANG",
+    "themes": "",
+    "aktor": "PSI"
+   }
+  ],
+  "2026-11-16": [
+   {
+    "waktu_wib": "2026-11-16 12:18",
+    "text": "Awalnya hanya konspirasi, ternyata menjadi kenyataan✋🗿🤚",
+    "likes": 1751,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgyqJAlTxN1-zPCSeDN4AaABAg",
+    "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-16 12:25",
+    "text": "Akhirnya beliau memilih profesi yang cocok dengan beliau😂👍",
+    "likes": 1294,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgwVZr30tRlDqN_MqMJ4AaABAg",
+    "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "Syukur / merayakan mundurnya",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-16 12:19",
+    "text": "soal politik saya sudah mundur\nsoal GTA saya maju sampe tempur 🗿",
+    "likes": 741,
+    "sentiment_label": "netral",
+    "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=UgxJB7WUfZEukb9x9y14AaABAg",
+    "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-16 12:21",
+    "text": "Gas mabar😅😂😂",
+    "likes": 360,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=Ugwe6L4ZtxdpXWT2UT54AaABAg",
+    "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "",
+    "aktor": ""
+   },
+   {
+    "waktu_wib": "2026-11-16 12:23",
+    "text": "Dia mah masuk politik cuma karena disuruh bapaknya aja. Aslinya mah cuma abang-abangan Millennial biasa yang masih demen sosmed sama main game😂",
+    "likes": 317,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=rVUUO86YRbE&lc=Ugw0AKsATBgdyBbSNsh4AaABAg",
+    "video_title": "Gibran mundur karena mau main GTA VI? #shorts",
+    "channel": "Gerald Vincent (geraldvincentt)",
+    "themes": "",
+    "aktor": ""
+   }
+  ],
+  "2026-11-17": [
+   {
+    "waktu_wib": "2026-11-17 00:02",
+    "text": "Anjay pinter amat gibran, gak ada pengabdian buat negara malah mau menguras keuwangan negara",
+    "likes": 1,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=Ugz6XPATV8RU1RwFph54AaABAg",
+    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
+    "channel": "Kamar JERI",
+    "themes": "",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-17 00:07",
+    "text": "BETUL BETUL  SEMUA  PEJABAT   HARUS     DI PERIKSA  IJAZA  NY  \n\n\nSEHAT SELALU  MAS GIBRAN   SABAR ALLAH  MAHA BESAR  ALLAH  KARIM AMINN YA ROB 🙏 ❤❤❤",
+    "likes": 1,
+    "sentiment_label": "positif",
+    "url": "https://www.youtube.com/watch?v=ysFh3V9KP0c&lc=UgwmpSVtBe8H4Qo0znF4AaABAg",
+    "video_title": "WAPRES GIBRAN PILIH MUNDUR AKIBAT SERANGAN INI ?",
+    "channel": "Kamar JERI",
+    "themes": "Ijazah / syarat pencalonan",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-17 00:16",
+    "text": "saya siap jadi mata2 partai psi",
+    "likes": 1,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=GrQVv98uq4A&lc=UgwLGUzQHDYTGBrAXk14AaABAg",
+    "video_title": "Gibran Mundur dari Wapres, Muncul Gelombang Besar besaran Warga Daftar Jadi Kader PSI & Dukung 2029",
+    "channel": "Tribunnews",
+    "themes": "",
+    "aktor": "PSI"
+   },
+   {
+    "waktu_wib": "2026-11-17 00:29",
+    "text": "Bang Ahmad \" trus Main full\"  Gibran Harus di PECAT,    .,",
+    "likes": 1,
+    "sentiment_label": "negatif",
+    "url": "https://www.youtube.com/watch?v=4sYGaDVKous&lc=Ugw01j_38M10TISI2RZ4AaABAg",
+    "video_title": "Khozinudin Bongkar Siasat Culas Pengunduran Diri Gibran. Gibran Diduga Lakukan Tindak Pidana",
+    "channel": "Abraham Samad SPEAK UP",
+    "themes": "",
+    "aktor": "Gibran Rakabuming Raka"
+   },
+   {
+    "waktu_wib": "2026-11-17 00:49",
+    "text": "@charleskurniawan2950 Yes, he is. Almarhum ayahnya Raymond itu Chinese Singapore, ibunya Raymond wong Jowo asli Jogja.",
+    "likes": 1,
+    "sentiment_label": "abstain",
+    "url": "https://www.youtube.com/watch?v=2qj96nDKlgo&lc=UgzJZz6jze5P_d1NVQF4AaABAg.AdBtZB3feXlAdHRRLqct4m",
+    "video_title": "Di Balik Ancaman Pemakzulan Gibran: Prabowo vs Jokowi?",
+    "channel": "Raymond Chin",
+    "themes": "",
+    "aktor": ""
+   }
+  ]
+ }
+}
