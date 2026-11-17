@@ -10,7 +10,7 @@ produk yang belum diambil, dan tidak boleh terjadi diam-diam lewat sini.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import date
 from uuid import UUID
 
 from fastapi import APIRouter, Query
@@ -19,6 +19,7 @@ from sqlalchemy import func, select
 
 from app.deps import CurrentUser, TenantSession
 from app.models.signal import Mention
+from app.routers.windowing import EndDate, StartDate, window
 from app.schemas.common import SignalSource
 from app.services.influence import AuthorActivity, estimate
 
@@ -57,6 +58,8 @@ async def get_influence(
     session: TenantSession,
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
     limit: int = Query(default=10, ge=1, le=50),
 ) -> InfluenceOut:
     """Akun dengan keterpaparan terbesar pada periode tertentu.
@@ -67,7 +70,7 @@ async def get_influence(
     sama muncul dari kampanye terkoordinasi dan dari orang-orang yang membaca
     berita yang sama pagi itu, dan data ini tidak bisa memisahkannya.
     """
-    since = datetime.now(UTC) - timedelta(days=days)
+    since, until = window(days, start, end)
     rows = (
         await session.execute(
             select(
@@ -78,6 +81,7 @@ async def get_influence(
             .where(
                 Mention.project_id == project_id,
                 Mention.published_at >= since,
+                Mention.published_at <= until,
                 Mention.author_hash.is_not(None),
             )
             .group_by(Mention.author_hash)

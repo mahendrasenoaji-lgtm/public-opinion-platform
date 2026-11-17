@@ -1,12 +1,14 @@
 import Link from "next/link";
 import type { Route } from "next";
 import type { Metadata } from "next";
-import { dateLabel, listArticles } from "@/lib/pers";
+import { PersNav } from "@/components/PersNav";
+import { PAGE_SIZE, dateLabel, listArticles, pageNumber } from "@/lib/pers";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Publikasi hasil riset",
   description: "Artikel hasil riset opini publik, lengkap dengan metode dan batas tiap angka.",
+  alternates: { types: { "application/rss+xml": "/pers/rss.xml" } },
 };
 
 /** Beranda publik: daftar artikel terbit. Tanpa login, baca-saja. */
@@ -17,10 +19,20 @@ export default async function PersHome({
 }) {
   const sp = await searchParams;
   const tag = (Array.isArray(sp.tag) ? sp.tag[0] : sp.tag)?.trim() || undefined;
-  const res = await listArticles(tag);
+  const page = pageNumber(sp.halaman);
+  const res = await listArticles(tag, page);
+  const pages = res.state === "ok" ? Math.max(1, Math.ceil(res.data.total / PAGE_SIZE)) : 1;
+  const pageHref = (n: number) => {
+    const q = new URLSearchParams();
+    if (tag) q.set("tag", tag);
+    if (n > 1) q.set("halaman", String(n));
+    const s = q.toString();
+    return (s ? `/pers?${s}` : "/pers") as Route;
+  };
 
   return (
     <main className="pers">
+      <PersNav />
       <header className="pers-head">
         <div className="kicker">Publikasi hasil riset</div>
         <h1>Riset opini publik</h1>
@@ -39,7 +51,9 @@ export default async function PersHome({
       {res.state !== "ok" ? (
         <p className="pers-empty">Daftar artikel belum bisa dimuat. Coba lagi nanti.</p>
       ) : res.data.items.length === 0 ? (
-        <p className="pers-empty">Belum ada artikel yang terbit.</p>
+        <p className="pers-empty">
+          {page > 1 ? "Tidak ada artikel di halaman ini." : "Belum ada artikel yang terbit."}
+        </p>
       ) : (
         <ul className="pers-list">
           {res.data.items.map((a) => (
@@ -51,7 +65,7 @@ export default async function PersHome({
               <div className="pers-meta">
                 {a.author_name} · {dateLabel(a.published_at)}
                 {a.tags.map((t) => (
-                  <Link key={t} href={`/pers?tag=${t}` as Route} className="pers-tag">
+                  <Link key={t} href={`/pers?tag=${encodeURIComponent(t)}` as Route} className="pers-tag">
                     {t}
                   </Link>
                 ))}
@@ -59,6 +73,16 @@ export default async function PersHome({
             </li>
           ))}
         </ul>
+      )}
+
+      {pages > 1 && (
+        <nav className="pers-pages" aria-label="Halaman arsip">
+          {page > 1 && <Link href={pageHref(page - 1)}>← Lebih baru</Link>}
+          <span>
+            Halaman {page} dari {pages}
+          </span>
+          {page < pages && <Link href={pageHref(page + 1)}>Lebih lama →</Link>}
+        </nav>
       )}
     </main>
   );

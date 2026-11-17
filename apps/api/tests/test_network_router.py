@@ -169,6 +169,62 @@ class TestNetworkPeringkat:
         assert wider["insufficient_data"] is False
         assert wider["top"][0]["replies_received"] == 16
 
+    async def test_periode_tetap_memuat_data_lama(self, client) -> None:
+        """Dengan `start`+`end`, relasi 40 hari lalu terbaca walau di luar
+        jendela 30 hari; periode yang tidak memuatnya tetap kosong."""
+        headers, _org, pid = await _new_project(client)
+        for i in range(16):
+            await _ingest_relasi(
+                client, headers, pid, author=f"warga_{i}", reply_to="lama", days_ago=40
+            )
+        day = (datetime.now(UTC) - timedelta(days=40)).date()
+
+        hit = await client.get(
+            f"/v1/projects/{pid}/network",
+            params={"start": str(day - timedelta(days=1)), "end": str(day + timedelta(days=1))},
+            headers=headers,
+        )
+        assert hit.status_code == 200, hit.text
+        assert hit.json()["top"][0]["replies_received"] == 16
+
+        miss = await client.get(
+            f"/v1/projects/{pid}/network",
+            params={"start": str(day - timedelta(days=9)), "end": str(day - timedelta(days=3))},
+            headers=headers,
+        )
+        assert miss.json()["insufficient_data"] is True
+
+    async def test_periode_setengah_ditolak(self, client) -> None:
+        headers, _org, pid = await _new_project(client)
+        r = await client.get(
+            f"/v1/projects/{pid}/network", params={"start": "2026-10-11"}, headers=headers
+        )
+        assert r.status_code == 422
+
+    async def test_pengaruh_dan_tema_menerima_periode_tetap(self, client) -> None:
+        headers, _org, pid = await _new_project(client)
+        for i in range(16):
+            await _ingest_relasi(
+                client, headers, pid, author=f"warga_{i}", reply_to="lama", n=2, days_ago=40
+            )
+        day = (datetime.now(UTC) - timedelta(days=40)).date()
+        period = {"start": str(day - timedelta(days=1)), "end": str(day + timedelta(days=1))}
+
+        relative = (await client.get(f"/v1/projects/{pid}/influence", headers=headers)).json()
+        assert relative["total_posts"] == 0
+        fixed = (
+            await client.get(f"/v1/projects/{pid}/influence", params=period, headers=headers)
+        ).json()
+        assert fixed["total_posts"] == 32
+
+        empty = await client.post(f"/v1/projects/{pid}/topics/discover", headers=headers)
+        assert empty.json()["n_analysed"] == 0
+        found = await client.post(
+            f"/v1/projects/{pid}/topics/discover", params=period, headers=headers
+        )
+        assert found.status_code == 200, found.text
+        assert found.json()["n_analysed"] == 32
+
 
 class TestNetworkIsolasiTenant:
     async def test_org_lain_tidak_melihat_relasi(self, client) -> None:

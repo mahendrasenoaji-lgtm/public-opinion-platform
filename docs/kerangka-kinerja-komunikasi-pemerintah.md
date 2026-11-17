@@ -502,6 +502,12 @@ RLS (R3).
 | 5 Public Feedback | Pertanyaan, kritik, keluhan; isu dominan; waktu respons; status tindak lanjut | Komentar (Publik); register (Internal) | Isu dan emosi **Ada**; penggolongan pertanyaan/kritik, response rate, dan status tindak lanjut **Baru** |
 | 6 Strategic Recommendations | Masalah prioritas, temuan audit, rekomendasi, prioritas tindak lanjut | Ditulis peneliti; ringkasan model bahasa hanya lewat `AIEnvelope` dan ditinjau manusia | **Baru**. Tanpa kunci API, halaman ini diisi manual |
 
+**Yang sudah dibangun per 15 November 2026** (`/kinerja/analisis`, butuh migrasi
+`db/migrations/2026-11-15-kinerja-pengodean-arus.sql`): lembar coding Lampiran A (A9, A11,
+A12, A14–A18, catatan A20) dengan dua lembar pengode dan Krippendorff alpha per variabel;
+formulir penelusuran T1–T4 dan tampilan 11 tahap (T5 belum); pasangan keselarasan untuk C3;
+saran C4 dan O8 dari data. Semuanya saran dengan batas tertulis, bukan skor resmi.
+
 **Keputusan desain yang perlu pemilik produk.** Unggahan akun resmi pemerintah bukan
 percakapan warga (`SOCIAL`) dan bukan liputan redaksi (`MEDIA`). Dua pilihan: (a) menyimpannya
 sebagai `SOCIAL` dengan penanda "akun resmi", atau (b) menambah nilai enum `SignalSource` baru

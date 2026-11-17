@@ -261,6 +261,125 @@ def to_post_rows(fetch: ChannelFetch, captured_at: datetime) -> list[dict[str, A
     ]
 
 
+# ------------------------------------------- balasan akun resmi (O8) ----
+
+#: Utas komentar per video dan video per panggilan untuk ukuran tingkat jawab.
+THREADS_PER_VIDEO = 100
+DEFAULT_RESPONSE_VIDEOS = 20
+MAX_RESPONSE_VIDEOS = 50
+
+
+@dataclass(frozen=True, slots=True)
+class Thread:
+    """Satu komentar tingkat atas pada video kanal resmi.
+
+    Hanya hidup di memori selama hitungan: teks komentar warga TIDAK disimpan
+    oleh modul Kinerja, dan penulisnya tidak dibaca sama sekali.
+    """
+
+    text: str
+    owner_replied: bool
+    #: Balasan lebih banyak daripada yang disertakan API (maksimal 5), dan di
+    #: antara yang disertakan tidak ada balasan pemilik kanal: belum pasti.
+    replies_truncated: bool
+
+
+def parse_threads(payload: dict[str, Any]) -> list[Thread]:
+    """Utas dari `commentThreads.list` (part=snippet,replies).
+
+    Komentar tingkat atas yang ditulis pemilik kanal sendiri dilewati: itu
+    bukan pertanyaan publik. Pemilik kanal dikenali dari `authorChannelId`
+    yang sama dengan `channelId` video, bukan dari nama tampilan.
+    """
+    out: list[Thread] = []
+    for item in payload.get("items", []):
+        snippet = item.get("snippet") or {}
+        owner = snippet.get("channelId")
+        top = (snippet.get("topLevelComment") or {}).get("snippet") or {}
+        if not owner or (top.get("authorChannelId") or {}).get("value") == owner:
+            continue
+        text = top.get("textOriginal") or top.get("textDisplay") or ""
+        replies = (item.get("replies") or {}).get("comments") or []
+        replied = any(
+            ((r.get("snippet") or {}).get("authorChannelId") or {}).get("value") == owner
+            for r in replies
+        )
+        total = _count(snippet.get("totalReplyCount")) or 0
+        out.append(
+            Thread(
+                text=str(text),
+                owner_replied=replied,
+                replies_truncated=not replied and total > len(replies),
+            )
+        )
+    return out
+
+
+@dataclass(frozen=True, slots=True)
+class ThreadFetch:
+    threads: list[Thread]
+    n_videos: int
+    #: Video yang komentarnya dimatikan atau tidak bisa dibaca.
+    n_videos_skipped: int
+    quota_units: int
+
+
+async def fetch_threads(
+    video_ids: list[str], *, client: httpx.AsyncClient | None = None
+) -> ThreadFetch:
+    """Satu halaman utas terbaru (maksimal 100) per video; 1 unit kuota per video."""
+    settings = get_settings()
+    if not settings.youtube_api_key:
+        raise CredentialMissing(
+            "Pengambilan komentar YouTube butuh YOUTUBE_API_KEY di environment backend."
+        )
+    ids = video_ids[:MAX_RESPONSE_VIDEOS]
+    threads: list[Thread] = []
+    skipped = units = 0
+    owns_client = client is None
+    http = client or httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
+    try:
+        for video_id in ids:
+            r = await http.get(
+                f"{API_ROOT}/commentThreads",
+                params={
+                    "part": "snippet,replies",
+                    "videoId": video_id,
+                    "maxResults": THREADS_PER_VIDEO,
+                    "order": "time",
+                    "textFormat": "plainText",
+                    "key": settings.youtube_api_key,
+                },
+            )
+            units += 1
+            if r.status_code in (403, 404):
+                # 403 commentsDisabled / 404 video hilang: lewati video ini.
+                # 403 kuota habis juga jatuh ke sini; bila SEMUA video
+                # terlewat, pemanggil melaporkannya sebagai kegagalan.
+                skipped += 1
+                continue
+            r.raise_for_status()
+            threads.extend(parse_threads(r.json()))
+    except httpx.HTTPStatusError as e:
+        raise ConnectorError(
+            f"YouTube API menolak permintaan ({e.response.status_code}). "
+            "Periksa kuota harian dan status kunci API."
+        ) from e
+    except httpx.HTTPError as e:
+        raise ConnectorError(f"YouTube API tidak bisa dihubungi: {e}") from e
+    finally:
+        if owns_client:
+            await http.aclose()
+    if ids and skipped == len(ids):
+        raise ConnectorError(
+            "Tidak ada video yang komentarnya bisa dibaca (komentar dimatikan, video hilang, "
+            "atau kuota harian habis)."
+        )
+    return ThreadFetch(
+        threads=threads, n_videos=len(ids) - skipped, n_videos_skipped=skipped, quota_units=units
+    )
+
+
 # ---------------------------------------------------------------- I/O ----
 
 

@@ -231,3 +231,72 @@ async def test_kanal_tidak_ditemukan_jadi_pesan_jelas(monkeypatch: pytest.Monkey
                 await ytc.fetch_channel_uploads("@tidakada", now=NOW, client=client)
     finally:
         get_settings.cache_clear()
+
+
+# ------------------------------------------- balasan akun resmi (O8) ----
+
+
+def _thread(author: str, text: str, reply_authors: list[str], total: int | None = None) -> dict:
+    return {
+        "snippet": {
+            "channelId": CHANNEL_ID,
+            "totalReplyCount": len(reply_authors) if total is None else total,
+            "topLevelComment": {
+                "snippet": {"textOriginal": text, "authorChannelId": {"value": author}}
+            },
+        },
+        "replies": {
+            "comments": [{"snippet": {"authorChannelId": {"value": a}}} for a in reply_authors]
+        },
+    }
+
+
+def test_parse_threads_mengenali_balasan_pemilik_kanal() -> None:
+    payload = {
+        "items": [
+            _thread("UCwarga1", "kapan dibuka?", ["UCwarga2", CHANNEL_ID]),
+            _thread("UCwarga2", "mantap", []),
+            # Komentar pemilik kanal sendiri bukan pertanyaan publik.
+            _thread(CHANNEL_ID, "Terima kasih sudah menonton", []),
+            # 8 balasan, hanya 2 disertakan, tidak ada pemilik: belum pasti.
+            _thread("UCwarga3", "bagaimana caranya?", ["UCwarga1", "UCwarga2"], total=8),
+        ]
+    }
+    threads = ytc.parse_threads(payload)
+    assert [(t.owner_replied, t.replies_truncated) for t in threads] == [
+        (True, False),
+        (False, False),
+        (False, True),
+    ]
+    assert threads[0].text == "kapan dibuka?"
+
+
+def test_parse_threads_payload_kosong_atau_cacat() -> None:
+    assert ytc.parse_threads({}) == []
+    assert ytc.parse_threads({"items": [{"snippet": {}}]}) == []
+
+
+@pytest.mark.asyncio
+async def test_fetch_threads_melewati_video_berkomentar_mati(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("YOUTUBE_API_KEY", "kunci-tes")
+    from app.config import get_settings
+
+    get_settings.cache_clear()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path.endswith("/commentThreads")
+        if request.url.params["videoId"] == "mati":
+            return httpx.Response(403, json={"error": {"errors": [{"reason": "commentsDisabled"}]}})
+        return httpx.Response(200, json={"items": [_thread("UCw", "apa syaratnya", [CHANNEL_ID])]})
+
+    try:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            got = await ytc.fetch_threads(["hidup", "mati"], client=client)
+            assert (got.n_videos, got.n_videos_skipped, got.quota_units) == (1, 1, 2)
+            assert len(got.threads) == 1 and got.threads[0].owner_replied
+            with pytest.raises(ConnectorError, match="Tidak ada video"):
+                await ytc.fetch_threads(["mati"], client=client)
+    finally:
+        get_settings.cache_clear()

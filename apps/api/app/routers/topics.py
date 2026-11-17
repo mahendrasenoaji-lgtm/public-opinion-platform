@@ -12,7 +12,7 @@ kali — angka yang terlihat lebih kaya sambil kehilangan artinya.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 from uuid import UUID
 
@@ -23,6 +23,7 @@ from sqlalchemy import delete, select, update
 from app.deps import CurrentUser, Role, TenantSession, require_role
 from app.models.governance import AuditLog
 from app.models.signal import Mention, Topic, TopicReviewStatus
+from app.routers.windowing import EndDate, StartDate, window
 from app.schemas.common import SignalSource
 from app.services import topics as topics_svc
 
@@ -87,6 +88,8 @@ async def discover_topics(
     session: TenantSession,
     user: CurrentUser,
     days: int = Query(default=DEFAULT_WINDOW_DAYS, ge=1, le=365),
+    start: date | None = StartDate,
+    end: date | None = EndDate,
     min_cluster_size: int = Query(default=topics_svc.DEFAULT_MIN_CLUSTER_SIZE, ge=2, le=100),
 ) -> DiscoveryResult:
     """Temukan tema dari percakapan pada jendela waktu tertentu.
@@ -96,12 +99,16 @@ async def discover_topics(
     dengan `scored` kecil punya sentimen yang tidak layak dibaca sebagai sikap
     publik terhadap tema itu.
     """
-    since = datetime.now(UTC) - timedelta(days=days)
+    since, until = window(days, start, end)
     rows = (
         (
             await session.execute(
                 select(Mention)
-                .where(Mention.project_id == project_id, Mention.published_at >= since)
+                .where(
+                    Mention.project_id == project_id,
+                    Mention.published_at >= since,
+                    Mention.published_at <= until,
+                )
                 .order_by(Mention.published_at)
             )
         )

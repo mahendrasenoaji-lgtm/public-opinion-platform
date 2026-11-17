@@ -102,6 +102,15 @@ export default async function KinerjaPage({
         {fw && <> Versi model: <span className="mono">{fw.model_version}</span>.</>}
       </div>
 
+      <p className="field-hint" style={{ marginBottom: 16 }}>
+        Lanjutan:{" "}
+        <Link href={"/kinerja/analisis" as Route}>
+          pengodean isi, uji kesepakatan antar-pengode, arus informasi T1–T4, keselarasan (C3),
+          waktu tanggap (C4), dan tingkat jawab (O8)
+        </Link>
+        .
+      </p>
+
       {tablesMissing && (
         <Panel title="Modul belum aktif di basis data">
           <InsufficientData
