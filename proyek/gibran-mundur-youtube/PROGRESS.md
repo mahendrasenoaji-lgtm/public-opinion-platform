@@ -64,7 +64,19 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 | 07 | 19.995 | **Terunggah 17 Nov** (19.702 baru) |
 | 08 | 19.995 | **Terunggah 17 Nov** (dijeda di ±16.800, lalu berkas utuh diunggah ulang: 777 baru, 19.013 sudah ada) |
 | 09 | 19.995 | **Terunggah 17 Nov** (19.708 baru; "Bad Gateway" di item 14.101, lalu dua kali "Internal Server Error" tepat di item 2.401 berkas sisa; dilanjutkan lewat `tahap_09_sisa.json`, `_sisa2`, `_sisa3`) |
-| 10 | 19.994 | **Sebagian (17 Nov, 11.40 WIB):** 1.200 item pertama masuk (1.182 baru), lalu "Internal Server Error" di item 1.201. Dijeda pemilik sampai 12.30. **Lanjutkan dengan `tahap_10_sisa.json`** (18.794 item, mulai item 1.201). |
+| 10 | 19.994 | **Terunggah 17 Nov, 13.28 WIB** (1.200 item pertama pagi: 1.182 baru; sisanya 18.794 item lewat `tahap_10_sisa.json` sesudah jeda: 18.514 baru, 74 sudah ada, 206 duplikat, tanpa galat) |
+
+**Semua 10 tahap sudah masuk (17 Nov 2026, 13.28 WIB).** Yang belum: 729 video kecil.
+
+**PENTING, jangan buka periode penuh dulu:** sesudah tahap 10 selesai, membuka
+`/sinyal?dari=2026-11-10&sampai=2026-11-17` menjatuhkan server Render ("This page couldn't load", `/health` 503
+selama ±1,5 menit, pulih sendiri 13.31 WIB). Sebabnya `GET /signals/summary` memuat seluruh baris ke memori
+(dipanggil 3 kali sekaligus) ditambah panel emosi dan aktor yang memuat seluruh teks; ±197 ribu konten
+melampaui 512 MB. Perbaikan: **PR #73** (`sinyal/hemat-memori`): ringkasan dihitung di SQL, emosi dan aktor
+dibaca 5.000 baris per potongan. Sampai PR #73 di-merge dan dirilis, buka `/sinyal` hanya per hari
+(mis. `dari=2026-11-15&sampai=2026-11-15`) atau periode kosong. Angka total di platform belum dicek ulang
+karena itu. Masih terbuka sesudah #73: waktu hitung panel emosi (±24 detik untuk 200 ribu teks di Mac,
+lebih lambat di Render) dan aktor (±10 detik); ukur dulu sesudah rilis.
 
 Catatan 17 Nov siang: sejak ±11.24 WIB server Render berkali-kali putus di tengah unggahan walau periode
 kosong dipakai (11.24 Bad Gateway, 11.27, 11.31, 11.38 Internal Server Error), padahal tahap 08 dan 14.100
@@ -77,7 +89,6 @@ potongan 300 item, sehingga seluruh dasbor dihitung ulang 67 kali per tahap. Den
 yang menjatuhkan server Render ("Bad Gateway") dan memboroskan kuota Supabase. Perbaikan kode yang disarankan
 (belum dikerjakan): revalidasi sekali saja di akhir unggahan. Tiap tahap ±10 menit.
 Supabase 17 Nov sesudah tahap 5: basis data 138 / 500 MB, egress 1,49 / 5 GB.
-Catatan: pembaruan tabel ini baru ada di berkas lokal Mac, belum didorong ke cabang PR #72.
 
 ## Angka 17 Nov 2026
 
