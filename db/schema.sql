@@ -422,6 +422,49 @@ CREATE TABLE IF NOT EXISTS comm_indicator_scores (
 CREATE INDEX IF NOT EXISTS comm_indicator_scores_org_project_idx
     ON comm_indicator_scores (org_id, project_id, subject, period);
 
+-- ------------------------------------- kinerja: situs web resmi ----
+-- Situs web resmi lembaga yang dipantau keaktifannya. `feed_kind` mencatat
+-- sumber yang terbaca: rss, sitemap, halaman (daftar berita), atau none (tidak ada;
+-- butir lalu hanya masuk lewat unggahan manual).
+CREATE TABLE IF NOT EXISTS official_sites (
+    id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id       uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    project_id   uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    subject      text NOT NULL,             -- nama lembaga
+    base_url     text NOT NULL,
+    feed_kind    text NOT NULL DEFAULT 'none'
+                 CHECK (feed_kind IN ('rss', 'sitemap', 'halaman', 'none')),
+    source_url   text,
+    -- Halaman daftar berita yang didaftarkan pengguna (pengecualian tertulis
+    -- di connectors/base.py); dibaca hanya bila feed dan sitemap tidak ada.
+    list_urls    jsonb NOT NULL DEFAULT '[]'::jsonb,
+    check_notes  jsonb NOT NULL DEFAULT '[]'::jsonb,
+    checked_at   timestamptz,
+    created_by   uuid REFERENCES users(id),
+    created_at   timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (project_id, base_url)
+);
+CREATE INDEX IF NOT EXISTS official_sites_org_project_idx
+    ON official_sites (org_id, project_id);
+
+-- Satu baris per butir yang terbit di situs resmi (berita, siaran pers,
+-- pengumuman). Hanya judul, alamat, tanggal, kategori; isi tidak disimpan.
+CREATE TABLE IF NOT EXISTS official_site_items (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    org_id        uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    project_id    uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    site_id       uuid NOT NULL REFERENCES official_sites(id) ON DELETE CASCADE,
+    url           text NOT NULL,
+    title         text,
+    published_at  timestamptz NOT NULL,
+    category      text NOT NULL DEFAULT 'lainnya',
+    origin        text NOT NULL CHECK (origin IN ('rss', 'sitemap', 'halaman', 'manual')),
+    captured_at   timestamptz NOT NULL DEFAULT now(),
+    UNIQUE (site_id, url)
+);
+CREATE INDEX IF NOT EXISTS official_site_items_site_idx
+    ON official_site_items (org_id, site_id, published_at DESC);
+
 -- ------------------------- kinerja: pengodean isi, arus, keselarasan ----
 -- Kode isi per unggahan akun resmi (Lampiran A kerangka). `coder` adalah
 -- lembar pengode 1 atau 2, bukan akun login: dua pengode boleh memakai satu

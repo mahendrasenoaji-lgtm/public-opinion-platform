@@ -4,13 +4,25 @@
 
 Konektor HANYA boleh mengambil data lewat API resmi yang aksesnya diberikan
 kepada organisasi pengguna, atau lewat feed yang memang diterbitkan untuk
-dibaca mesin (RSS/Atom). Yang tidak boleh, tanpa pengecualian:
+dibaca mesin (RSS/Atom; untuk situs resmi lembaga juga `robots.txt` dan
+`sitemap.xml`, lihat `official_site.py`). Yang tidak boleh, tanpa pengecualian:
 
 - mengambil halaman dengan menyamar sebagai peramban untuk melewati
   pembatasan platform;
 - memakai kredensial akun pribadi untuk mengakses yang tidak terbuka;
 - melewati rate limit, paywall, atau kontrol akses apa pun;
 - mengumpulkan konten dari akun privat.
+
+### Pengecualian tertulis: halaman daftar berita situs resmi lembaga
+
+Diputuskan pemilik produk pada 15 November 2026, hanya untuk
+`official_site.py`: bila situs resmi sebuah lembaga tidak menyediakan feed
+maupun sitemap bertanggal, HALAMAN DAFTAR berita/siaran persnya boleh dibaca.
+Syaratnya: identitas jujur (User-Agent platform), `robots.txt` dipatuhi,
+paling banyak beberapa halaman per situs dengan jeda antar-pembacaan, dan yang
+diambil hanya judul, alamat, serta tanggal yang tampil di daftar. Halaman
+artikel tidak dibuka. Pengecualian ini tidak berlaku untuk media sosial,
+situs berita, atau situs non-lembaga.
 
 Ini bukan preferensi gaya. Platform ini menjual pertanggungjawaban metodologis
 ke pemerintah dan lembaga riset; data yang diambil dengan cara yang tidak bisa

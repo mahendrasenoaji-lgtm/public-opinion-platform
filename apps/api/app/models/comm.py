@@ -144,3 +144,51 @@ class CommAlignmentPair(Base):
     note: Mapped[str] = mapped_column(Text, nullable=False, default="")
     coded_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
     coded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OfficialSite(Base):
+    """Situs web resmi lembaga yang dipantau keaktifannya."""
+
+    __tablename__ = "official_sites"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    subject: Mapped[str] = mapped_column(Text, nullable=False)
+    base_url: Mapped[str] = mapped_column(Text, nullable=False)
+    feed_kind: Mapped[str] = mapped_column(Text, nullable=False, default="none")
+    source_url: Mapped[str | None] = mapped_column(Text)
+    check_notes: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    list_urls: Mapped[list[str]] = mapped_column(JSONB, nullable=False, default=list)
+    checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_by: Mapped[UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OfficialSiteItem(Base):
+    """Satu butir yang terbit di situs resmi: judul, alamat, tanggal, kategori."""
+
+    __tablename__ = "official_site_items"
+
+    id: Mapped[UUID] = mapped_column(PG_UUID(as_uuid=True), primary_key=True, default=uuid4)
+    org_id: Mapped[UUID] = mapped_column(
+        ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False
+    )
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
+    site_id: Mapped[UUID] = mapped_column(
+        ForeignKey("official_sites.id", ondelete="CASCADE"), nullable=False
+    )
+    url: Mapped[str] = mapped_column(Text, nullable=False)
+    title: Mapped[str | None] = mapped_column(Text)
+    published_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    category: Mapped[str] = mapped_column(Text, nullable=False, default="lainnya")
+    origin: Mapped[str] = mapped_column(Text, nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )

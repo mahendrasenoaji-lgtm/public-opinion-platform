@@ -17,7 +17,8 @@ BEGIN
     'responses','data_sources','mentions','topics','narratives','metric_snapshots',
     'segments','timeline_events','forecasts','ai_outputs','audit_logs',
     'data_quality_scores','official_posts','comm_indicator_scores','publications',
-    'official_post_codings','comm_flow_records','comm_alignment_pairs'
+    'official_post_codings','comm_flow_records','comm_alignment_pairs',
+    'official_sites','official_site_items'
   ] LOOP
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
     EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);

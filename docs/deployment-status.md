@@ -6,7 +6,84 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 15 November 2026 (sore): cabang `pers/grafik-rss-ekspor`
+# 🟢 MULAI DARI SINI — 15 November 2026 (larut): tinggal tiga tindakan pemilik
+
+- **Artikel BBM Bali TERBIT** 15 Nov atas permintaan pemilik:
+  `/pers/sepuluh-hari-kelangkaan-bbm-di-bali-dalam-komentar-youtube-fe806e`
+  (`GET /v1/public/publications` → total 1). Halaman publiknya masih versi lama `/pers`;
+  grafik, RSS, dan unduhan baru muncul setelah PR #70 digabung.
+- **PR #70 dan #71 belum digabung.** Pemilik sudah menyetujui, tetapi `gh pr merge`
+  ditolak pengaman izin Claude Code. Gabung dari GitHub: #70 dulu, lalu #71 (GitHub
+  mengalihkan dasar #71 ke `main` secara otomatis).
+- **Dua migrasi belum dijalankan** (`2026-11-15-kinerja-pengodean-arus.sql`,
+  `2026-11-15b-kinerja-situs-resmi.sql`). Menekan Run di SQL Editor juga ditolak pengaman
+  yang sama. Boleh dijalankan sebelum atau sesudah merge; keduanya idempoten.
+- **Sesudah keduanya:** daftarkan enam situs lembaga pangan di proyek "PANGAN - KINERJA
+  AKUN RESMI (YouTube)" lewat `/kinerja/analisis?bagian=situs`, dengan halaman daftar pada
+  tabel di blok bawah. Belum dilakukan di produksi.
+
+---
+
+# 15 November 2026 (malam): situs web resmi
+
+Cabang `kinerja/situs-resmi`, **menumpuk di atas `pers/grafik-rss-ekspor` (PR #70)**.
+Gabung #70 dulu, baru PR ini. Belum digabung, belum di produksi.
+
+**Yang dibangun:** bagian baru "Situs resmi" di `/kinerja/analisis?bagian=situs`. Per
+situs lembaga: terbitan 30 dan 90 hari, terbitan per minggu, hari sejak terbitan terakhir,
+jeda terpanjang, median jeda, kategori (dari alamat), dan tanda **sepi** bila 30 hari tanpa
+terbitan tercatat. Butir masuk lewat dua jalur: dibaca otomatis (robots.txt, RSS/Atom,
+sitemap bertanggal) atau unggah CSV (`url,title,published_at,category`). Isi artikel tidak
+diambil. Berkas: `connectors/official_site.py`, `services/site_activity.py`,
+`routers/comm_sites.py`.
+
+**Migrasi baru:** `db/migrations/2026-11-15b-kinerja-situs-resmi.sql` (tabel
+`official_sites`, `official_site_items`, RLS aktif + paksa). Belum dijalankan di Supabase.
+
+**Temuan dari enam lembaga pangan (dibaca 15 Nov 2026, dari komputer ini):**
+
+| Lembaga | Situs | RSS/Atom | Sitemap | Terbaca otomatis |
+|---|---|---|---|---|
+| Kementan | pertanian.go.id | tidak ada | tidak ada (robots.txt menunjuk `pertanian.local`) | tidak |
+| Kemenhut | kehutanan.go.id | tidak ada | 10 halaman tetap, satu cap waktu | tidak |
+| KKP | kkp.go.id | tidak ada | tidak ada, robots.txt 404 | tidak |
+| KLH | kemenlh.go.id | tidak ada | 19 halaman tetap, satu tanggal | tidak |
+| Bapanas | badanpangan.go.id | tidak ada | 500 alamat (301 `/blog/`), semua bercap 15 Agu 2025 | tidak |
+| BGN | bgn.go.id | tidak ada | 13 halaman tetap, tanpa tanggal | tidak |
+
+Jadi tidak satu pun dari enam situs menyediakan sumber terbaca mesin yang bertanggal.
+
+**Keputusan pemilik 15 Nov (malam): halaman daftar berita boleh dibaca.** Pengecualian
+tertulis ada di `apps/api/app/connectors/base.py`: hanya situs resmi lembaga, identitas
+jujur, robots.txt dipatuhi, paling banyak 5 halaman daftar per situs, jeda 1 jam
+antar-pembacaan, hanya judul + alamat + tanggal; halaman artikel tidak dibuka. Pengurainya
+umum (tautan butir + tanggal terdekat), bukan satu per situs.
+
+Hasil baca pertama lewat jalur itu (15 Nov 2026):
+
+| Lembaga | Halaman daftar yang didaftarkan | Butir bertanggal |
+|---|---|---|
+| Kemenhut | `/news`, `/pers` | 24 |
+| KKP | `/news.html` | 17 |
+| KLH | `/news/main/siaran_pers`, `/berita`, `/pengumuman` | 27 |
+| Bapanas | `/berita`, `/pengumuman` | 19 |
+| BGN | `/news` | 12 |
+| Kementan | `/index.php/news/all/0` | **0**: halaman daftarnya tidak menampilkan tanggal |
+
+Kementan tetap perlu unggahan CSV (beranda menampilkan tanggal, tetapi pasangan
+tautan-tanggalnya di sana tidak bisa dipercaya, jadi tidak dipakai).
+
+**Batas penting:** satu halaman daftar hanya menampilkan 10–20 butir terbaru. Hitungan 30
+dan 90 hari baru lengkap setelah situs dibaca berkala (tombol "Baca ulang"); sebelum itu
+angkanya batas bawah. Belum ada pembacaan terjadwal.
+
+**Dicek:** pytest lulus seluruhnya (termasuk isolasi tenant), ruff, mypy, tsc, vitest 100. Tampilan
+dicek lokal: keenam situs asli didaftarkan (semua "tidak terbaca mesin"), grafik dicek
+dengan butir sintetis.
+
+---
+
+# 15 November 2026 (sore): cabang `pers/grafik-rss-ekspor`
 
 Satu cabang, tiga commit, **belum digabung** (menunggu OK pemilik). Butir daftar kerja
 yang ditutup: 10, 11, 13, 14, 15, 18.
@@ -129,7 +206,7 @@ sintetis pada `/command`, `/opinion-index`, `/risiko` (terang) dan `/command` (g
    di-scroll, kotak "Proyek aktif" selalu terlihat.
 
 **C. Situs publikasi — yang kurang**
-9. Artikel pertama BBM Bali — 15 Nov: draf dibuat dari `/laporan` (11–20 Okt, WITA),
+9. ~~Artikel pertama BBM Bali~~ — TERBIT 15 Nov. Riwayat: draf dibuat dari `/laporan` (11–20 Okt, WITA),
    judul "Sepuluh hari kelangkaan BBM di Bali dalam komentar YouTube", ringkasan + isi +
    tag terisi, snapshot beku 35.772 konten / 19.828 bernilai / neg-net-pos 14.455-1.607-3.766.
    Status **tinjauan** (belum terbit). Menerbitkan menunggu konfirmasi pemilik karena

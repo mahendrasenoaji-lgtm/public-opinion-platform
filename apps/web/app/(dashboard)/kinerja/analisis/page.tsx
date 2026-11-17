@@ -8,12 +8,15 @@ import { PageHeader } from "@/components/PageHeader";
 import { Panel } from "@/components/Panel";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { ResponseRateFetch } from "@/components/ResponseRateFetch";
+import { SiteActions, SiteAddForm } from "@/components/SiteControls";
 import { api, ApiError } from "@/lib/api";
 import { getCurrentProject } from "@/lib/currentProject";
 import { SESSION_COOKIE, decodeJwtPayload } from "@/lib/session";
 import type { PostsSummary } from "../kinerja";
 import {
   ALIGNMENT_LABEL,
+  FEED_KIND_LABEL,
+  ORIGIN_LABEL,
   alphaLabel,
   coderSlot,
   hoursLabel,
@@ -22,6 +25,7 @@ import {
   type Flow,
   type Reliability,
   type ResponseTime,
+  type Sites,
 } from "./analisis";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +38,7 @@ const TABS = [
   ["arus", "Arus informasi"],
   ["selaras", "Keselarasan (C3)"],
   ["tanggap", "Waktu tanggap & tingkat jawab (C4, O8)"],
+  ["situs", "Situs resmi"],
 ] as const;
 type Tab = (typeof TABS)[number][0];
 
@@ -122,6 +127,7 @@ export default async function AnalisisPage({
       {tab === "kode" && <Kode base={base} projectId={project.id} coder={coder} account={account} canEdit={canEdit} page={Math.max(1, Number(one(sp.halaman)) || 1)} onlyUncoded={one(sp.belum) === "1"} />}
       {tab === "arus" && <Arus base={base} projectId={project.id} subject={one(sp.lembaga)} canEdit={canEdit} />}
       {tab === "selaras" && <Selaras base={base} projectId={project.id} coder={coder} canEdit={canEdit} />}
+      {tab === "situs" && <Situs base={base} projectId={project.id} canEdit={canEdit} />}
       {tab === "tanggap" && <Tanggap base={base} projectId={project.id} account={account} keyword={one(sp.kata)} canEdit={canEdit} />}
     </>
   );
@@ -503,6 +509,134 @@ async function Tanggap({ base, projectId, account, keyword, canEdit }: { base: s
       <Panel kicker="Indikator O8 · saran" title="Tingkat jawab di kanal YouTube resmi">
         {canEdit ? <ResponseRateFetch projectId={projectId} accounts={youtube} /> : <p className="field-hint">Peran Anda hanya bisa melihat.</p>}
       </Panel>
+    </>
+  );
+}
+
+/* ------------------------------------------------------- situs web resmi */
+
+function shortDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", timeZone: "Asia/Jakarta" });
+}
+
+async function Situs({ base, projectId, canEdit }: { base: string; projectId: string; canEdit: boolean }) {
+  const res = await load<Sites>(`${base}/sites`);
+  if (res.missing) {
+    return <Missing message={res.message ?? "Tabel situs resmi belum ada. Jalankan db/migrations/2026-11-15b-kinerja-situs-resmi.sql."} />;
+  }
+  const d = res.data;
+  if (!d) return <Panel title="Situs resmi"><InsufficientData reason={res.message ?? "Belum bisa dimuat."} /></Panel>;
+  const quiet = d.sites.filter((s) => s.n_total > 0 && s.quiet).length;
+  const unread = d.sites.filter((s) => s.feed_kind === "none").length;
+
+  return (
+    <>
+      <Panel kicker="Situs web resmi" title="Apa yang terbit untuk publik, dan seberapa sering">
+        {d.sites.length === 0 ? (
+          <InsufficientData reason="Belum ada situs resmi yang didaftarkan di proyek ini." />
+        ) : (
+          <>
+            <section className="stat-row" style={{ marginBottom: 14 }}>
+              <div className="stat"><div className="kicker">Situs terdaftar</div><div className="stat-v">{d.sites.length}</div></div>
+              <div className="stat"><div className="kicker">Belum terbaca</div><div className="stat-v">{unread}</div><div className="proj-s" style={{ marginTop: 6 }}>tanpa feed, sitemap bertanggal, atau halaman daftar</div></div>
+              <div className="stat"><div className="kicker">Sepi ≥ {d.quiet_days} hari</div><div className="stat-v">{quiet}</div><div className="proj-s" style={{ marginTop: 6 }}>dari situs yang punya butir tercatat</div></div>
+            </section>
+            <div style={{ overflowX: "auto" }}>
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th scope="col">Lembaga</th><th scope="col">Dibaca dari</th>
+                    <th scope="col">Terbitan 30 hari</th><th scope="col">Terbitan {d.window_days} hari</th>
+                    <th scope="col">Terakhir terbit</th><th scope="col">Jeda terpanjang</th>
+                    <th scope="col">Median jeda</th><th scope="col">Bacaan</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {d.sites.map((s) => (
+                    <tr key={s.id}>
+                      <td><span className="strong">{s.subject}</span><div className="proj-s">{s.base_url.replace("https://", "")}</div></td>
+                      <td>{FEED_KIND_LABEL[s.feed_kind]}</td>
+                      <td className="mono">{s.n_total === 0 ? "—" : s.n_30}</td>
+                      <td className="mono">{s.n_total === 0 ? "—" : s.n_window}</td>
+                      <td className="mono">{s.last_published ? `${s.last_published} (${s.days_since_last} hari lalu)` : "tidak tercatat"}</td>
+                      <td className="mono">{s.longest_gap_days === null ? "—" : `${s.longest_gap_days} hari`}</td>
+                      <td className="mono">{s.median_gap_days === null ? "data tidak cukup" : `${String(s.median_gap_days).replace(".", ",")} hari`}</td>
+                      <td>{s.quiet && s.n_total > 0 ? <span className="pill pill-warn">{s.status}</span> : s.status}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="field-hint" style={{ marginTop: 10 }}>
+              Baris tidak diperingkat. Angka hanya menghitung butir yang tercatat di proyek ini per {d.today}.
+            </p>
+            <Provenance
+              method={d.method}
+              n={`${d.sites.reduce((a, s) => a + s.n_total, 0)} butir dari ${d.sites.length} situs`}
+              confidence="bergantung pada kelengkapan butir yang tercatat per situs"
+              limits={d.limitations.join(" ")}
+            />
+          </>
+        )}
+      </Panel>
+
+      {d.sites.map((s) => {
+        const max = Math.max(1, ...s.weeks.map((w) => w.n));
+        return (
+          <Panel key={s.id} kicker={`${FEED_KIND_LABEL[s.feed_kind]} · ${s.base_url.replace("https://", "")}`} title={s.subject}>
+            {s.n_total === 0 ? (
+              <InsufficientData reason="Belum ada butir tercatat untuk situs ini. Daftarkan halaman daftar beritanya, atau unggah butirnya lewat CSV." />
+            ) : (
+              <>
+                <h3 className="kicker" style={{ marginBottom: 8 }}>Terbitan per minggu ({d.window_days} hari terakhir)</h3>
+                <div className="week-bars" role="img" aria-label={`Terbitan per minggu ${s.subject}: ${s.weeks.map((w) => `${w.start} ${w.n}`).join(", ")}`}>
+                  {s.weeks.map((w) => (
+                    <div key={w.start} className="week-bar" title={`Minggu ${w.start}: ${w.n} terbitan`}>
+                      <span className="week-bar-n">{w.n}</span>
+                      <span className={"week-bar-fill" + (w.n === 0 ? " is-empty" : "")} style={{ height: `${w.n === 0 ? 2 : Math.max(6, (w.n / max) * 64)}px` }} />
+                      <span className="week-bar-l">{w.start.slice(8)}/{w.start.slice(5, 7)}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="field-hint">
+                  {s.weeks_without} dari {s.weeks.length} minggu tanpa terbitan tercatat · {s.active_days} hari berbeda punya terbitan · butir berasal dari{" "}
+                  {Object.entries(s.origins).map(([k, n]) => `${ORIGIN_LABEL[k] ?? k} (${n})`).join(", ")}
+                  {s.last_captured_at ? ` · data terakhir masuk ${shortDate(s.last_captured_at)}` : ""}
+                </p>
+                {s.categories.length > 0 && (
+                  <div className="chips" style={{ margin: "10px 0" }}>
+                    {s.categories.map(([k, label, n]) => <span key={k} className="chip">{label}<b>{n}</b></span>)}
+                  </div>
+                )}
+                <h3 className="kicker" style={{ margin: "14px 0 6px" }}>Butir terbaru</h3>
+                <ul className="site-latest">
+                  {s.latest.map((i) => (
+                    <li key={i.url}>
+                      <span className="mono">{shortDate(i.published_at)}</span>{" "}
+                      <a href={i.url} target="_blank" rel="noopener noreferrer">{i.title || decodeURIComponent(new URL(i.url).pathname.split("/").filter(Boolean).pop() ?? i.url)}</a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+            {s.check_notes.length > 0 && (
+              <details style={{ marginTop: 12 }}>
+                <summary className="field-hint">Catatan pembacaan{s.checked_at ? ` (${shortDate(s.checked_at)})` : ""}</summary>
+                <ul className="read-d" style={{ paddingLeft: 18, marginTop: 6 }}>
+                  {s.check_notes.map((n) => <li key={n}>{n}</li>)}
+                </ul>
+              </details>
+            )}
+            {canEdit && <SiteActions projectId={projectId} siteId={s.id} baseUrl={s.base_url} listUrls={s.list_urls} />}
+          </Panel>
+        );
+      })}
+
+      {canEdit && (
+        <Panel kicker="Tambah situs" title="Daftarkan situs web resmi lembaga">
+          <SiteAddForm projectId={projectId} />
+        </Panel>
+      )}
     </>
   );
 }
