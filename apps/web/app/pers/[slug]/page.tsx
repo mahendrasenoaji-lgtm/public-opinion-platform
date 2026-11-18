@@ -3,13 +3,14 @@ import type { Route } from "next";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { parseMarkdown, type Inline } from "@/lib/miniMarkdown";
-import { PersDailyCharts } from "@/components/PersCharts";
+import { PersArticleBody, PersBoard } from "@/components/PersArticleView";
 import { PersKinerja } from "@/components/PersKinerja";
+import {
+  ActorsTable, SourceDaily, SourcePeaks, SourceTone, SourcesTable, TopicsTable, WordsTable, sourceMeta,
+} from "@/components/PersLaporan";
 import { PersNav } from "@/components/PersNav";
 import { PrintButton } from "@/components/PrintButton";
-import { citation, dateLabel, dayLabel, getArticle, originOf, share } from "@/lib/pers";
-import { SOURCE } from "@/lib/tokens";
+import { citation, dateLabel, getArticle, originOf } from "@/lib/pers";
 
 export const dynamic = "force-dynamic";
 
@@ -41,21 +42,6 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
     },
     twitter: { card: "summary_large_image", title: a.title, description: a.summary },
   };
-}
-
-const LABELS = [
-  ["negatif", "Negatif", "var(--neg)"],
-  ["netral", "Netral", "var(--muted-fill)"],
-  ["positif", "Positif", "var(--pos)"],
-] as const;
-
-/** http(s) saja: tautan liputan berasal dari feed, jadi skemanya diperiksa. */
-function safeHref(url: string | null | undefined): string | null {
-  return url && /^https?:\/\//i.test(url) ? url : null;
-}
-
-function Text({ inline }: { inline: Inline[] }) {
-  return <>{inline.map((p, i) => (p.bold ? <b key={i}>{p.text}</b> : <span key={i}>{p.text}</span>))}</>;
 }
 
 /** Satu artikel terbit dengan angka snapshot, metode, batas, ralat, dan sitasi. */
@@ -93,31 +79,8 @@ export default async function PersArticlePage({ params }: Params) {
           {a.summary && <p>{a.summary}</p>}
         </header>
 
-        <div className="pers-body">
-          {parseMarkdown(a.body).map((b, i) =>
-            b.type === "ul" ? (
-              <ul key={i}>
-                {b.items.map((item, j) => (
-                  <li key={j}>
-                    <Text inline={item} />
-                  </li>
-                ))}
-              </ul>
-            ) : b.type === "h2" ? (
-              <h2 key={i}>
-                <Text inline={b.inline} />
-              </h2>
-            ) : b.type === "h3" ? (
-              <h3 key={i}>
-                <Text inline={b.inline} />
-              </h3>
-            ) : (
-              <p key={i}>
-                <Text inline={b.inline} />
-              </p>
-            ),
-          )}
-        </div>
+        <PersBoard snap={a.snapshot} />
+        <PersArticleBody body={a.body} snap={a.snapshot} />
       </article>
 
       <section className="pers-data">
@@ -131,168 +94,24 @@ export default async function PersArticlePage({ params }: Params) {
         ) : (
           <>
         {/* Sumber tidak pernah dijumlahkan: satu baris per sumber (R1). */}
-        <div style={{ overflowX: "auto" }}>
-          <table className="tbl">
-            <thead>
-              <tr>
-                <th scope="col">Sumber</th>
-                <th scope="col">Konten</th>
-                <th scope="col">Bernilai sentimen</th>
-                <th scope="col">Negatif</th>
-                <th scope="col">Netral</th>
-                <th scope="col">Positif</th>
-              </tr>
-            </thead>
-            <tbody>
-              {report.sources.map((s) => {
-                const meta = SOURCE[s.source as keyof typeof SOURCE];
-                return (
-                  <tr key={s.source}>
-                    <td>
-                      <span style={{ color: meta?.color }}>●</span> {meta?.label ?? s.source}
-                      <div className="proj-s">{meta?.meaning}</div>
-                    </td>
-                    <td className="mono">{s.n.toLocaleString("id-ID")}</td>
-                    <td className="mono">{s.scored.toLocaleString("id-ID")}</td>
-                    {(["negatif", "netral", "positif"] as const).map((k) => (
-                      <td key={k} className="mono">
-                        {share(s.labels, k, s.scored) ?? "data tidak cukup"}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {report.sources.length === 0 && <p className="pers-empty">Tidak ada data pada periode ini.</p>}
-
+        <SourcesTable sources={report.sources} />
         {report.sources.map((s) => {
-          const meta = SOURCE[s.source as keyof typeof SOURCE];
-          const label = meta?.label ?? s.source;
-          const unscored = s.n - s.scored;
+          const m = sourceMeta(s.source);
           return (
             <section key={s.source} className="pers-source">
               <h3>
-                <span style={{ color: meta?.color }}>●</span> {label}
-                <span className="pers-meta"> · {meta?.meaning}</span>
+                <span style={{ color: m.color }}>●</span> {m.label}
+                <span className="pers-meta"> · {m.meaning}</span>
               </h3>
-
-              {s.scored > 0 && (
-                <figure>
-                  <figcaption>
-                    Nada {s.scored.toLocaleString("id-ID")} konten yang bernilai sentimen
-                  </figcaption>
-                  <div className="pers-stack" role="img" aria-label={LABELS.map(([k, name]) => `${name} ${share(s.labels, k, s.scored)}`).join(", ")}>
-                    {LABELS.map(([k, name, color]) =>
-                      (s.labels[k] ?? 0) > 0 ? (
-                        <span
-                          key={k}
-                          title={`${name}: ${(s.labels[k] ?? 0).toLocaleString("id-ID")} konten (${share(s.labels, k, s.scored)})`}
-                          style={{ flexGrow: s.labels[k], background: color }}
-                        />
-                      ) : null,
-                    )}
-                  </div>
-                  <div className="pers-legend">
-                    {LABELS.map(([k, name, color]) => (
-                      <span key={k}>
-                        <i style={{ background: color }} /> {name}{" "}
-                        <b className="mono">{share(s.labels, k, s.scored)}</b>
-                      </span>
-                    ))}
-                  </div>
-                  {unscored > 0 && (
-                    <p className="pers-meta">
-                      {unscored.toLocaleString("id-ID")} konten lain (
-                      {((unscored / s.n) * 100).toFixed(1).replace(".", ",")}%) tidak dinilai karena
-                      tidak memuat kata bermuatan yang dikenali. Konten itu tidak dihitung netral.
-                    </p>
-                  )}
-                </figure>
-              )}
-
-              {s.days && s.days.length > 1 && (
-                <>
-                  <PersDailyCharts days={s.days} color={meta?.color ?? "var(--txt2)"} sourceLabel={label} />
-                  <details className="pers-details">
-                    <summary>Lihat angka per hari sebagai tabel</summary>
-                    <div style={{ overflowX: "auto" }}>
-                      <table className="tbl">
-                        <thead>
-                          <tr>
-                            <th scope="col">Hari</th>
-                            <th scope="col">Konten</th>
-                            <th scope="col">Bernilai sentimen</th>
-                            <th scope="col">Porsi negatif</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {s.days.map((d) => (
-                            <tr key={d.day}>
-                              <td>{dayLabel(d.day)}</td>
-                              <td className="mono">{d.volume.toLocaleString("id-ID")}</td>
-                              <td className="mono">{d.scored.toLocaleString("id-ID")}</td>
-                              <td className="mono">
-                                {d.negative_share === null
-                                  ? "data tidak cukup"
-                                  : `${(d.negative_share * 100).toFixed(1).replace(".", ",")}%`}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </details>
-                </>
-              )}
-
-              {(s.peaks ?? []).map((p) => {
-                const news = p.same_day_media.filter((m) => m.text);
-                return (
-                  <div key={p.day} className="pers-peak">
-                    <b>{dayLabel(p.day)}</b>: {p.volume.toLocaleString("id-ID")} konten
-                    {p.is_spike && p.ratio !== null
-                      ? `, ${String(p.ratio).replace(".", ",")} kali median harian (lonjakan)`
-                      : " (hari teramai, bukan lonjakan)"}
-                    {news.length > 0 && (
-                      <>
-                        <div className="pers-meta">
-                          Liputan yang terbit pada hari yang sama (kebersamaan waktu, bukan sebab):
-                        </div>
-                        <ul>
-                          {news.map((m, i) => {
-                            const href = safeHref(m.source_url);
-                            return (
-                              <li key={i}>
-                                {href ? (
-                                  <a href={href} rel="noopener noreferrer nofollow">
-                                    {m.text}
-                                  </a>
-                                ) : (
-                                  m.text
-                                )}
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
+              <SourceTone s={s} />
+              <SourceDaily s={s} />
+              <SourcePeaks s={s} />
             </section>
           );
         })}
-
-        {report.sources.map((s) =>
-          s.words && s.words.length > 0 ? (
-            <p key={s.source} className="pers-meta">
-              Kata terbanyak ({SOURCE[s.source as keyof typeof SOURCE]?.label ?? s.source}):{" "}
-              {s.words.slice(0, 12).map(([w, n]) => `${w} (${n.toLocaleString("id-ID")})`).join(", ")}
-            </p>
-          ) : null,
-        )}
+        <TopicsTable snap={a.snapshot} />
+        <ActorsTable snap={a.snapshot} />
+        <WordsTable sources={report.sources} />
 
         {report.methods && Object.keys(report.methods).length > 0 && (
           <>

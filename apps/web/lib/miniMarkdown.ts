@@ -2,7 +2,7 @@
  * Markdown sangat kecil untuk isi artikel publikasi: `##`/`###` subjudul,
  * paragraf, daftar `- `, `**tebal**`, tabel pipa (`| a | b |` + baris
  * `|---|---|`), dan penanda blok `[[nama]]` sendirian di satu baris (grafik
- * atau tabel dari snapshot, lihat `components/PersEmbed.tsx`). Hasilnya
+ * atau tabel dari snapshot, lihat `components/PersArticleView.tsx`). Hasilnya
  * struktur data, BUKAN HTML, sehingga isi artikel tidak pernah bisa
  * menyisipkan markup ke halaman publik.
  */
@@ -16,7 +16,7 @@ export type Block =
   | { type: "embed"; name: string };
 
 const EMBED = /^\[\[([a-z][a-z0-9-]{1,40})\]\]$/;
-const TABLE_RULE = /^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?$/;
+const TABLE_RULE = /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/;
 
 function cells(line: string): string[] {
   return line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
@@ -40,8 +40,9 @@ export function parseMarkdown(source: string): Block[] {
 
   const flushTable = () => {
     // Tabel sah = kepala + garis pemisah; selain itu dibaca sebagai paragraf.
-    if (table.length >= 2 && TABLE_RULE.test(table[1])) {
-      const head = cells(table[0]);
+    const [first, rule] = table;
+    if (first !== undefined && rule !== undefined && TABLE_RULE.test(rule)) {
+      const head = cells(first);
       blocks.push({
         type: "table",
         head: head.map(parseInline),
@@ -78,7 +79,7 @@ export function parseMarkdown(source: string): Block[] {
     }
     if (table.length > 0) flushTable();
     const embed = EMBED.exec(line);
-    if (embed) {
+    if (embed?.[1]) {
       flush();
       blocks.push({ type: "embed", name: embed[1] });
     } else if (line === "") {

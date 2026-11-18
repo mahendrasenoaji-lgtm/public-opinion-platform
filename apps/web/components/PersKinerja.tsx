@@ -6,22 +6,15 @@ const DIMENSIONS = ["INPUT", "PROCESS", "OUTPUT", "OUTCOME"] as const;
  * Angka di balik artikel kinerja komunikasi: kartu skor per lembaga, indikator
  * yang berskor, angka akun resmi, keaktifan situs, dan uji pengodean isi.
  *
- * Server component, tanpa grafik: lembaga tidak diperingkat dan skor total
- * hanya tampil bila model menerbitkannya (keempat dimensi cakupannya cukup).
+ * Tiap bagian diekspor sendiri supaya bisa dipakai sebagai penanda blok di
+ * isi artikel (`[[kartu-skor]]`, `[[akun]]`, ...). Server component, tanpa
+ * grafik: lembaga tidak diperingkat dan skor total hanya tampil bila model
+ * menerbitkannya (keempat dimensi cakupannya cukup).
  */
-export function PersKinerja({ k }: { k: Kinerja }) {
+export function KinerjaScorecards({ k }: { k: Kinerja }) {
   const cards = k.scorecards;
-  // Indikator yang berskor di minimal satu lembaga, urut seperti kerangka.
-  const codes = cards[0]?.items.map((i) => i.indicator) ?? [];
-  const scoredCodes = codes.filter((c) => cards.some((card) => card.items.find((i) => i.indicator === c)?.score != null));
-  const nameOf = (c: string) => cards[0]?.items.find((i) => i.indicator === c)?.name ?? c;
-
   return (
     <>
-      <p className="pers-meta">
-        Model <span className="mono">{k.model_version}</span>. {k.disclaimer}
-      </p>
-
       <h3>Kartu skor per lembaga</h3>
       {cards.length === 0 ? (
         <p className="pers-empty">Belum ada lembaga yang dinilai pada periode ini.</p>
@@ -70,6 +63,18 @@ export function PersKinerja({ k }: { k: Kinerja }) {
         dimensi terbit. Lembaga tidak diperingkat.
       </p>
 
+    </>
+  );
+}
+
+export function KinerjaIndicators({ k }: { k: Kinerja }) {
+  const cards = k.scorecards;
+  // Indikator yang berskor di minimal satu lembaga, urut seperti kerangka.
+  const codes = cards[0]?.items.map((i) => i.indicator) ?? [];
+  const scoredCodes = codes.filter((c) => cards.some((card) => card.items.find((i) => i.indicator === c)?.score != null));
+  const nameOf = (c: string) => cards[0]?.items.find((i) => i.indicator === c)?.name ?? c;
+  return (
+    <>
       {scoredCodes.length > 0 && (
         <>
           <h3>Indikator yang berskor</h3>
@@ -127,6 +132,13 @@ export function PersKinerja({ k }: { k: Kinerja }) {
         </>
       )}
 
+    </>
+  );
+}
+
+export function KinerjaAccounts({ k }: { k: Kinerja }) {
+  return (
+    <>
       {k.accounts.accounts.length > 0 && (
         <>
           <h3>Akun resmi</h3>
@@ -164,6 +176,13 @@ export function PersKinerja({ k }: { k: Kinerja }) {
         </>
       )}
 
+    </>
+  );
+}
+
+export function KinerjaSites({ k }: { k: Kinerja }) {
+  return (
+    <>
       {k.sites.sites.length > 0 && (
         <>
           <h3>Situs web resmi</h3>
@@ -200,6 +219,13 @@ export function PersKinerja({ k }: { k: Kinerja }) {
         </>
       )}
 
+    </>
+  );
+}
+
+export function KinerjaCoding({ k }: { k: Kinerja }) {
+  return (
+    <>
       {k.coding.n_coded > 0 && (
         <>
           <h3>Pengodean isi unggahan</h3>
@@ -246,6 +272,14 @@ export function PersKinerja({ k }: { k: Kinerja }) {
         </>
       )}
 
+    </>
+  );
+}
+
+export function KinerjaLimits({ k }: { k: Kinerja }) {
+  const cards = k.scorecards;
+  return (
+    <>
       <h3>Batas tiap bagian</h3>
       <ul>
         {[
@@ -259,6 +293,23 @@ export function PersKinerja({ k }: { k: Kinerja }) {
           <li key={l}>{l}</li>
         ))}
       </ul>
+    </>
+  );
+}
+
+export function PersKinerja({ k }: { k: Kinerja }) {
+  return (
+    <>
+      <p className="pers-meta">
+        Model <span className="mono">{k.model_version}</span>. {k.disclaimer}
+      </p>
+
+      <KinerjaScorecards k={k} />
+      <KinerjaIndicators k={k} />
+      <KinerjaAccounts k={k} />
+      <KinerjaSites k={k} />
+      <KinerjaCoding k={k} />
+      <KinerjaLimits k={k} />
     </>
   );
 }

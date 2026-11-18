@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { articleDocx, crc32, documentXml, zipStore } from "@/lib/docx";
 import { dayLabel, originOf, pageNumber, type PersArticle } from "@/lib/pers";
 import { aggregateCsv, csvCell, rssXml, xmlEscape } from "@/lib/persExport";
+import { boardItems } from "@/lib/pers";
 
 const article: PersArticle = {
   slug: "bbm-bali-a1b2c3",
@@ -228,5 +229,38 @@ describe("artikel kinerja", () => {
     expect(xml).toContain("Kartu skor per lembaga");
     expect(xml).toContain("tidak terbit (cakupan 22%)");
     expect(xml).not.toContain("Sumber tidak dijumlahkan");
+  });
+});
+
+describe("tampilan artikel: papan angka dan penanda", () => {
+  const label = (s: string) => (s === "SOCIAL" ? "Sosial" : "Media");
+
+  it("papan laporan: tiap angka konten menyebut sumbernya bila lebih dari satu (R1)", () => {
+    const items = boardItems({ ...article.snapshot, distinct_authors: 42 }, label);
+    expect(items[0]).toEqual({ value: "100", label: "konten (Sosial)" });
+    expect(items[1]).toEqual({ value: "42", label: "akun berbeda (semua sumber)" });
+    expect(items.find((i) => i.label.startsWith("negatif"))?.value).toBe("67%");
+    expect(items.find((i) => i.label.startsWith("hari teramai"))?.value).toBe("11 Okt");
+    expect(items.some((i) => i.label === "konten (Media)")).toBe(true);
+    // MEDIA tanpa konten bernilai: tidak ada angka nada untuknya.
+    expect(items.some((i) => i.label.includes("negatif") && i.label.includes("Media"))).toBe(false);
+  });
+
+  it("papan laporan satu sumber tanpa akun berbeda: label tanpa nama sumber", () => {
+    const snap = { ...article.snapshot, report: { sources: article.snapshot.report.sources.slice(0, 1) } };
+    const items = boardItems(snap, label);
+    expect(items[0]).toEqual({ value: "100", label: "konten" });
+    expect(items.some((i) => i.label.startsWith("akun berbeda"))).toBe(false);
+  });
+
+  it("Word: tabel pipa menjadi tabel, penanda menjadi rujukan ke versi daring", () => {
+    const xml = documentXml(
+      { ...article, body: "| Tema | Konten |\n|---|---|\n| Antre | **30** |\n\n[[grafik-harian]]\n\n[[tidak-ada]]" },
+      "https://x.test/p",
+    );
+    expect(xml).toContain("<w:tbl>");
+    expect(xml).toContain("Antre");
+    expect(xml).toContain("lihat versi daring, https://x.test/p");
+    expect(xml).not.toContain("tidak-ada");
   });
 });
