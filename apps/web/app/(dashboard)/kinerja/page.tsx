@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DraftPublicationButton } from "@/components/DraftPublicationButton";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import { IndicatorForm } from "@/components/IndicatorForm";
@@ -101,6 +102,13 @@ export default async function KinerjaPage({
         ditebak. Popularitas di media sosial bukan ukuran efektivitas komunikasi.
         {fw && <> Versi model: <span className="mono">{fw.model_version}</span>.</>}
       </div>
+
+      {canEdit && (
+        <div style={{ marginBottom: 16 }}>
+          {/* Draf publikasi kinerja: kartu skor, akun resmi, situs, dan pengodean isi dibekukan. */}
+          <DraftPublicationButton projectId={project.id} start={null} end={null} zone="WIB" kind="kinerja" />
+        </div>
+      )}
 
       <p className="field-hint" style={{ marginBottom: 16 }}>
         Lanjutan:{" "}

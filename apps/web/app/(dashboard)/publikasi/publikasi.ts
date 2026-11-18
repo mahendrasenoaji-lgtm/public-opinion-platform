@@ -25,6 +25,14 @@ export interface SnapshotSource {
 
 export interface Snapshot {
   snapshot_version: number;
+  /** Tidak ada pada snapshot lama = "laporan". */
+  kind?: "laporan" | "kinerja";
+  kinerja?: {
+    scorecards: { subject: string; period: string; n_scored: number; n_unavailable: number }[];
+    accounts: { n_posts: number; accounts: unknown[] };
+    sites: { sites: unknown[] };
+    coding: { n_coded: number; n_double_coded: number };
+  };
   frozen_at: string;
   project_name: string;
   period_start: string | null;

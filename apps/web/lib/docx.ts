@@ -9,7 +9,7 @@
  */
 
 import { parseMarkdown, type Inline } from "@/lib/miniMarkdown";
-import { citation, dateLabel, dayLabel, share, type PersArticle } from "@/lib/pers";
+import { citation, dateLabel, dayLabel, dimensionCell, idNum, share, type PersArticle } from "@/lib/pers";
 import { xmlEscape } from "@/lib/persExport";
 import { SOURCE } from "@/lib/tokens";
 
@@ -145,7 +145,52 @@ export function documentXml(a: PersArticle, url: string): string {
     else body.push(para(b.inline, b.type === "h2" ? "Heading1" : b.type === "h3" ? "Heading2" : undefined));
   }
 
-  body.push(
+  const k = a.snapshot.kind === "kinerja" ? a.snapshot.kinerja : undefined;
+  if (k) {
+    body.push(
+      para("Angka di balik artikel ini", "Heading1"),
+      para(
+        `Periode ${a.snapshot.period_start} s.d. ${a.snapshot.period_end} (${a.snapshot.timezone}), ` +
+          `dibekukan ${dateLabel(a.snapshot.frozen_at)}. Model ${k.model_version}. ${k.disclaimer}`,
+      ),
+      para("Kartu skor per lembaga", "Heading2"),
+      table(
+        ["Lembaga", "Input", "Process", "Output", "Outcome", "Skor total"],
+        k.scorecards.map((c) => [
+          c.subject,
+          ...(["INPUT", "PROCESS", "OUTPUT", "OUTCOME"] as const).map((d) => {
+            const dim = c.dimensions.find((x) => x.dimension === d);
+            return dim ? dimensionCell(dim) : "–";
+          }),
+          c.total === null ? "tidak terbit" : `${c.total.toFixed(2).replace(".", ",")} (${c.label})`,
+        ]),
+      ),
+    );
+    if (k.accounts.accounts.length > 0) {
+      body.push(
+        para("Akun resmi", "Heading2"),
+        table(
+          ["Akun", "Platform", "Unggahan", "Median tayangan", "Engagement per pengikut"],
+          k.accounts.accounts.map((x) => [
+            x.account,
+            x.platform,
+            idNum(x.n_posts),
+            idNum(x.median_views, 1),
+            x.median_engagement_rate === null ? "–" : `${idNum(x.median_engagement_rate, 3)}%`,
+          ]),
+        ),
+      );
+    }
+    if (k.sites.sites.length > 0) {
+      body.push(
+        para("Situs web resmi", "Heading2"),
+        table(
+          ["Lembaga", "Terbitan 30 hari", "Terakhir terbit", "Bacaan"],
+          k.sites.sites.map((x) => [x.subject, idNum(x.n_30), x.last_published ?? "tidak tercatat", x.status]),
+        ),
+      );
+    }
+  } else body.push(
     para("Angka di balik artikel ini", "Heading1"),
     para(
       `Periode ${a.snapshot.period_start} s.d. ${a.snapshot.period_end} (${a.snapshot.timezone}), ` +

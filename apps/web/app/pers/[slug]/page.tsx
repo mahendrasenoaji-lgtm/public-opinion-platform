@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { parseMarkdown, type Inline } from "@/lib/miniMarkdown";
 import { PersDailyCharts } from "@/components/PersCharts";
+import { PersKinerja } from "@/components/PersKinerja";
 import { PersNav } from "@/components/PersNav";
 import { PrintButton } from "@/components/PrintButton";
 import { citation, dateLabel, dayLabel, getArticle, originOf, share } from "@/lib/pers";
@@ -71,6 +72,7 @@ export default async function PersArticlePage({ params }: Params) {
   }
   const a = res.data;
   const report = a.snapshot.report;
+  const kinerja = a.snapshot.kind === "kinerja" ? a.snapshot.kinerja : undefined;
   const url = `${originOf(await headers())}/pers/${a.slug}`;
 
   return (
@@ -124,6 +126,10 @@ export default async function PersArticlePage({ params }: Params) {
           Periode {a.snapshot.period_start} s.d. {a.snapshot.period_end} ({a.snapshot.timezone}) ·
           dibekukan {dateLabel(a.snapshot.frozen_at)}
         </p>
+        {kinerja ? (
+          <PersKinerja k={kinerja} />
+        ) : (
+          <>
         {/* Sumber tidak pernah dijumlahkan: satu baris per sumber (R1). */}
         <div style={{ overflowX: "auto" }}>
           <table className="tbl">
@@ -298,6 +304,9 @@ export default async function PersArticlePage({ params }: Params) {
                 </li>
               ))}
             </ul>
+          </>
+        )}
+
           </>
         )}
 

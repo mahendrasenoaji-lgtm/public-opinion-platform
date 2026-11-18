@@ -6,28 +6,34 @@ import { useRouter } from "next/navigation";
 import { createDraft } from "@/app/(dashboard)/publikasi/actions";
 
 /**
- * Tombol "Buat draf publikasi" di Laporan Percakapan. Draf menyimpan snapshot
- * beku angka periode ini; karena itu butuh periode tetap, bukan jendela
- * relatif 30 hari yang bergeser tiap hari.
+ * Tombol "Buat draf publikasi". Draf menyimpan snapshot beku angka periode ini;
+ * karena itu butuh periode tetap, bukan jendela relatif 30 hari yang bergeser
+ * tiap hari. Di Laporan Percakapan periodenya dari form periode halaman itu;
+ * untuk `kind="kinerja"` (halaman Kinerja, tanpa form periode) tanggalnya
+ * diisi di sini, dengan `start`/`end` sebagai nilai awal.
  */
 export function DraftPublicationButton({
   projectId,
   start,
   end,
   zone,
+  kind = "laporan",
 }: {
   projectId: string;
   start: string | null;
   end: string | null;
   zone: string;
+  kind?: "laporan" | "kinerja";
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
+  const [from, setFrom] = useState(start ?? "");
+  const [to, setTo] = useState(end ?? "");
   const [error, setError] = useState("");
   const [pending, startTransition] = useTransition();
 
-  if (!start || !end) {
+  if (kind === "laporan" && (!start || !end)) {
     return (
       <span className="field-hint no-print">
         Pilih periode tetap (dari dan sampai) untuk membuat draf publikasi.
@@ -38,8 +44,13 @@ export function DraftPublicationButton({
   function submit() {
     setError("");
     if (title.trim().length < 3) return setError("Judul minimal 3 huruf.");
+    const period = kind === "kinerja" ? { start: from, end: to } : { start: start!, end: end! };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(period.start) || !/^\d{4}-\d{2}-\d{2}$/.test(period.end)) {
+      return setError("Isi tanggal awal dan akhir periode.");
+    }
+    if (period.end < period.start) return setError("Tanggal akhir sebelum tanggal awal.");
     startTransition(async () => {
-      const res = await createDraft(projectId, { title: title.trim(), start: start!, end: end!, tz: zone });
+      const res = await createDraft(projectId, { title: title.trim(), ...period, tz: zone, kind });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -77,6 +88,18 @@ export function DraftPublicationButton({
           placeholder="mis. Sentimen publik terhadap …"
         />
       </div>
+      {kind === "kinerja" && (
+        <>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor="draf-dari">Dari</label>
+            <input id="draf-dari" type="date" value={from} disabled={pending} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="field" style={{ margin: 0 }}>
+            <label htmlFor="draf-sampai">Sampai</label>
+            <input id="draf-sampai" type="date" value={to} disabled={pending} onChange={(e) => setTo(e.target.value)} />
+          </div>
+        </>
+      )}
       <button type="button" className="btn btn-sm" disabled={pending} onClick={submit}>
         {pending ? "Membekukan angka…" : "Buat draf"}
       </button>

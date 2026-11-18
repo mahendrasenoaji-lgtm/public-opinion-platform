@@ -144,6 +144,36 @@ export default async function PublikasiPage({
           </Panel>
 
           <Panel kicker="Snapshot beku" title="Angka yang menyertai artikel ini">
+            {pub.snapshot.kind === "kinerja" && pub.snapshot.kinerja ? (
+              <table className="tbl">
+                <thead>
+                  <tr>
+                    <th scope="col">Lembaga · periode</th>
+                    <th scope="col">Indikator berskor / tidak tersedia</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pub.snapshot.kinerja.scorecards.map((c) => (
+                    <tr key={`${c.subject}|${c.period}`}>
+                      <td>
+                        {c.subject} · {c.period}
+                      </td>
+                      <td className="mono">
+                        {c.n_scored} / {c.n_unavailable}
+                      </td>
+                    </tr>
+                  ))}
+                  <tr>
+                    <td>Akun resmi · situs · unggahan dikode</td>
+                    <td className="mono">
+                      {pub.snapshot.kinerja.accounts.accounts.length} akun ({pub.snapshot.kinerja.accounts.n_posts} unggahan) ·{" "}
+                      {pub.snapshot.kinerja.sites.sites.length} situs · {pub.snapshot.kinerja.coding.n_coded} dikode (
+                      {pub.snapshot.kinerja.coding.n_double_coded} ganda)
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            ) : (
             <table className="tbl">
               <thead>
                 <tr>
@@ -169,8 +199,9 @@ export default async function PublikasiPage({
                 ))}
               </tbody>
             </table>
+            )}
             <Provenance
-              method={`Bahan Laporan Percakapan, dibekukan ${formatDateTime(pub.snapshot.frozen_at)} WIB`}
+              method={`Bahan ${pub.snapshot.kind === "kinerja" ? "Kinerja Komunikasi" : "Laporan Percakapan"}, dibekukan ${formatDateTime(pub.snapshot.frozen_at)} WIB`}
               n={`periode ${pub.snapshot.period_start} s.d. ${pub.snapshot.period_end} (${pub.snapshot.timezone})`}
               confidence="mengikuti metode tiap sumber"
               limits={pub.snapshot.note}

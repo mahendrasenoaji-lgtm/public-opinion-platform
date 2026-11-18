@@ -154,3 +154,66 @@ class TestSnapshot:
         assert snap["project_name"] == "BBM"
         assert snap["snapshot_version"] == 1
         assert "dibekukan" in snap["note"]
+
+
+# ------------------------------------------------------------ snapshot kinerja ----
+
+
+def test_periode_bulan_kinerja():
+    assert pub.in_period("2026-10", "2026-08-01", "2026-10-31")
+    assert pub.in_period("2026-08", "2026-08-01", "2026-10-31")
+    assert not pub.in_period("2026-11", "2026-08-01", "2026-10-31")
+    assert not pub.in_period("2026-07", "2026-08-01", "2026-10-31")
+
+
+def test_situs_tanpa_daftar_butir_dan_catatan():
+    site = {
+        "subject": "KKP",
+        "base_url": "https://kkp.go.id",
+        "n_30": 18,
+        "latest": [{"title": "x"}],
+        "check_notes": ["catatan"],
+        "list_urls": ["https://kkp.go.id/news.html"],
+        "id": "u",
+    }
+    out = pub.public_sites([site])[0]
+    assert out["subject"] == "KKP" and out["n_30"] == 18
+    assert (
+        "latest" not in out
+        and "check_notes" not in out
+        and "list_urls" not in out
+        and "id" not in out
+    )
+
+
+def test_sebaran_pengodean_hanya_yang_lolos_uji():
+    rel = {
+        "n_posts": 10,
+        "variables": [
+            {"code": "A9", "alpha": 0.81},
+            {"code": "A11", "alpha": 0.5},
+            {"code": "A12", "alpha": None},
+        ],
+        "distributions": [
+            {"code": "A9", "counts": [[1, "x", 3]]},
+            {"code": "A11", "counts": [[1, "y", 2]]},
+            {"code": "A12", "counts": [[0, "z", 1]]},
+        ],
+    }
+    out = pub.public_coding(rel, threshold=0.667)
+    assert [d["code"] for d in out["distributions"]] == ["A9"]
+    assert out["n_posts"] == 10
+
+
+def test_snapshot_kinerja_tetap_punya_laporan_kosong():
+    snap = pub.build_kinerja_snapshot(
+        kinerja={"scorecards": []},
+        project_name="P",
+        frozen_at="2026-11-18T00:00:00+00:00",
+        period_start="2026-08-01",
+        period_end="2026-10-31",
+        timezone="WIB",
+    )
+    assert snap["kind"] == "kinerja" and snap["report"]["sources"] == []
+    assert snap["period_start"] == "2026-08-01" and snap["kinerja"] == {"scorecards": []}
+    assert not pub.snapshot_has_social_text(snap)

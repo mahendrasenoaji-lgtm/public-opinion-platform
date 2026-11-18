@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta, timezone
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -33,7 +33,12 @@ from app.models.governance import AuditLog
 from app.models.org import User
 from app.models.project import Project
 from app.models.publication import Publication
+from app.routers.comm_coding import coding_reliability
+from app.routers.comm_performance import _scorecard, list_assessments, posts_summary
+from app.routers.comm_sites import list_sites
 from app.routers.signals import conversation_report
+from app.services import comm_performance as cp
+from app.services import content_coding as cc
 from app.services import publications as pub
 
 router = APIRouter(prefix="/projects/{project_id}/publications", tags=["publications"])
@@ -51,6 +56,9 @@ class DraftIn(BaseModel):
     start: date
     end: date
     tz: Literal["WIB", "WITA", "WIT"] = "WIB"
+    #: "laporan" = bahan Laporan Percakapan; "kinerja" = kartu skor, akun resmi,
+    #: situs resmi, dan pengodean isi dari halaman Kinerja Komunikasi.
+    kind: Literal["laporan", "kinerja"] = "laporan"
 
     @field_validator("title")
     @classmethod
@@ -201,6 +209,59 @@ def _audit(user: CurrentUser, action: str, p: Publication, **meta: object) -> Au
 # ------------------------------------------------- endpoint bertenant ----
 
 
+_TZ_HOURS = {"WIB": 7, "WITA": 8, "WIT": 9}
+
+
+async def _kinerja_material(
+    session: AsyncSession, user: Any, project_id: UUID, body: DraftIn
+) -> dict[str, Any]:
+    """Bahan artikel kinerja untuk periode draf, dari endpoint Kinerja yang sama."""
+    start_s, end_s = body.start.isoformat(), body.end.isoformat()
+    refs = [
+        r
+        for r in await list_assessments(project_id, session, user)
+        if pub.in_period(r.period, start_s, end_s)
+    ]
+    scorecards = []
+    for ref in sorted(refs, key=lambda r: (r.period, r.subject)):
+        card = (await _scorecard(session, project_id, ref.subject, ref.period)).model_dump(
+            mode="json"
+        )
+        for item in card["items"]:
+            meta = cp.INDICATOR_BY_CODE[item["indicator"]]
+            item["name"], item["dimension"] = meta.name, meta.dimension
+            item.pop("assessed_at", None)
+        scorecards.append(card)
+    zone = timezone(timedelta(hours=_TZ_HOURS[body.tz]))
+    posts = await posts_summary(
+        project_id,
+        session,
+        user,
+        start=datetime.combine(body.start, datetime.min.time(), tzinfo=zone),
+        end=datetime.combine(body.end + timedelta(days=1), datetime.min.time(), tzinfo=zone),
+    )
+    sites = await list_sites(project_id, session, user)
+    coding = await coding_reliability(project_id, session, user)
+    return {
+        "model_version": cp.MODEL_VERSION,
+        "disclaimer": cp.DISCLAIMER,
+        "scorecards": scorecards,
+        "accounts": {
+            "method": posts.method,
+            "n_posts": posts.n_posts,
+            "accounts": [a.model_dump(mode="json") for a in posts.accounts],
+            "limitations": posts.limitations,
+        },
+        "sites": {
+            "method": sites.method,
+            "as_of": sites.today.isoformat(),
+            "sites": pub.public_sites([s.model_dump(mode="json") for s in sites.sites]),
+            "limitations": sites.limitations,
+        },
+        "coding": pub.public_coding(coding.model_dump(mode="json"), threshold=cc.ALPHA_TENTATIVE),
+    }
+
+
 @router.post(
     "",
     response_model=PublicationOut,
@@ -216,16 +277,26 @@ async def create_draft(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "Tanggal akhir sebelum tanggal awal."
         )
     project = await _project(session, project_id)
-    report = await conversation_report(
-        project_id, session, user, days=30, start=body.start, end=body.end, tz=body.tz
-    )
     now = datetime.now(UTC)
-    snapshot = pub.build_snapshot(
-        report=report.model_dump(mode="json"),
-        project_name=project.name,
-        frozen_at=now.isoformat(),
-        timezone=body.tz,
-    )
+    if body.kind == "kinerja":
+        snapshot = pub.build_kinerja_snapshot(
+            kinerja=await _kinerja_material(session, user, project_id, body),
+            project_name=project.name,
+            frozen_at=now.isoformat(),
+            period_start=body.start.isoformat(),
+            period_end=body.end.isoformat(),
+            timezone=body.tz,
+        )
+    else:
+        report = await conversation_report(
+            project_id, session, user, days=30, start=body.start, end=body.end, tz=body.tz
+        )
+        snapshot = pub.build_snapshot(
+            report=report.model_dump(mode="json"),
+            project_name=project.name,
+            frozen_at=now.isoformat(),
+            timezone=body.tz,
+        )
     if pub.snapshot_has_social_text(snapshot):  # pragma: no cover - penjaga
         raise HTTPException(
             status.HTTP_500_INTERNAL_SERVER_ERROR, "Snapshot masih memuat teks konten warga."

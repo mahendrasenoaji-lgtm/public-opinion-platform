@@ -61,10 +61,92 @@ export interface PersTopic {
   sentiment: number | null;
 }
 
+export interface PersKinerjaItem {
+  indicator: string;
+  name: string;
+  dimension: string;
+  score: number | null;
+  unavailable_reason: string | null;
+  evidence: string;
+}
+
+export interface PersKinerjaDimension {
+  dimension: string;
+  score: number | null;
+  coverage: number;
+  n_available: number;
+  n_total: number;
+  published: boolean;
+  weight: number;
+}
+
+export interface PersScorecard {
+  subject: string;
+  period: string;
+  total: number | null;
+  label: string | null;
+  n_scored: number;
+  n_unavailable: number;
+  n_empty: number;
+  dimensions: PersKinerjaDimension[];
+  items: PersKinerjaItem[];
+  limitations?: string[];
+}
+
+export interface PersAccount {
+  account: string;
+  platform: string;
+  n_posts: number;
+  median_views: number | null;
+  median_likes: number | null;
+  median_comments: number | null;
+  /** Persen. */
+  median_engagement_rate: number | null;
+  insufficient_data: boolean;
+}
+
+export interface PersSite {
+  subject: string;
+  base_url: string;
+  feed_kind: string;
+  n_window: number;
+  n_30: number;
+  last_published: string | null;
+  days_since_last: number | null;
+  longest_gap_days: number | null;
+  median_gap_days: number | null;
+  status: string;
+  quiet: boolean;
+}
+
+export interface PersCoding {
+  method?: string;
+  n_posts: number;
+  n_coded: number;
+  n_double_coded: number;
+  variables: { code: string; name: string; alpha: number | null; label: string; n_double_coded: number }[];
+  /** Hanya variabel yang alpha-nya sudah dihitung dan lolos ambang sementara. */
+  distributions: { code: string; name: string; n: number; counts: [number, string, number][] }[];
+  limitations?: string[];
+}
+
+/** Bahan artikel kinerja komunikasi (snapshot `kind: "kinerja"`). */
+export interface PersKinerja {
+  model_version: string;
+  disclaimer: string;
+  scorecards: PersScorecard[];
+  accounts: { method: string; n_posts: number; accounts: PersAccount[]; limitations: string[] };
+  sites: { method: string; as_of: string; sites: PersSite[]; limitations: string[] };
+  coding: PersCoding;
+}
+
 export interface PersArticle extends PersRef {
   body: string;
   updated_at: string;
   snapshot: {
+    /** Tidak ada pada snapshot lama = "laporan". */
+    kind?: "laporan" | "kinerja";
+    kinerja?: PersKinerja;
     frozen_at: string;
     period_start: string | null;
     period_end: string | null;
@@ -135,6 +217,25 @@ export function citation(a: PersRef, url: string): string {
 export function pageNumber(raw: string | string[] | undefined): number {
   const text = (Array.isArray(raw) ? raw[0] : raw) ?? "";
   return /^[1-9]\d{0,5}$/.test(text) ? Number(text) : 1;
+}
+
+export const DIMENSION_LABEL: Record<string, string> = {
+  INPUT: "Input",
+  PROCESS: "Process",
+  OUTPUT: "Output",
+  OUTCOME: "Outcome",
+};
+
+/** "3,0" atau "tidak terbit (cakupan 33%)" untuk satu dimensi kartu skor. */
+export function dimensionCell(d: PersKinerjaDimension): string {
+  if (d.published && d.score !== null) return d.score.toFixed(1).replace(".", ",");
+  return `tidak terbit (cakupan ${Math.round(d.coverage * 100)}%)`;
+}
+
+/** Angka Indonesia, atau tanda pisah bila tidak ada. */
+export function idNum(n: number | null | undefined, digits = 0): string {
+  if (n === null || n === undefined || !Number.isFinite(n)) return "–";
+  return n.toLocaleString("id-ID", { maximumFractionDigits: digits, minimumFractionDigits: digits });
 }
 
 /** Tanggal pendek untuk sumbu dan tabel harian: "11 Okt". */
