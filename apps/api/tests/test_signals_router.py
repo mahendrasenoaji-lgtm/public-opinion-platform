@@ -351,7 +351,7 @@ class TestAgregasi:
     async def test_panel_teks_sama_hasilnya_bila_dibaca_per_potongan(
         self, client, monkeypatch
     ) -> None:
-        """Emosi dan aktor dibaca per potongan; ukuran potongan tidak boleh mengubah angka."""
+        """Emosi, aktor, laporan, aktivitas dibaca per potongan; hasilnya tidak boleh berubah."""
         from app.routers import signals as signals_router
 
         headers, pid = await _new_project(client)
@@ -363,16 +363,19 @@ class TestAgregasi:
             f"/v1/projects/{pid}/signals/ingest", json={"items": items}, headers=headers
         )
 
-        async def _baca() -> tuple[dict, dict]:
-            emo = await client.get(f"/v1/projects/{pid}/signals/emotions", headers=headers)
-            act = await client.get(f"/v1/projects/{pid}/signals/actors", headers=headers)
-            assert emo.status_code == 200, emo.text
-            assert act.status_code == 200, act.text
-            return emo.json(), act.json()
+        async def _baca() -> tuple[dict, ...]:
+            out = []
+            for path in ("emotions", "actors", "report", "activity"):
+                r = await client.get(f"/v1/projects/{pid}/signals/{path}", headers=headers)
+                assert r.status_code == 200, r.text
+                out.append(r.json())
+            return tuple(out)
 
         sekali = await _baca()
         assert sekali[0]["by_source"][0]["n_total"] == 23
         assert sekali[1]["by_source"][0]["n_total"] == 23
+        assert sekali[2]["sources"][0]["n"] == 23
+        assert sekali[3]["by_source"][0]["n"] == 23
         # 23 baris dengan potongan 5: lima potongan, yang terakhir tidak penuh.
         monkeypatch.setattr(signals_router, "_BATCH_ROWS", 5)
         assert await _baca() == sekali

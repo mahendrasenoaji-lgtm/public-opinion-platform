@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ingestBatch } from "@/app/(dashboard)/sinyal/actions";
+import { finishIngest, ingestBatch } from "@/app/(dashboard)/sinyal/actions";
 import { parseUpload, type Parsed } from "@/lib/uploadParse";
 
 /** Item per panggilan. Backend menerima 1.000, tapi server action Next dibatasi 1 MB. */
@@ -52,6 +52,8 @@ export function UploadData({ projectId }: { projectId: string }) {
       res.result.caveats.forEach((c) => notes.add(c));
       setSum({ ...total });
     }
+    // Satu kali, bukan per potongan: lihat catatan di ingestBatch.
+    if (total.stored > 0) await finishIngest();
     setCaveats([...notes]);
     setProgress("");
     setPending(false);
