@@ -56,7 +56,51 @@ server Render ditolak situsnya); Kementan 0 (halaman daftar tanpa tanggal; perlu
 KLH `/berita` dan `/pengumuman` gagal dibuka dari server maupun dari Mac pada 17 Nov.
 Angka 30/90 hari masih batas bawah sampai situs dibaca berkala.
 
-## Berikutnya (data publik, belum dikerjakan)
+## 18 Nov 2026: C3, C4, pengodean isi, situs Kementan (keputusan peneliti pagi itu)
+
+Keputusan: pengode 1 = peneliti, pengode 2 = Claude (dicatat sebagai pengode AI, bukan manusia independen);
+percakapan C4 = komentar YouTube pada video yang menyebut nama lembaga; Kementan dibaca dari halaman artikel
+(judul + tanggal saja, maks. 20, `skrip/kementan_artikel.py`).
+
+**Kartu skor sekarang lengkap untuk keenam lembaga (28 indikator, 0 belum diisi).** Kementan 3 berskor / 25 tidak
+tersedia; lima lainnya 2 / 26. Tidak ada skor dimensi yang terbit (temuan utama tetap).
+
+- **Situs Kementan:** 20 artikel (12–17 Nov) diunggah sebagai CSV (`data/situs_kementan_2026-11-18.csv`). Keenam situs
+  kini punya butir.
+- **C3 keselarasan → tidak tersedia untuk semua.** Pernyataan Kemenko Pangan dibaca dari kemenkopangan.go.id (5 halaman
+  daftar, 36 butir, 27 dalam Agu–Okt; `data/kemenko_pangan_berita.csv`). 15 kandidat pasangan per isu dengan pernyataan
+  lembaga (video YouTube resmi); 5 dikeluarkan karena pernyataan lembaga hanya judul (`data/c3_pasangan_dikeluarkan.csv`).
+  Tersisa 10: Kementan 4, BGN 2, KLH 2, Bapanas 1, KKP 1, Kemenhut 0 — semuanya di bawah ambang 5 pasangan per lembaga,
+  jadi C3 tidak bisa diskor apa pun hasil kodenya. Catatan teknis: saran skor C3 di platform dihitung atas semua pasangan
+  proyek, bukan per lembaga.
+  - **Pengode 1 (peneliti) belum mengode.** Lembar kerja tanpa kode: `data/c3_lembar_pengode1.csv`. Kode pengode 2
+    disimpan TERTUTUP di Mac (`data_lokal/c3_kode_pengode2_TERTUTUP.json`, tidak di GitHub) karena halaman C3 platform
+    menampilkan kode kedua pengode; dimasukkan ke platform sesudah peneliti mengode.
+- **C4 kecepatan respons → tidak tersedia untuk semua (keputusan peneliti).** Percakapan: 70.325 komentar dari 360 video
+  (`skrip/collect_percakapan.py`, data mentah lokal), lalu video dari kanal lembaga sendiri/unitnya dikeluarkan (komentar
+  di sana memuncak karena lembaga mengunggah; contoh: "Hymne Penyuluh" BPPSDMP 53.906 komentar). Hasil fungsi platform
+  (`skrip/hitung_c4.py`, `data/c4_per_lembaga.json`):
+
+  | Lembaga | Komentar | Median/hari | Lonjakan | Tak dijawab 72 jam | Median jam | Saran |
+  |---|---|---|---|---|---|---|
+  | Kementan | 4.881 | 31 | 34 | 1 | 13,4 | 4 |
+  | KKP | 2.549 | 6 | 17 | 10 | 25,2 | 1 |
+  | Kemenhut | 1.482 | 5 | 20 | 13 | 29,6 | 1 |
+  | BGN | 501 | 5 | 22 | 13 | 14,1 | 1 |
+  | KLH/BPLH | 414 | 3 | 14 | 5 | 29,2 | 3 |
+  | Bapanas | 359 | 2 | 15 | 8 | 35,1 | 1 |
+
+  Tidak dijadikan skor: fungsi platform menghitung unggahan resmi apa pun sebagai tanggapan tanpa cek isi (Kementan
+  mengunggah hampir tiap hari), dan percakapan lima lembaga lain terlalu tipis.
+- **Pengodean isi (A9–A18):** lembar pengode 2 lengkap di platform, 159/159 unggahan, A9, A11, A12, A14, A15, A16 dari
+  judul + deskripsi; A17 dan A18 kosong (video tidak ditonton). Platform menyembunyikan kode pengode lain, jadi peneliti
+  bisa mengode lembar 1 tanpa melihat kode Claude. Alpha baru terhitung setelah minimal 20 unggahan dikode ganda.
+  Salinan kode lokal: `data_lokal/kode_isi_pengode2.json` (tidak di GitHub, supaya tetap buta).
+
+**Yang tersisa untuk peneliti:** (1) kode lembar 1 di `/kinerja/analisis?bagian=kode` (minimal 20 unggahan untuk alpha);
+(2) kode `data/c3_lembar_pengode1.csv` lalu beri tahu Claude untuk memasukkan kode pengode 2.
+
+## Berikutnya (data publik, belum dikerjakan; status 17 Nov)
 
 1. **C3 keselarasan**: pasangkan pernyataan resmi Kemenko Pangan dan tiap lembaga per isu, dua
    pengode, di `/kinerja/analisis?bagian=selaras`.
