@@ -13,13 +13,12 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
   Status tahap ada di tabel bawah.
 - **Kuota Supabase:** masa tenggang egress sampai 10 Des 2026. Jangan jalankan "Nilai ulang" untuk proyek ini
   (data baru sudah dinilai `informal-4` saat masuk) dan buka dasbor seperlunya.
-- **Video belum ditarik:** 729 video kecil (±88 ribu komentar menurut YouTube). Lanjutkan saat kuota YouTube
-  pulih (kuota harian 10.000 unit, pulih ±15.00 WIB):
-  `YOUTUBE_API_KEY=... python3 -I skrip/collect_gibran.py raw_youtube_api.json 6000`
-  Skrip melompati video yang sudah ada di `raw_youtube_api.json.parts/` dan tidak mencari ulang.
-  Kunci diambil pemilik sendiri dari Render → pop-api → Environment (Claude tidak diizinkan membukanya).
-  Sesudah itu jalankan ulang `analyze_gibran.py`, lalu buat tahap tambahan HANYA dari komentar baru
-  (jangan acak ulang semuanya: tahap lama sudah terunggah; dedup platform memang menahan yang kembar).
+- **729 video kecil sudah ditarik (17 Nov 2026 malam, 22.23–22.50 WIB, ±1.940 unit kuota).** Total 842 video,
+  292.377 komentar + balasan dalam jendela (230.460 + 61.917), 165.316 akun. Satu video sudah dihapus (404).
+  Catatan: komentar 17 Nov sesudah jam pengambilan tidak ikut (114 video teramai diambil 02.42 WIB, sisanya ±22.30 WIB).
+- **Tahap tambahan 11–15** (`unggah_bertahap/tahap_NN_tambahan.json`, hanya komentar yang belum ada di tahap 01–10,
+  dibuat `skrip/tahap_baru.py`, seed sama): 92.396 item, **semua terunggah 17 Nov 23.00–23.57 WIB**. Platform kini
+  ±288.700 konten (dihitung dari laporan unggahan; belum dicek di dasbor, lihat bawah).
 
 ## Keputusan
 
@@ -65,10 +64,20 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 | 08 | 19.995 | **Terunggah 17 Nov** (dijeda di ±16.800, lalu berkas utuh diunggah ulang: 777 baru, 19.013 sudah ada) |
 | 09 | 19.995 | **Terunggah 17 Nov** (19.708 baru; "Bad Gateway" di item 14.101, lalu dua kali "Internal Server Error" tepat di item 2.401 berkas sisa; dilanjutkan lewat `tahap_09_sisa.json`, `_sisa2`, `_sisa3`) |
 | 10 | 19.994 | **Terunggah 17 Nov, 13.28 WIB** (1.200 item pertama pagi: 1.182 baru; sisanya 18.794 item lewat `tahap_10_sisa.json` sesudah jeda: 18.514 baru, 74 sudah ada, 206 duplikat, tanpa galat) |
+| 11 | 19.995 | **Terunggah 17 Nov** (19.772 baru) |
+| 12 | 19.995 | **Terunggah 17 Nov** (halaman jatuh ±item 6.300; sisanya lewat `tahap_12_sisa.json`: 11.182 baru, 2.686 sudah ada) |
+| 13 | 19.995 | **Terunggah 17 Nov** (macet di item 7.801; sisanya lewat `tahap_13_sisa.json`: 11.168 baru) |
+| 14 | 19.995 | **Terunggah 17 Nov** (19.771 baru) |
+| 15 | 12.416 | **Terunggah 17 Nov** (12.248 baru) |
 
 **Semua 10 tahap sudah masuk (17 Nov 2026, 13.28 WIB).** Yang belum: 729 video kecil.
 
-**Periode penuh sudah bisa dibuka (17 Nov, 13.54 WIB).** Sebelumnya, sesudah tahap 10 selesai, membuka
+**JANGAN buka periode penuh sampai PR #76 digabung dan dirilis (17 Nov 23.57 WIB).** Dengan ±289 ribu konten,
+`/sinyal` 10–17 Nov membuat `/health` melambat ke 10–12 detik lalu Render me-restart (503, lalu 429). Sebab: leksikon
+emosi/aktor murni Python berjalan di event loop dan memblokir pemeriksaan kesehatan. PR #76 menjalankannya di
+thread, membaca `/laporan` dan aktivitas per potongan, dan revalidasi unggahan sekali saja.
+
+Riwayat: **Periode penuh sudah bisa dibuka (17 Nov, 13.54 WIB).** Sebelumnya, sesudah tahap 10 selesai, membuka
 `/sinyal?dari=2026-11-10&sampai=2026-11-17` menjatuhkan server Render (`/health` 503 selama ±1,5 menit):
 `GET /signals/summary` memuat seluruh baris ke memori (dipanggil 3 kali sekaligus) ditambah panel emosi dan
 aktor yang memuat seluruh teks. **PR #73** (di-merge 17 Nov, rilis Render `a98fe58`) memindahkan ringkasan ke
