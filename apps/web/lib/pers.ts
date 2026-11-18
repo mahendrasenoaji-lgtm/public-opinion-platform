@@ -140,6 +140,16 @@ export interface PersKinerja {
   coding: PersCoding;
 }
 
+/** Aktor yang disebut per sumber (nama, jumlah konten, nada); tanpa jabatan. */
+export interface PersActorSource {
+  source: string;
+  n_total: number | null;
+  n_with_actor: number | null;
+  actors: { name: string; n: number; scored: number; sentiment: number | null }[];
+}
+
+export type PersSnapshot = PersArticle["snapshot"];
+
 export interface PersArticle extends PersRef {
   body: string;
   updated_at: string;
@@ -147,6 +157,9 @@ export interface PersArticle extends PersRef {
     /** Tidak ada pada snapshot lama = "laporan". */
     kind?: "laporan" | "kinerja";
     kinerja?: PersKinerja;
+    /** Jumlah akun berbeda di periode (semua sumber); snapshot lama tidak punya. */
+    distinct_authors?: number | null;
+    actors?: PersActorSource[];
     frozen_at: string;
     period_start: string | null;
     period_end: string | null;
@@ -252,4 +265,86 @@ export function originOf(h: { get(name: string): string | null }): string {
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
   const local = host.startsWith("localhost") || host.startsWith("127.0.0.1");
   return `${h.get("x-forwarded-proto") ?? (local ? "http" : "https")}://${host}`;
+}
+
+/**
+ * Penanda blok yang bisa ditulis sendirian di satu baris isi artikel,
+ * mis. `[[grafik-harian]]`. Dirender dari snapshot beku di tempat itu.
+ */
+export const EMBEDS = {
+  laporan: {
+    "grafik-harian": "Grafik jumlah konten dan porsi negatif per hari",
+    nada: "Batang nada negatif/netral/positif per sumber",
+    puncak: "Hari teramai dan liputan pada hari itu",
+    tema: "Tabel tema: jumlah konten dan nada",
+    aktor: "Tabel tokoh yang paling sering disebut",
+    kata: "Tabel kata terbanyak",
+    sumber: "Tabel ringkas per sumber",
+  },
+  kinerja: {
+    "kartu-skor": "Kartu skor per lembaga",
+    indikator: "Indikator yang berskor per lembaga",
+    akun: "Angka akun resmi",
+    situs: "Keaktifan situs web resmi",
+    pengodean: "Uji pengodean isi (Krippendorff alpha)",
+  },
+} as const;
+
+export type BoardItem = { value: string; label: string };
+
+function pct(part: number, whole: number): string {
+  return `${((part / whole) * 100).toFixed(0)}%`;
+}
+
+/**
+ * Papan angka di kepala artikel. Sumber tidak pernah dijumlahkan (R1): bila
+ * ada lebih dari satu sumber, tiap angka konten menyebut sumbernya.
+ */
+export function boardItems(snap: PersSnapshot, sourceLabel: (s: string) => string): BoardItem[] {
+  const k = snap.kind === "kinerja" ? snap.kinerja : undefined;
+  if (k) {
+    const items: BoardItem[] = [{ value: idNum(k.scorecards.length), label: "lembaga dinilai" }];
+    const totals = k.scorecards.reduce(
+      (acc, c) => ({ s: acc.s + c.n_scored, u: acc.u + c.n_unavailable }),
+      { s: 0, u: 0 },
+    );
+    if (k.scorecards.length > 0) {
+      items.push({
+        value: `${idNum(totals.s)} / ${idNum(totals.s + totals.u)}`,
+        label: "indikator berskor, dari yang diperiksa (semua lembaga)",
+      });
+    }
+    if (k.accounts.accounts.length > 0) {
+      items.push({
+        value: idNum(k.accounts.n_posts),
+        label: `unggahan dari ${idNum(k.accounts.accounts.length)} akun resmi`,
+      });
+    }
+    if (k.sites.sites.length > 0) items.push({ value: idNum(k.sites.sites.length), label: "situs web resmi dibaca" });
+    if (k.coding.n_coded > 0) {
+      items.push({ value: idNum(k.coding.n_coded), label: `unggahan dikode isinya (${idNum(k.coding.n_double_coded)} oleh dua pengode)` });
+    }
+    return items;
+  }
+
+  const sources = snap.report.sources;
+  const many = sources.length > 1;
+  const items: BoardItem[] = [];
+  for (const s of sources) {
+    const tag = many ? ` (${sourceLabel(s.source)})` : "";
+    items.push({ value: idNum(s.n), label: `konten${tag}` });
+    if (s.n > 0 && s.scored > 0) {
+      items.push({ value: idNum(s.scored), label: `bernilai sentimen, ${pct(s.scored, s.n)} dari semua${tag}` });
+      items.push({
+        value: pct(s.labels.negatif ?? 0, s.scored),
+        label: `negatif, dari yang bernilai sentimen${tag}`,
+      });
+    }
+    const peak = (s.peaks ?? [])[0];
+    if (peak) items.push({ value: dayLabel(peak.day), label: `hari teramai, ${idNum(peak.volume)} konten${tag}` });
+  }
+  if (snap.distinct_authors) {
+    items.splice(1, 0, { value: idNum(snap.distinct_authors), label: many ? "akun berbeda (semua sumber)" : "akun berbeda" });
+  }
+  return items;
 }

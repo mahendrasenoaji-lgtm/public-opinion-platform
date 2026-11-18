@@ -115,6 +115,16 @@ async def test_draf_memuat_snapshot_beku_tanpa_teks_warga(client) -> None:
     assert "antre bbm lama sekali" not in dumped and "lc=" not in dumped
 
 
+async def test_draf_laporan_membekukan_akun_dan_aktor(client) -> None:
+    headers, pid = await _org(client)
+    snap = (await _draft(client, headers, pid))["snapshot"]
+    assert isinstance(snap["distinct_authors"], int)
+    assert isinstance(snap["actors"], list)
+    for src in snap["actors"]:
+        for a in src["actors"]:
+            assert set(a) == {"name", "n", "scored", "sentiment"}
+
+
 async def test_snapshot_tidak_berubah_saat_data_bertambah(client) -> None:
     headers, pid = await _org(client)
     d = await _draft(client, headers, pid)

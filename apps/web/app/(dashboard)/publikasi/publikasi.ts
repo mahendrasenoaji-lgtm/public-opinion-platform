@@ -1,5 +1,7 @@
 /** Tipe dan pembantu tampilan publikasi hasil riset. Fungsi murni. */
 
+import type { PersSnapshot } from "@/lib/pers";
+
 export type PubStatus = "draft" | "review" | "published";
 
 export interface PublicationRef {
@@ -16,31 +18,11 @@ export interface PublicationRef {
   updated_at: string;
 }
 
-export interface SnapshotSource {
-  source: string;
-  n: number;
-  scored: number;
-  labels: Record<string, number>;
-}
-
-export interface Snapshot {
-  snapshot_version: number;
-  /** Tidak ada pada snapshot lama = "laporan". */
-  kind?: "laporan" | "kinerja";
-  kinerja?: {
-    scorecards: { subject: string; period: string; n_scored: number; n_unavailable: number }[];
-    accounts: { n_posts: number; accounts: unknown[] };
-    sites: { sites: unknown[] };
-    coding: { n_coded: number; n_double_coded: number };
-  };
-  frozen_at: string;
-  project_name: string;
-  period_start: string | null;
-  period_end: string | null;
-  timezone: string;
-  note: string;
-  report: { sources: SnapshotSource[]; limitations?: string[]; methods?: Record<string, string> };
-}
+/**
+ * Snapshot beku sama persis dengan yang dibaca /pers, ditambah dua keterangan
+ * yang hanya dipakai di sini.
+ */
+export type Snapshot = PersSnapshot & { snapshot_version: number; project_name: string };
 
 export interface Publication extends PublicationRef {
   body: string;

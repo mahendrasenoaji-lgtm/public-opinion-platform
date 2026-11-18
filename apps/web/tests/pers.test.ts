@@ -48,3 +48,25 @@ describe("citation", () => {
     expect(citation({ ...ref, version: 2 }, "u")).toContain("Judul (versi 2).");
   });
 });
+
+describe("parseMarkdown: tabel dan penanda", () => {
+  it("tabel pipa dengan garis pemisah menjadi blok tabel; sel kurang diisi kosong", () => {
+    const blocks = parseMarkdown("Pengantar.\n| A | B |\n|---|:--:|\n| 1 | **2** |\n| 3 |\nSesudah.");
+    expect(blocks.map((b) => b.type)).toEqual(["p", "table", "p"]);
+    const t = blocks[1];
+    if (t?.type !== "table") throw new Error("bukan tabel");
+    expect(t.head.map((c) => c[0]?.text)).toEqual(["A", "B"]);
+    expect(t.rows[0]?.[1]).toEqual([{ text: "2", bold: true }]);
+    expect(t.rows[1]?.[1]).toEqual([]);
+  });
+
+  it("baris berpipa tanpa garis pemisah dibaca sebagai paragraf", () => {
+    expect(parseMarkdown("| bukan | tabel |").map((b) => b.type)).toEqual(["p"]);
+  });
+
+  it("penanda hanya dikenali sendirian di satu baris dan berhuruf kecil", () => {
+    const blocks = parseMarkdown("[[grafik-harian]]\n\nlihat [[nada]] di sini\n\n[[Nada]]");
+    expect(blocks[0]).toEqual({ type: "embed", name: "grafik-harian" });
+    expect(blocks.slice(1).every((b) => b.type === "p")).toBe(true);
+  });
+});

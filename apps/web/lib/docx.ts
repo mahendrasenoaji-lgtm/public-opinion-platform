@@ -9,7 +9,7 @@
  */
 
 import { parseMarkdown, type Inline } from "@/lib/miniMarkdown";
-import { citation, dateLabel, dayLabel, dimensionCell, idNum, share, type PersArticle } from "@/lib/pers";
+import { EMBEDS, citation, dateLabel, dayLabel, dimensionCell, idNum, share, type PersArticle } from "@/lib/pers";
 import { xmlEscape } from "@/lib/persExport";
 import { SOURCE } from "@/lib/tokens";
 
@@ -95,6 +95,8 @@ export function zipStore(files: { name: string; data: string }[]): Uint8Array {
 
 // ------------------------------------------------------- WordprocessingML ----
 
+const plain = (inline: Inline[]): string => inline.map((p) => p.text).join("");
+
 function run(text: string, bold = false): string {
   return `<w:r>${bold ? "<w:rPr><w:b/></w:rPr>" : ""}<w:t xml:space="preserve">${xmlEscape(text)}</w:t></w:r>`;
 }
@@ -139,10 +141,16 @@ export function documentXml(a: PersArticle, url: string): string {
     ),
   ];
   if (a.summary) body.push(para([{ text: a.summary, bold: true }]));
+  const embeds = a.snapshot.kind === "kinerja" ? EMBEDS.kinerja : EMBEDS.laporan;
 
   for (const b of parseMarkdown(a.body)) {
     if (b.type === "ul") body.push(...b.items.map((item) => bullet(item)));
-    else body.push(para(b.inline, b.type === "h2" ? "Heading1" : b.type === "h3" ? "Heading2" : undefined));
+    else if (b.type === "table") body.push(table(b.head.map(plain), b.rows.map((r) => r.map(plain))));
+    else if (b.type === "embed") {
+      // Grafik tidak ikut ke Word; angkanya ada di bagian "Angka di balik artikel ini".
+      const label = (embeds as Record<string, string>)[b.name];
+      if (label) body.push(para(`[${label}: lihat versi daring, ${url}]`));
+    } else body.push(para(b.inline, b.type === "h2" ? "Heading1" : b.type === "h3" ? "Heading2" : undefined));
   }
 
   const k = a.snapshot.kind === "kinerja" ? a.snapshot.kinerja : undefined;

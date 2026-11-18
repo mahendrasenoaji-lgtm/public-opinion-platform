@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { cookies } from "next/headers";
 import { PageHeader } from "@/components/PageHeader";
+import { EmbedHelp, PersArticleBody, PersBoard } from "@/components/PersArticleView";
 import { Panel } from "@/components/Panel";
 import { InsufficientData, Provenance } from "@/components/Provenance";
 import { PublicationEditor } from "@/components/PublicationEditor";
@@ -141,6 +142,26 @@ export default async function PublikasiPage({
             }
           >
             <PublicationEditor key={pub.id} projectId={project.id} publication={pub} canEdit={canEdit} canPublish={canPublish} />
+          </Panel>
+
+          <Panel kicker="Pratinjau" title="Tampilan di halaman publik /pers">
+            <p className="field-hint">
+              Teks tersimpan, dirender seperti yang akan dibaca publik. Simpan dulu untuk melihat perubahan.
+              Grafik dan tabel dari snapshot disisipkan dengan menulis penanda sendirian di satu baris; tabel
+              biasa ditulis dengan garis tegak (<code>| Kolom | Kolom |</code> lalu <code>|---|---|</code>).
+            </p>
+            <details className="pers-details">
+              <summary>Daftar penanda</summary>
+              <EmbedHelp kind={pub.snapshot.kind === "kinerja" ? "kinerja" : "laporan"} />
+            </details>
+            <div className="pers pers-preview">
+              <header className="pers-head">
+                <h1>{pub.title}</h1>
+                {pub.summary && <p>{pub.summary}</p>}
+              </header>
+              <PersBoard snap={pub.snapshot} />
+              <PersArticleBody body={pub.body} snap={pub.snapshot} preview />
+            </div>
           </Panel>
 
           <Panel kicker="Snapshot beku" title="Angka yang menyertai artikel ini">

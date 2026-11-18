@@ -1,14 +1,26 @@
 /**
  * Markdown sangat kecil untuk isi artikel publikasi: `##`/`###` subjudul,
- * paragraf, daftar `- `, dan `**tebal**`. Hasilnya struktur data, BUKAN HTML,
- * sehingga isi artikel tidak pernah bisa menyisipkan markup ke halaman publik.
+ * paragraf, daftar `- `, `**tebal**`, tabel pipa (`| a | b |` + baris
+ * `|---|---|`), dan penanda blok `[[nama]]` sendirian di satu baris (grafik
+ * atau tabel dari snapshot, lihat `components/PersArticleView.tsx`). Hasilnya
+ * struktur data, BUKAN HTML, sehingga isi artikel tidak pernah bisa
+ * menyisipkan markup ke halaman publik.
  */
 
 export type Inline = { text: string; bold: boolean };
 
 export type Block =
   | { type: "h2" | "h3" | "p"; inline: Inline[] }
-  | { type: "ul"; items: Inline[][] };
+  | { type: "ul"; items: Inline[][] }
+  | { type: "table"; head: Inline[][]; rows: Inline[][][] }
+  | { type: "embed"; name: string };
+
+const EMBED = /^\[\[([a-z][a-z0-9-]{1,40})\]\]$/;
+const TABLE_RULE = /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/;
+
+function cells(line: string): string[] {
+  return line.replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+}
 
 export function parseInline(text: string): Inline[] {
   const out: Inline[] = [];
@@ -24,17 +36,53 @@ export function parseMarkdown(source: string): Block[] {
   const blocks: Block[] = [];
   let para: string[] = [];
   let list: Inline[][] = [];
+  let table: string[] = [];
+
+  const flushTable = () => {
+    // Tabel sah = kepala + garis pemisah; selain itu dibaca sebagai paragraf.
+    const [first, rule] = table;
+    if (first !== undefined && rule !== undefined && TABLE_RULE.test(rule)) {
+      const head = cells(first);
+      blocks.push({
+        type: "table",
+        head: head.map(parseInline),
+        rows: table.slice(2).map((r) => {
+          const row = cells(r);
+          return head.map((_, i) => parseInline(row[i] ?? ""));
+        }),
+      });
+    } else if (table.length > 0) {
+      blocks.push({ type: "p", inline: parseInline(table.join(" ")) });
+    }
+    table = [];
+  };
 
   const flush = () => {
     if (para.length > 0) blocks.push({ type: "p", inline: parseInline(para.join(" ")) });
     if (list.length > 0) blocks.push({ type: "ul", items: list });
+    flushTable();
     para = [];
     list = [];
   };
 
   for (const raw of source.replace(/\r\n?/g, "\n").split("\n")) {
     const line = raw.trim();
-    if (line === "") {
+    if (line.startsWith("|")) {
+      if (para.length > 0 || list.length > 0) {
+        const keep = table;
+        table = [];
+        flush();
+        table = keep;
+      }
+      table.push(line);
+      continue;
+    }
+    if (table.length > 0) flushTable();
+    const embed = EMBED.exec(line);
+    if (embed?.[1]) {
+      flush();
+      blocks.push({ type: "embed", name: embed[1] });
+    } else if (line === "") {
       flush();
     } else if (line.startsWith("### ")) {
       flush();
