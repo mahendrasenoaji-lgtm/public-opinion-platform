@@ -100,6 +100,19 @@ tersedia; lima lainnya 2 / 26. Tidak ada skor dimensi yang terbit (temuan utama 
 **Yang tersisa untuk peneliti:** (1) kode lembar 1 di `/kinerja/analisis?bagian=kode` (minimal 20 unggahan untuk alpha);
 (2) kode `data/c3_lembar_pengode1.csv` lalu beri tahu Claude untuk memasukkan kode pengode 2.
 
+## Publikasi di /pers (rencana, 18 Nov 2026)
+
+Keputusan pemilik: hasil kinerja diterbitkan di `/pers` dengan sistem yang sama seperti artikel percakapan.
+PR #80 menambah draf publikasi berjenis `kinerja` (tombol "Buat draf publikasi" di `/kinerja`): kartu skor,
+akun resmi, situs, dan pengodean isi dibekukan; sebaran kode hanya ikut bila alpha >= 0,667.
+
+Urutan sesudah PR #80 dirilis dan lembar pengode 1 + C3 selesai:
+1. Ambil ulang keenam kanal YouTube di `/kinerja` dengan rentang 110 hari, supaya unggahan 1 Agu–31 Okt lengkap
+   di platform (pengambilan 14 Nov hanya 90 hari, mulai ±16 Agu).
+2. Masukkan kode C3 pengode 2 dari `data_lokal/c3_kode_pengode2_TERTUTUP.json`.
+3. Buat draf dari `/kinerja`, periode 2026-08-01 s.d. 2026-10-31, tulis isi dengan struktur artikel BBM Bali,
+   ajukan tinjauan; menerbitkan tetap keputusan pemilik.
+
 ## Berikutnya (data publik, belum dikerjakan; status 17 Nov)
 
 1. **C3 keselarasan**: pasangkan pernyataan resmi Kemenko Pangan dan tiap lembaga per isu, dua
