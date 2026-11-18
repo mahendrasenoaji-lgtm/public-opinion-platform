@@ -217,3 +217,47 @@ def test_snapshot_kinerja_tetap_punya_laporan_kosong():
     assert snap["kind"] == "kinerja" and snap["report"]["sources"] == []
     assert snap["period_start"] == "2026-08-01" and snap["kinerja"] == {"scorecards": []}
     assert not pub.snapshot_has_social_text(snap)
+
+
+def test_aktor_tanpa_jabatan_dan_kutipan():
+    by_source = [
+        {
+            "source": "SOCIAL",
+            "n_total": 10,
+            "n_with_actor": 4,
+            "quotes": [{"text": "x"}],
+            "actors": [
+                {
+                    "key": "g",
+                    "name": "Nama",
+                    "role": "Jabatan lama",
+                    "level": "pusat",
+                    "n": 4,
+                    "scored": 3,
+                    "sentiment": -0.1,
+                }
+            ],
+        }
+    ]
+    out = pub.public_actors(by_source)
+    assert out == [
+        {
+            "source": "SOCIAL",
+            "n_total": 10,
+            "n_with_actor": 4,
+            "actors": [{"name": "Nama", "n": 4, "scored": 3, "sentiment": -0.1}],
+        }
+    ]
+
+
+def test_snapshot_laporan_membawa_angka_pendamping():
+    snap = pub.build_snapshot(
+        report={"sources": []},
+        project_name="P",
+        frozen_at="t",
+        timezone="WIB",
+        extra={"distinct_authors": 7, "actors": []},
+    )
+    assert (
+        snap["distinct_authors"] == 7 and snap["actors"] == [] and snap["report"] == {"sources": []}
+    )

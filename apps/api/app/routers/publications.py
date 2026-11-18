@@ -36,7 +36,8 @@ from app.models.publication import Publication
 from app.routers.comm_coding import coding_reliability
 from app.routers.comm_performance import _scorecard, list_assessments, posts_summary
 from app.routers.comm_sites import list_sites
-from app.routers.signals import conversation_report
+from app.routers.signals import actor_summary, conversation_report
+from app.routers.signals import summary as signals_summary
 from app.services import comm_performance as cp
 from app.services import content_coding as cc
 from app.services import publications as pub
@@ -291,11 +292,21 @@ async def create_draft(
         report = await conversation_report(
             project_id, session, user, days=30, start=body.start, end=body.end, tz=body.tz
         )
+        totals = await signals_summary(
+            project_id, session, user, days=30, source=None, start=body.start, end=body.end
+        )
+        actors = await actor_summary(
+            project_id, session, user, days=30, start=body.start, end=body.end
+        )
         snapshot = pub.build_snapshot(
             report=report.model_dump(mode="json"),
             project_name=project.name,
             frozen_at=now.isoformat(),
             timezone=body.tz,
+            extra={
+                "distinct_authors": totals.distinct_authors,
+                "actors": pub.public_actors([a.model_dump(mode="json") for a in actors.by_source]),
+            },
         )
     if pub.snapshot_has_social_text(snapshot):  # pragma: no cover - penjaga
         raise HTTPException(

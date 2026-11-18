@@ -108,10 +108,16 @@ def build_snapshot(
     project_name: str,
     frozen_at: str,
     timezone: str,
+    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Bungkus laporan yang sudah dibersihkan beserta keterangan pembekuannya."""
+    """Bungkus laporan yang sudah dibersihkan beserta keterangan pembekuannya.
+
+    `extra` = angka pendamping yang tidak ada di laporan, mis. jumlah akun
+    berbeda dan aktor yang disebut (lihat `public_actors`).
+    """
     clean = sanitize_report(report)
     return {
+        **(extra or {}),
         "snapshot_version": SNAPSHOT_VERSION,
         "frozen_at": frozen_at,
         "project_name": project_name,
@@ -121,6 +127,29 @@ def build_snapshot(
         "note": SNAPSHOT_NOTE,
         "report": clean,
     }
+
+
+#: Aktor teratas per sumber yang ikut dibekukan.
+MAX_ACTORS: Final = 12
+
+
+def public_actors(by_source: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Aktor yang disebut, per sumber, tanpa jabatan dan tanpa kutipan.
+
+    Jabatan di daftar aktor platform ditulis per tanggal tertentu dan bisa sudah
+    berganti saat artikel dibaca, jadi tidak ikut dibekukan; yang tersisa nama,
+    jumlah konten, dan nada konten yang menyebutnya.
+    """
+    keep = ("name", "n", "scored", "sentiment")
+    return [
+        {
+            "source": s.get("source"),
+            "n_total": s.get("n_total"),
+            "n_with_actor": s.get("n_with_actor"),
+            "actors": [{k: a.get(k) for k in keep} for a in s.get("actors", [])[:MAX_ACTORS]],
+        }
+        for s in by_source
+    ]
 
 
 def snapshot_has_social_text(snapshot: dict[str, Any]) -> bool:
