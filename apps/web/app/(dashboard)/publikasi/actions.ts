@@ -17,10 +17,10 @@ async function call<T>(path: string, init: RequestInit): Promise<Result<T>> {
   }
 }
 
-/** Buat draf dengan snapshot beku bahan /laporan untuk periode tetap ini. */
+/** Buat draf dengan snapshot beku bahan /laporan (atau Kinerja, `kind`) untuk periode tetap ini. */
 export async function createDraft(
   projectId: string,
-  input: { title: string; start: string; end: string; tz: string },
+  input: { title: string; start: string; end: string; tz: string; kind?: "laporan" | "kinerja" },
 ): Promise<Result<Publication>> {
   return call<Publication>(`/projects/${projectId}/publications`, {
     method: "POST",

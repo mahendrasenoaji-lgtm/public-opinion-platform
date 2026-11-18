@@ -38,6 +38,33 @@ export function aggregateCsv(a: PersArticle, url: string): string {
     ["meta", "", "dibekukan", "", snap.frozen_at],
     ["meta", "", "catatan", "", snap.note],
   ];
+  const k = snap.kind === "kinerja" ? snap.kinerja : undefined;
+  if (k) {
+    rows.push(["meta", "", "model", "", k.model_version]);
+    for (const c of k.scorecards) {
+      for (const d of c.dimensions) {
+        rows.push(["kartu_skor", c.subject, d.dimension, "skor", d.published ? d.score : null]);
+        rows.push(["kartu_skor", c.subject, d.dimension, "cakupan", d.coverage]);
+      }
+      rows.push(["kartu_skor", c.subject, "total", "skor", c.total]);
+      for (const i of c.items) {
+        if (i.score === null && !i.unavailable_reason) continue;
+        // Kosong + alasan = tidak tersedia, bukan nol.
+        rows.push(["indikator", c.subject, i.indicator, "skor", i.score]);
+        if (i.unavailable_reason) rows.push(["indikator", c.subject, i.indicator, "alasan_tidak_tersedia", i.unavailable_reason]);
+      }
+    }
+    for (const a of k.accounts.accounts) {
+      rows.push(["akun", a.platform, a.account, "unggahan", a.n_posts]);
+      rows.push(["akun", a.platform, a.account, "median_tayangan", a.median_views]);
+      rows.push(["akun", a.platform, a.account, "median_engagement_rate_persen", a.median_engagement_rate]);
+    }
+    for (const s of k.sites.sites) {
+      rows.push(["situs", "", s.subject, "terbitan_30_hari", s.n_30]);
+      rows.push(["situs", "", s.subject, "terakhir_terbit", s.last_published]);
+    }
+    for (const v of k.coding.variables) rows.push(["pengodean", "", v.code, "krippendorff_alpha", v.alpha]);
+  }
   for (const s of snap.report.sources) {
     rows.push(["ringkasan", s.source, "semua", "konten", s.n]);
     rows.push(["ringkasan", s.source, "semua", "bernilai_sentimen", s.scored]);

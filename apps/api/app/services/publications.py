@@ -83,8 +83,7 @@ def normalize_tags(tags: list[str]) -> list[str]:
 def _strip_social_items(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Sisakan waktu dan jumlah interaksi; buang teks dan tautan."""
     return [
-        {"engagement": i.get("engagement"), "published_at": i.get("published_at")}
-        for i in items
+        {"engagement": i.get("engagement"), "published_at": i.get("published_at")} for i in items
     ]
 
 
@@ -134,3 +133,95 @@ def snapshot_has_social_text(snapshot: dict[str, Any]) -> bool:
                 if item.get("text") or item.get("source_url"):
                     return True
     return False
+
+
+# ------------------------------------------------------------ snapshot kinerja ----
+
+KINERJA_NOTE: Final = (
+    "Angka dibekukan saat draf dibuat dan tidak berubah bila isian kinerja diubah. Skor "
+    "indikator diisi penilai dengan bukti; indikator tanpa data dicatat tidak tersedia, "
+    "tidak ditebak."
+)
+
+#: Kolom ringkasan situs yang ikut dibekukan. Daftar butir, catatan pembacaan,
+#: dan alamat halaman daftar tidak ikut: yang diterbitkan hanya angka keaktifan.
+SITE_FIELDS: Final[tuple[str, ...]] = (
+    "subject",
+    "base_url",
+    "feed_kind",
+    "n_window",
+    "n_30",
+    "last_published",
+    "days_since_last",
+    "longest_gap_days",
+    "median_gap_days",
+    "status",
+    "quiet",
+)
+
+
+def in_period(period: str, start: str, end: str) -> bool:
+    """Benar bila bulan `YYYY-MM` berada di antara bulan tanggal `start` dan `end`."""
+    return start[:7] <= period <= end[:7]
+
+
+def public_sites(sites: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Ringkasan situs tanpa daftar butir dan catatan pembacaan."""
+    return [{k: s.get(k) for k in SITE_FIELDS} for s in sites]
+
+
+def public_coding(reliability: dict[str, Any], *, threshold: float) -> dict[str, Any]:
+    """Hasil pengodean isi yang aman diterbitkan.
+
+    Halaman kerja menampilkan sebaran yang belum diuji kesepakatannya; artikel
+    terbit tidak. Sebaran hanya ikut bila alpha variabel itu sudah dihitung dan
+    minimal `threshold` (ambang sementara Krippendorff).
+    """
+    alpha = {v["code"]: v.get("alpha") for v in reliability.get("variables", [])}
+    distributions = [
+        d
+        for d in reliability.get("distributions", [])
+        if alpha.get(d["code"]) is not None and alpha[d["code"]] >= threshold
+    ]
+    keep = (
+        "method",
+        "n_posts",
+        "n_coded",
+        "n_double_coded",
+        "n_coders",
+        "double_share",
+        "target_double_share",
+        "meets_target",
+        "variables",
+        "limitations",
+    )
+    return {**{k: reliability.get(k) for k in keep}, "distributions": distributions}
+
+
+def build_kinerja_snapshot(
+    *,
+    kinerja: dict[str, Any],
+    project_name: str,
+    frozen_at: str,
+    period_start: str,
+    period_end: str,
+    timezone: str,
+) -> dict[str, Any]:
+    """Snapshot artikel kinerja komunikasi.
+
+    `report` tetap ada dengan sumber kosong supaya pembaca snapshot lama (halaman
+    /pers, ekspor CSV dan Word) tidak perlu cabang khusus untuk tetap aman; isi
+    kinerja ada di kunci `kinerja`.
+    """
+    return {
+        "snapshot_version": SNAPSHOT_VERSION,
+        "kind": "kinerja",
+        "frozen_at": frozen_at,
+        "project_name": project_name,
+        "period_start": period_start,
+        "period_end": period_end,
+        "timezone": timezone,
+        "note": KINERJA_NOTE,
+        "report": {"sources": [], "methods": {}, "limitations": []},
+        "kinerja": kinerja,
+    }

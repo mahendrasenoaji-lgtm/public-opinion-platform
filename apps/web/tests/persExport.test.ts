@@ -167,3 +167,66 @@ describe("pembantu halaman", () => {
     expect(originOf(h({ host: "x", "x-forwarded-proto": "https", "x-forwarded-host": "b.id" }))).toBe("https://b.id");
   });
 });
+
+describe("artikel kinerja", () => {
+  const kinerja: PersArticle = {
+    ...article,
+    snapshot: {
+      ...article.snapshot,
+      kind: "kinerja",
+      report: { sources: [] },
+      kinerja: {
+        model_version: "gcp-rancangan-1",
+        disclaimer: "Rancangan.",
+        scorecards: [
+          {
+            subject: "KKP",
+            period: "2026-10",
+            total: null,
+            label: null,
+            n_scored: 2,
+            n_unavailable: 26,
+            n_empty: 0,
+            dimensions: [
+              { dimension: "OUTPUT", score: null, coverage: 0.222, n_available: 2, n_total: 9, published: false, weight: 0.2 },
+            ],
+            items: [
+              { indicator: "O4", name: "Views", dimension: "OUTPUT", score: 4, unavailable_reason: null, evidence: "median 1.829" },
+              { indicator: "I1", name: "SDM", dimension: "INPUT", score: null, unavailable_reason: "butuh data internal", evidence: "" },
+              { indicator: "C3", name: "Keselarasan", dimension: "OUTCOME", score: null, unavailable_reason: null, evidence: "" },
+            ],
+          },
+        ],
+        accounts: {
+          method: "median",
+          n_posts: 11,
+          accounts: [
+            { account: "@kkp_ri", platform: "youtube", n_posts: 11, median_views: 1829, median_likes: 20, median_comments: 3, median_engagement_rate: 0.199, insufficient_data: false },
+          ],
+          limitations: [],
+        },
+        sites: { method: "butir", as_of: "2026-11-18", sites: [], limitations: [] },
+        coding: { n_posts: 159, n_coded: 159, n_double_coded: 0, variables: [{ code: "A9", name: "Kategori", alpha: null, label: "belum diuji", n_double_coded: 0 }], distributions: [] },
+      },
+    },
+  };
+
+  it("CSV memuat kartu skor, indikator, dan akun; dimensi yang tidak terbit kosong", () => {
+    const csv = aggregateCsv(kinerja, "https://x/pers/k");
+    expect(csv).toContain("kartu_skor,KKP,OUTPUT,skor,\r\n");
+    expect(csv).toContain("kartu_skor,KKP,OUTPUT,cakupan,0.222");
+    expect(csv).toContain("indikator,KKP,O4,skor,4");
+    expect(csv).toContain("indikator,KKP,I1,alasan_tidak_tersedia,butuh data internal");
+    // Indikator yang belum diisi tidak dicetak sebagai nol.
+    expect(csv).not.toContain("indikator,KKP,C3");
+    // Diawali @ sehingga dinetralkan dari injeksi rumus Excel.
+    expect(csv).toContain("akun,youtube,'@kkp_ri,median_tayangan,1829");
+  });
+
+  it("Word memuat tabel kartu skor tanpa tabel sumber kosong", () => {
+    const xml = documentXml(kinerja, "https://x/pers/k");
+    expect(xml).toContain("Kartu skor per lembaga");
+    expect(xml).toContain("tidak terbit (cakupan 22%)");
+    expect(xml).not.toContain("Sumber tidak dijumlahkan");
+  });
+});

@@ -327,3 +327,70 @@ async def test_rls_dan_fungsi_publik_di_lapisan_basis_data() -> None:
                 )
     finally:
         await engine.dispose()
+
+
+async def test_draf_kinerja_membekukan_kartu_skor_dan_akun(client) -> None:
+    headers, pid = await _org(client)
+    kin = f"/v1/projects/{pid}/comm-performance"
+    posts = [
+        {
+            "platform": "youtube",
+            "account": "@lembaga",
+            "external_id": f"yt-{i}",
+            "posted_at": f"2026-10-{i + 1:02d}T03:00:00Z",
+            "kind": "video",
+            "likes": 10 + i,
+            "comments": 2,
+            "views": 1000 + i,
+            "followers": 5000,
+        }
+        for i in range(6)
+    ]
+    r = await client.post(f"{kin}/posts", json={"items": posts}, headers=headers)
+    assert r.status_code in (200, 201), r.text
+    r = await client.put(
+        f"{kin}/scores",
+        json={
+            "subject": "Lembaga Uji",
+            "period": "2026-10",
+            "items": [
+                {"indicator": "O4", "score": 3, "evidence": "median tayangan 1.002"},
+                {"indicator": "I1", "score": None, "unavailable_reason": "butuh data internal"},
+            ],
+        },
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+    # Isian di luar periode draf tidak ikut.
+    r = await client.put(
+        f"{kin}/scores",
+        json={
+            "subject": "Lembaga Uji",
+            "period": "2026-12",
+            "items": [{"indicator": "O4", "score": 5, "evidence": "lain periode"}],
+        },
+        headers=headers,
+    )
+    assert r.status_code == 200, r.text
+
+    r = await client.post(
+        _base(pid),
+        json={
+            "title": "Kinerja Lembaga Uji",
+            "start": "2026-08-01",
+            "end": "2026-10-31",
+            "tz": "WIB",
+            "kind": "kinerja",
+        },
+        headers=headers,
+    )
+    assert r.status_code == 201, r.text
+    snap = r.json()["snapshot"]
+    assert snap["kind"] == "kinerja" and snap["report"]["sources"] == []
+    k = snap["kinerja"]
+    assert [(c["subject"], c["period"]) for c in k["scorecards"]] == [("Lembaga Uji", "2026-10")]
+    o4 = next(i for i in k["scorecards"][0]["items"] if i["indicator"] == "O4")
+    assert o4["score"] == 3 and o4["name"] and o4["dimension"] == "OUTPUT"
+    assert k["accounts"]["n_posts"] == 6
+    assert k["accounts"]["accounts"][0]["account"] == "@lembaga"
+    assert k["coding"]["distributions"] == []
