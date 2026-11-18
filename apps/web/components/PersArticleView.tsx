@@ -15,6 +15,10 @@ import { EMBEDS, boardItems, type PersSnapshot } from "@/lib/pers";
  * di /publikasi, supaya penyunting melihat tampilan yang sama sebelum terbit.
  */
 
+/** Sel yang isinya angka saja (1.234 · −0,39 · +0,04 · 57,2%) dirata kanan. */
+const NUMERIC = /^[+−-]?\d[\d.]*(,\d+)?%?$/;
+const isNumeric = (inline: Inline[]) => NUMERIC.test(inline.map((p) => p.text).join("").trim());
+
 function Text({ inline }: { inline: Inline[] }) {
   return <>{inline.map((p, i) => (p.bold ? <b key={i}>{p.text}</b> : <span key={i}>{p.text}</span>))}</>;
 }
@@ -131,7 +135,7 @@ export function PersArticleBody({
                   <thead>
                     <tr>
                       {b.head.map((h, j) => (
-                        <th key={j} scope="col">
+                        <th key={j} scope="col" className={b.rows.length > 0 && b.rows.every((r) => r[j] && isNumeric(r[j])) ? "num" : undefined}>
                           <Text inline={h} />
                         </th>
                       ))}
@@ -141,7 +145,7 @@ export function PersArticleBody({
                     {b.rows.map((r, j) => (
                       <tr key={j}>
                         {r.map((c, n) => (
-                          <td key={n}>
+                          <td key={n} className={isNumeric(c) ? "mono num" : undefined}>
                             <Text inline={c} />
                           </td>
                         ))}
