@@ -18,7 +18,7 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
   Catatan: komentar 17 Nov sesudah jam pengambilan tidak ikut (114 video teramai diambil 02.42 WIB, sisanya ±22.30 WIB).
 - **Tahap tambahan 11–15** (`unggah_bertahap/tahap_NN_tambahan.json`, hanya komentar yang belum ada di tahap 01–10,
   dibuat `skrip/tahap_baru.py`, seed sama): 92.396 item, **semua terunggah 17 Nov 23.00–23.57 WIB**. Platform kini
-  ±288.700 konten (dihitung dari laporan unggahan; belum dicek di dasbor, lihat bawah).
+  **288.683 konten** (dicek di dasbor 18 Nov 08.18 WIB).
 
 ## Keputusan
 
@@ -72,10 +72,10 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 
 **Semua 10 tahap sudah masuk (17 Nov 2026, 13.28 WIB).** Yang belum: 729 video kecil.
 
-**JANGAN buka periode penuh sampai PR #76 digabung dan dirilis (17 Nov 23.57 WIB).** Dengan ±289 ribu konten,
-`/sinyal` 10–17 Nov membuat `/health` melambat ke 10–12 detik lalu Render me-restart (503, lalu 429). Sebab: leksikon
-emosi/aktor murni Python berjalan di event loop dan memblokir pemeriksaan kesehatan. PR #76 menjalankannya di
-thread, membaca `/laporan` dan aktivitas per potongan, dan revalidasi unggahan sekali saja.
+**Periode penuh aman dibuka lagi sejak PR #76 dirilis (18 Nov 2026, 08.12 WIB, `11a8fa3`).** Dicek 08.12–08.18 WIB:
+halaman 10–17 Nov termuat lengkap, `/health` tetap 200 (paling lambat 2,3 detik). Halaman tetap berat (±2 menit
+render), buka seperlunya. Sebelumnya (17 Nov 23.57 WIB, ±289 ribu konten) leksikon emosi/aktor di event loop
+membuat Render me-restart server; PR #76 memindahkannya ke thread.
 
 Riwayat: **Periode penuh sudah bisa dibuka (17 Nov, 13.54 WIB).** Sebelumnya, sesudah tahap 10 selesai, membuka
 `/sinyal?dari=2026-11-10&sampai=2026-11-17` menjatuhkan server Render (`/health` 503 selama ±1,5 menit):
@@ -103,6 +103,12 @@ Supabase 17 Nov sesudah tahap 5: basis data 138 / 500 MB, egress 1,49 / 5 GB.
 Puncak 12 Nov (58.115; jam teramai 19.00–20.59 WIB). Dinilai 109.744 (55%), di antaranya 56% negatif, 34% positif;
 rata-rata −0,149 (tanpa kata topik "mundur": −0,114). Paling sering disebut: Gibran 41.718, Prabowo 16.900,
 Jokowi 10.637, DPR 7.368, MK 4.330.
+
+**Platform sesudah 15 tahap** (18 Nov 08.18 WIB, periode 10–17 Nov, WIB): **288.683 konten**, 163.940 akun,
+sentimen −0,16 (n 156.734), 81.012 konten berpenanda emosi (28,1%), 81.943 menyebut aktor bernama, jam paling ramai
+Kamis 19.00 WIB. Volume harian: 10 Nov 35.469; 11 Nov 44.560; 12 Nov 89.351; 13 Nov 46.349; 14 Nov 27.908;
+15 Nov 22.731; 16 Nov 19.244; 17 Nov 3.071 (17 Nov tidak lengkap: komentar diambil 02.42 dan ±22.30 WIB).
+Aktor: Gibran 56.228 (nada −0,07), Prabowo 25.033 (−0,21), Jokowi 13.924 (−0,18).
 
 **Platform sesudah 10 tahap** (17 Nov 13.54 WIB, periode 10–17 Nov, zona WIB): 197.331 konten, 127.742 akun,
 sentimen −0,15 (n 108.553), 56.927 konten berpenanda emosi (28,8%), jam paling ramai Kamis 19.00 WIB, total
