@@ -6,7 +6,32 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 17 November 2026: semua sudah di produksi, tidak ada PR terbuka
+# 🟢 MULAI DARI SINI — 18 November 2026 (malam)
+
+**Keadaan `main`:** PR #75–#81 digabung (PR #80 dan #81 atas permintaan pemilik, merge commit c220ab6). CI hijau,
+Vercel produksi memuat versi baru. **Terbuka:** PR #82 (sumbu grafik `/pers` terpotong) dan PR docs ini.
+
+**Yang dikerjakan 18 Nov**
+- **PR #80:** draf publikasi berjenis `kinerja` (kartu skor, akun, situs, pengodean dibekukan).
+- **PR #81:** artikel `/pers` punya papan angka, tabel pipa, dan penanda blok yang dirender dari snapshot
+  (`[[grafik-harian]] [[nada]] [[puncak]] [[tema]] [[aktor]] [[kata]] [[sumber]]`; kinerja:
+  `[[kartu-skor]] [[indikator]] [[akun]] [[situs]] [[pengodean]]`). Pratinjau tampilan `/pers` di `/publikasi`.
+  Snapshot laporan kini membekukan jumlah akun berbeda dan tokoh (tanpa jabatan).
+- **Artikel Gibran:** draf baru berpenanda, Menunggu tinjauan (rincian di `proyek/gibran-mundur-youtube/PROGRESS.md`).
+
+**Yang masih terbuka**
+1. Pemilik: OK terbit artikel Gibran; merge #82; boleh tidaknya menghapus draf Gibran lama.
+2. Kinerja pangan: pemilik mengode lembar 1 (min. 20 unggahan) dan worksheet C3; lalu Claude memasukkan kode C3
+   tertutup, menarik ulang 6 kanal 110 hari, membuat draf kinerja (lihat `proyek/kinerja-pangan/PROGRESS.md`).
+3. Vercel Preview tidak punya `NEXT_PUBLIC_API_URL`, jadi `/pers` di deploy preview selalu "belum bisa dimuat".
+   Cek lokal dengan `NEXT_PUBLIC_API_URL=https://pop-api-ptug.onrender.com/v1`, atau isi variabel itu untuk Preview.
+4. Butir 6 blok 17 Nov (revalidasi `/sinyal` per 300 item) **sudah selesai** di commit 5e59154.
+5. Butir lain blok 17 Nov (Instagram/TikTok/X, `/sinyal` lambat untuk jendela besar, daftar aktor per proyek,
+   kuota Supabase 10 Des) tetap terbuka.
+
+---
+
+# 17 November 2026: semua sudah di produksi, tidak ada PR terbuka
 
 **Keadaan `main` (17 Nov 2026, ±14.40 WIB):** PR #70, #71, #72, #73, #74 sudah digabung; CI hijau;
 Render dan Vercel memuat kode terbaru. Di komputer lain cukup `git checkout main && git pull`.
