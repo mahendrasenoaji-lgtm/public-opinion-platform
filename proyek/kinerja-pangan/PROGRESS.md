@@ -7,7 +7,14 @@ dipakai bersama hanya kunci YouTube Data API.
 Kerangka indikator: `docs/kerangka-kinerja-komunikasi-pemerintah.md` (model `gcp-rancangan-1`,
 belum divalidasi).
 
-## 🟢 19 Nov 2026 (siang): sampel C3 diperluas
+## 🟢 19 Nov 2026: artikel kinerja TERBIT (versi 1)
+
+- Atas keputusan pemilik ("terbitkan sekarang apa adanya"): `/pers/seberapa-jauh-kinerja-komunikasi-enam-lembaga-pangan-bisa-dinilai-dari-data-publ-e7f344`,
+  terbit 19 Nov 09.52 WIB. C3 dan uji kesepakatan pengodean isi dinyatakan tertunda di teks.
+- **Ralat (versi 2) nanti**, setelah peneliti mengode worksheet C3 (18 pasangan) dan lembar pengode 1 (min. 20 unggahan):
+  masukkan kode tertutup pengode 2, hitung C3 BGN + Kementan dan alpha, perbarui bagian C3 dan "Isi unggahan".
+
+## 19 Nov 2026 (siang): sampel C3 diperluas
 
 - Pernyataan Kemenko Pangan 1–24 Agu dibaca dari halaman daftar `kemenkopangan.go.id/berita/6/{offset}` (offset per 7
   butir): +27 butir, kini 63 total / 55 dalam periode (`data/kemenko_pangan_berita.csv`).
