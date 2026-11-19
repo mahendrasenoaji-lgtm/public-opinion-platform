@@ -27,6 +27,8 @@ Indikator keluaran yang bisa diukur adalah jangkauan (O4, median tayangan per vi
 
 Dua pola terlihat. Pertama, jumlah unggahan tidak sejalan dengan jangkauan per video: Kementan mengunggah paling sering (82 video dalam tiga bulan), sedangkan Kemenhut dengan 10 video punya median tayangan yang hampir sama. Kedua, jangkauan dan keterlibatan tidak selalu searah: KKP dan BGN lebih rendah dalam tayangan tetapi paling tinggi dalam keterlibatan per pelanggan. Selisih BGN (0,1971%) dan KKP (0,1986%) sangat kecil sehingga beda skornya tidak bermakna. Angka keterlibatan ini tanpa jumlah bagikan, karena YouTube tidak menampilkannya.
 
+Tabel di bawah dihitung ulang dari platform saat draf ini dibuat, sesudah keenam kanal diambil ulang pada 19 November 2026. Angkanya bisa sedikit berbeda dari tabel di atas, yang menjadi dasar skor (diambil 17 November).
+
 [[akun]]
 
 ## Apakah pertanyaan warga dibalas
@@ -48,7 +50,7 @@ Dua indikator hasil sebenarnya bisa didekati dari data publik, tetapi akhirnya d
 
 ## Isi unggahan
 
-Isi 159 video resmi dikode dengan lembar kode kerangka (topik, tujuan pesan, format, dan seterusnya) oleh dua pengode. Sebaran kode hanya ditampilkan bila kesepakatan antar-pengode (Krippendorff alpha) sudah dihitung dan minimal 0,667.
+Isi unggahan dikode dengan lembar kode kerangka: kategori konten, jenis komunikasi, sumber informasi, kelengkapan informasi, bahasa, dan ajakan bertindak. Semua 208 unggahan yang tercatat di proyek sudah dikode oleh pengode kedua dari judul dan deskripsinya. Lembar pengode pertama belum selesai, sehingga kesepakatan antar-pengode (Krippendorff alpha) belum bisa dihitung. Karena itu sebaran kode sengaja belum ditampilkan; tulisan ini akan diralat setelah uji kesepakatan selesai.
 
 [[pengodean]]
 
