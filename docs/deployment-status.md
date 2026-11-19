@@ -6,7 +6,18 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 18 November 2026 (malam)
+# 🟢 MULAI DARI SINI — 19 November 2026
+
+- **Terbit:** artikel Gibran (`/pers/delapan-hari-pengunduran-diri-gibran-dalam-komentar-youtube-0049dd`, 19 Nov).
+  **Ralat:** artikel BBM Bali kini versi 2 (format baru: grafik, batang nada, tabel; + sampel manual 400 komentar),
+  teksnya `proyek/bbm-bali-youtube/artikel_pers_v2.md`. Draf Gibran lama `52d9f210` masih ada (sudah digantikan).
+- **Kinerja pangan:** draf `d0f1ddb9` Menunggu tinjauan; rincian di `proyek/kinerja-pangan/PROGRESS.md`.
+- Papan angka `/pers`: sel kosong di baris terakhir tidak lagi abu-abu (globals.css).
+- Chrome: dua browser tersambung (Mac, Windows); sesi 19 Nov memakai Chrome Windows atas pilihan pemilik.
+
+---
+
+# 18 November 2026 (malam)
 
 **Keadaan `main`:** PR #75–#81 digabung (PR #80 dan #81 atas permintaan pemilik, merge commit c220ab6). CI hijau,
 Vercel produksi memuat versi baru. **Terbuka:** PR #82 (sumbu grafik `/pers` terpotong) dan PR docs ini.

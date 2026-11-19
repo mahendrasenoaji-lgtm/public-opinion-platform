@@ -1,6 +1,6 @@
 ## Apa yang diukur
 
-Tulisan ini mencoba menilai kinerja komunikasi enam lembaga pangan yang dikoordinasikan Kementerian Koordinator Bidang Pangan, yaitu Kementerian Pertanian, Kementerian Kehutanan, Kementerian Kelautan dan Perikanan, Kementerian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup, Badan Pangan Nasional, dan Badan Gizi Nasional, untuk periode 1 Agustus–31 Oktober 2026. Alat ukurnya adalah kerangka Government Communication Performance (model `gcp-rancangan-1`, belum divalidasi) dengan 28 indikator dalam empat dimensi: input, proses, keluaran, dan hasil.
+Tulisan ini mencoba menilai kinerja komunikasi enam lembaga pangan yang dikoordinasikan Kementerian Koordinator Bidang Pangan, yaitu Kementerian Pertanian, Kementerian Kehutanan, Kementerian Kelautan dan Perikanan, Kementerian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup, Badan Pangan Nasional, dan Badan Gizi Nasional, untuk periode 1 Agustus–31 Oktober 2026. Alat ukurnya adalah kerangka Government Communication Performance (model gcp-rancangan-1, belum divalidasi) dengan 28 indikator dalam empat dimensi: input, proses, keluaran, dan hasil.
 
 Penilaian ini sengaja memakai **data publik saja**: kanal YouTube resmi tiap lembaga, situs web resmi, dan komentar publik di YouTube. Tidak ada dokumen internal, data insight akun, wawancara, atau survei. Pertanyaannya sederhana: seberapa jauh kinerja komunikasi lembaga bisa dinilai oleh orang luar yang hanya memegang apa yang terbuka untuk umum?
 
@@ -56,7 +56,7 @@ Isi unggahan dikode dengan lembar kode kerangka: kategori konten, jenis komunika
 
 ## Batas tulisan ini
 
-- Kerangka penilaian (`gcp-rancangan-1`) belum divalidasi; bobot dimensinya masih usulan.
+- Kerangka penilaian (gcp-rancangan-1) belum divalidasi; bobot dimensinya masih usulan.
 - Skor 1–5 adalah posisi relatif di antara enam lembaga, bukan ukuran mutu mutlak. Lembaga tidak diperingkat secara keseluruhan.
 - Data publik hanya memperlihatkan keluaran. Indikator yang "tidak tersedia" berarti tidak bisa dinilai dari luar, bukan berarti lembaga gagal.
 - Angka YouTube diambil pada satu waktu (17 November 2026) untuk video yang terbit 1 Agustus–31 Oktober; video lama sempat mengumpulkan tayangan lebih lama.
