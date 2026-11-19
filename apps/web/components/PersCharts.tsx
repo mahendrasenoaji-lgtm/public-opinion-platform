@@ -34,6 +34,9 @@ export function PersDailyCharts({
     negative: d.negative_share === null ? null : Math.round(d.negative_share * 1000) / 10,
   }));
   const anyShare = data.some((d) => d.negative !== null);
+  // Lebar sumbu mengikuti label terpanjang ("100.000"), supaya tidak terpotong.
+  const maxLabel = num(Math.max(0, ...days.map((d) => d.volume)) * 1.25);
+  const yWidth = Math.max(40, maxLabel.length * 7 + 12);
 
   return (
     <div className="pers-charts">
@@ -43,7 +46,7 @@ export function PersDailyCharts({
           <BarChart data={data} margin={{ top: 6, right: 8, left: 0, bottom: 0 }} barCategoryGap="18%">
             <CartesianGrid stroke="var(--line)" vertical={false} />
             <XAxis dataKey="day" {...axis} tickLine={false} axisLine={{ stroke: "var(--line)" }} minTickGap={12} />
-            <YAxis {...axis} tickLine={false} axisLine={false} width={48} tickFormatter={num} allowDecimals={false} />
+            <YAxis {...axis} tickLine={false} axisLine={false} width={yWidth} tickFormatter={num} allowDecimals={false} />
             <Tooltip
               contentStyle={tip}
               cursor={{ fill: "var(--panel3)" }}
@@ -61,7 +64,7 @@ export function PersDailyCharts({
             <LineChart data={data} margin={{ top: 6, right: 8, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="var(--line)" vertical={false} />
               <XAxis dataKey="day" {...axis} tickLine={false} axisLine={{ stroke: "var(--line)" }} minTickGap={12} padding={{ left: 24, right: 24 }} />
-              <YAxis {...axis} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickLine={false} axisLine={false} width={48} unit="%" />
+              <YAxis {...axis} domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickLine={false} axisLine={false} width={yWidth} unit="%" />
               <Tooltip
                 contentStyle={tip}
                 cursor={{ stroke: "var(--line-2)" }}
