@@ -7,6 +7,16 @@ dipakai bersama hanya kunci YouTube Data API.
 Kerangka indikator: `docs/kerangka-kinerja-komunikasi-pemerintah.md` (model `gcp-rancangan-1`,
 belum divalidasi).
 
+## 🟢 19 Nov 2026 (siang): sampel C3 diperluas
+
+- Pernyataan Kemenko Pangan 1–24 Agu dibaca dari halaman daftar `kemenkopangan.go.id/berita/6/{offset}` (offset per 7
+  butir): +27 butir, kini 63 total / 55 dalam periode (`data/kemenko_pangan_berita.csv`).
+- 9 kandidat pasangan baru; 1 dikeluarkan (harga beras/SPHP: isu tidak sama). Worksheet pengode 1
+  `data/c3_lembar_pengode1.csv` kini **18 pasangan**: BGN 5, Kementan 5, Bapanas 4, KLH 2, KKP 1, Kemenhut 1.
+  **BGN dan Kementan mencapai ambang 5** — C3 keduanya bisa diskor setelah kedua lembar dikode.
+- Kode pengode 2 untuk 8 pasangan baru ditambahkan ke `data_lokal/c3_kode_pengode2_TERTUTUP.json` (Mac saja, tetap
+  tertutup sampai peneliti mengode). Paragraf C3 di draf `d0f1ddb9` diperbarui.
+
 ## 🟢 19 Nov 2026: draf artikel kinerja Menunggu tinjauan
 
 - Keenam kanal YouTube diambil ulang di `/kinerja` (111 hari, sejak 1 Agu): Kementan 100 video (27 baru), Kemenhut 10 (3),

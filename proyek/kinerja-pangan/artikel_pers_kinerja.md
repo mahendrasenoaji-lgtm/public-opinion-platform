@@ -45,7 +45,7 @@ Keenam situs resmi lembaga dibaca untuk melihat seberapa rutin mereka menerbitka
 
 Dua indikator hasil sebenarnya bisa didekati dari data publik, tetapi akhirnya dicatat tidak tersedia.
 
-- **Keselarasan pesan dengan Kemenko Pangan (C3).** Pernyataan Kemenko Pangan dibaca dari situs resminya (36 butir, 27 di antaranya dalam periode), lalu dipasangkan per isu dengan pernyataan lembaga di kanal YouTube resmi. Dari 15 kandidat pasangan, 5 dikeluarkan karena pernyataan lembaga hanya berupa judul. Sisa 10 pasangan terbagi: Kementan 4, BGN 2, KLH 2, Bapanas 1, KKP 1, Kemenhut 0. Semuanya di bawah ambang 5 pasangan per lembaga, jadi tidak ada lembaga yang bisa diberi skor.
+- **Keselarasan pesan dengan Kemenko Pangan (C3).** Pernyataan Kemenko Pangan dibaca dari situs resminya (55 butir dalam periode), lalu dipasangkan per isu dengan pernyataan lembaga di kanal YouTube resmi. Dari 24 kandidat pasangan, 6 dikeluarkan karena pernyataan lembaga hanya berupa judul atau isunya ternyata tidak sama. Sisa 18 pasangan terbagi: BGN 5, Kementan 5, Bapanas 4, KLH 2, KKP 1, Kemenhut 1. Hanya BGN dan Kementan yang mencapai ambang 5 pasangan per lembaga. Skor C3 keduanya baru bisa dihitung setelah kedua pengode selesai mengode pasangan itu; sampai saat itu C3 dicatat tidak tersedia untuk semua lembaga.
 - **Kecepatan respons terhadap lonjakan percakapan (C4).** Percakapan publik diambil dari 70.325 komentar YouTube pada 360 video yang menyebut nama lembaga, di luar kanal lembaga sendiri. Fungsi platform menghitung setiap unggahan resmi sesudah lonjakan sebagai tanggapan tanpa memeriksa isinya, dan percakapan tentang lima lembaga selain Kementan terlalu tipis. Karena itu angkanya tidak dijadikan skor.
 
 ## Isi unggahan
