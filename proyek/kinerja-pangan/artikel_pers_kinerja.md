@@ -1,0 +1,62 @@
+## Apa yang diukur
+
+Tulisan ini mencoba menilai kinerja komunikasi enam lembaga pangan yang dikoordinasikan Kementerian Koordinator Bidang Pangan, yaitu Kementerian Pertanian, Kementerian Kehutanan, Kementerian Kelautan dan Perikanan, Kementerian Lingkungan Hidup/Badan Pengendalian Lingkungan Hidup, Badan Pangan Nasional, dan Badan Gizi Nasional, untuk periode 1 Agustus–31 Oktober 2026. Alat ukurnya adalah kerangka Government Communication Performance (model `gcp-rancangan-1`, belum divalidasi) dengan 28 indikator dalam empat dimensi: input, proses, keluaran, dan hasil.
+
+Penilaian ini sengaja memakai **data publik saja**: kanal YouTube resmi tiap lembaga, situs web resmi, dan komentar publik di YouTube. Tidak ada dokumen internal, data insight akun, wawancara, atau survei. Pertanyaannya sederhana: seberapa jauh kinerja komunikasi lembaga bisa dinilai oleh orang luar yang hanya memegang apa yang terbuka untuk umum?
+
+## Apa yang bisa dinilai dari luar
+
+Jawabannya: sedikit. Dari 28 indikator, hanya 2–3 per lembaga yang bisa diberi skor dari data publik. Sisanya dicatat "tidak tersedia" beserta alasannya, misalnya karena butuh anggaran dan jumlah staf (input), alur persetujuan konten (proses), atau survei pemahaman warga (hasil).
+
+[[kartu-skor]]
+
+Model ini mensyaratkan minimal 60% indikator dalam satu dimensi punya skor sebelum skor dimensi itu boleh terbit. Dengan data publik, dimensi keluaran paling banyak tercakup 22–33%, sedangkan input, proses, dan hasil tercakup 0%. Akibatnya **tidak ada satu pun skor dimensi maupun skor total yang terbit** untuk lembaga mana pun. Ini temuan tentang keterbukaan data, bukan tentang mutu komunikasi lembaga: kerangka yang dirancang untuk audit dari dalam tidak bisa dijalankan dari luar.
+
+## Seberapa banyak ditonton
+
+Indikator keluaran yang bisa diukur adalah jangkauan (O4, median tayangan per video) dan keterlibatan (O5, median suka dan komentar dibanding jumlah pelanggan) dari video yang terbit 1 Agustus–31 Oktober. Skornya adalah posisi relatif di antara enam lembaga (skala 1–5), bukan nilai mutlak.
+
+| Lembaga | Video | Median tayangan | Skor O4 | Keterlibatan per pelanggan | Skor O5 |
+|---|---|---|---|---|---|
+| Kementan | 82 | 2.550,5 | 5 | 0,0433% | 3 |
+| Kemenhut | 10 | 2.182 | 5 | 0,0934% | 4 |
+| KKP | 11 | 1.829 | 4 | 0,1986% | 5 |
+| BGN | 18 | 949 | 3 | 0,1971% | 5 |
+| KLH/BPLH | 27 | 869 | 2 | 0,0088% | 1 |
+| Bapanas | 16 | 183 | 1 | 0,0349% | 2 |
+
+Dua pola terlihat. Pertama, jumlah unggahan tidak sejalan dengan jangkauan per video: Kementan mengunggah paling sering (82 video dalam tiga bulan), sedangkan Kemenhut dengan 10 video punya median tayangan yang hampir sama. Kedua, jangkauan dan keterlibatan tidak selalu searah: KKP dan BGN lebih rendah dalam tayangan tetapi paling tinggi dalam keterlibatan per pelanggan. Selisih BGN (0,1971%) dan KKP (0,1986%) sangat kecil sehingga beda skornya tidak bermakna. Angka keterlibatan ini tanpa jumlah bagikan, karena YouTube tidak menampilkannya.
+
+[[akun]]
+
+## Apakah pertanyaan warga dibalas
+
+Indikator O8 menghitung berapa pertanyaan di kolom komentar video resmi yang dibalas kanal lembaga. Angkanya baru dihitung bila ada minimal 20 pertanyaan. Hanya Kementan yang memenuhi syarat itu: 0 dari 27 pertanyaan dibalas (skor 1). Untuk lima lembaga lain, pertanyaannya terlalu sedikit (2–18) sehingga skornya ditahan.
+
+## Situs web resmi
+
+Keenam situs resmi lembaga dibaca untuk melihat seberapa rutin mereka menerbitkan berita dan siaran pers. Tidak satu pun punya RSS atau sitemap bertanggal, jadi daftar berita dibaca dari halaman daftar atau diunggah manual. Situs Bapanas tidak bisa dibuka dari server platform, sehingga dibaca dari komputer peneliti. Halaman daftar Kementan tidak memuat tanggal, sehingga dibaca dari halaman artikelnya (judul dan tanggal saja). Karena situs belum dibaca secara berkala, hitungan di bawah adalah batas bawah.
+
+[[situs]]
+
+## Keselarasan dengan Kemenko dan kecepatan respons
+
+Dua indikator hasil sebenarnya bisa didekati dari data publik, tetapi akhirnya dicatat tidak tersedia.
+
+- **Keselarasan pesan dengan Kemenko Pangan (C3).** Pernyataan Kemenko Pangan dibaca dari situs resminya (36 butir, 27 di antaranya dalam periode), lalu dipasangkan per isu dengan pernyataan lembaga di kanal YouTube resmi. Dari 15 kandidat pasangan, 5 dikeluarkan karena pernyataan lembaga hanya berupa judul. Sisa 10 pasangan terbagi: Kementan 4, BGN 2, KLH 2, Bapanas 1, KKP 1, Kemenhut 0. Semuanya di bawah ambang 5 pasangan per lembaga, jadi tidak ada lembaga yang bisa diberi skor.
+- **Kecepatan respons terhadap lonjakan percakapan (C4).** Percakapan publik diambil dari 70.325 komentar YouTube pada 360 video yang menyebut nama lembaga, di luar kanal lembaga sendiri. Fungsi platform menghitung setiap unggahan resmi sesudah lonjakan sebagai tanggapan tanpa memeriksa isinya, dan percakapan tentang lima lembaga selain Kementan terlalu tipis. Karena itu angkanya tidak dijadikan skor.
+
+## Isi unggahan
+
+Isi 159 video resmi dikode dengan lembar kode kerangka (topik, tujuan pesan, format, dan seterusnya) oleh dua pengode. Sebaran kode hanya ditampilkan bila kesepakatan antar-pengode (Krippendorff alpha) sudah dihitung dan minimal 0,667.
+
+[[pengodean]]
+
+## Batas tulisan ini
+
+- Kerangka penilaian (`gcp-rancangan-1`) belum divalidasi; bobot dimensinya masih usulan.
+- Skor 1–5 adalah posisi relatif di antara enam lembaga, bukan ukuran mutu mutlak. Lembaga tidak diperingkat secara keseluruhan.
+- Data publik hanya memperlihatkan keluaran. Indikator yang "tidak tersedia" berarti tidak bisa dinilai dari luar, bukan berarti lembaga gagal.
+- Angka YouTube diambil pada satu waktu (17 November 2026) untuk video yang terbit 1 Agustus–31 Oktober; video lama sempat mengumpulkan tayangan lebih lama.
+- Pengode kedua adalah AI (agen dalam sesi kerja), bukan manusia independen; ini dicatat sebagai keterbatasan.
+- Angka di artikel ini dibekukan saat draf dibuat dan tidak berubah bila data diperbarui.
