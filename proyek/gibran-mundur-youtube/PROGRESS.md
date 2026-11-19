@@ -5,6 +5,18 @@ Pola kerja sama dengan `proyek/bbm-bali-youtube/` (baca PROGRESS.md di sana untu
 
 ## 🟢 Mulai dari sini
 
+- **18 Nov 2026 malam — artikel /pers siap terbit, menunggu OK pemilik.** Draf baru
+  `d8508323-02d7-47f0-90ff-94018b16a37c` ("Delapan hari pengunduran diri Gibran dalam komentar YouTube") dibuat dari
+  `/laporan` 10–17 Nov WIB sesudah PR #80 dan #81 digabung, jadi snapshot-nya memuat akun berbeda (163.940) dan
+  tokoh. Teksnya `artikel_pers_v2.md` (penanda `[[grafik-harian]]` dan `[[nada]]`, tabel tema dan tokoh dari berkas
+  analisis 292.377 komentar). Pratinjau di `/publikasi` sudah dicek. Status **Menunggu tinjauan**; menerbitkan
+  (tidak bisa ditarik) keputusan pemilik. Sebelum terbit sebaiknya PR #82 digabung (label sumbu "100.000"
+  terpotong menjadi "00.000").
+- **Draf lama** `52d9f210-...` (18 Nov 09.47, teks saja) masih berstatus tinjauan dan sudah digantikan; hapus hanya
+  bila pemilik setuju.
+- Catatan: halaman `/laporan` proyek ini bisa menampilkan "Backend belum memuat bagian ini" (8 hitungan berat
+  sekaligus), tetapi tombol "Buat draf publikasi" tetap jalan (±4 menit, `/health` tetap 200).
+
 - **Data mentah dan berkas besar hanya ada di Mac** (tidak di-commit; lihat `.gitignore` folder ini).
   Keputusan pemilik 17 Nov: "simpan di lokal dulu, bertahap diunggahnya".
 - **Unggahan bertahap ke platform:** `unggah_bertahap/tahap_NN_dari_10.json`, tiap berkas ±20.000 komentar,
