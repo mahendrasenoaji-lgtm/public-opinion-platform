@@ -7,6 +7,18 @@ dipakai bersama hanya kunci YouTube Data API.
 Kerangka indikator: `docs/kerangka-kinerja-komunikasi-pemerintah.md` (model `gcp-rancangan-1`,
 belum divalidasi).
 
+## 🟢 19 Nov 2026: draf artikel kinerja Menunggu tinjauan
+
+- Keenam kanal YouTube diambil ulang di `/kinerja` (111 hari, sejak 1 Agu): Kementan 100 video (27 baru), Kemenhut 10 (3),
+  KKP 17 (2), KLH 43 (7), Bapanas 18 (5), BGN 20 (5). 164 unggahan jatuh di 1 Agu–31 Okt.
+- Lembar pengode 2 dilengkapi: 49 unggahan baru (7 sudah punya kode lokal tapi belum tersimpan, 42 dikode dari judul +
+  deskripsi lewat YouTube API). Kini **208/208**; salinan lokal `data_lokal/kode_isi_pengode2.json`.
+- Draf `/pers` berjenis kinerja `d0f1ddb9-7399-4aa4-8668-401c9350d250` ("Seberapa jauh kinerja komunikasi enam lembaga
+  pangan bisa dinilai dari data publik"), periode 2026-08-01..2026-10-31, teks `artikel_pers_kinerja.md`, pratinjau dicek
+  (4 penanda tampil), status **Menunggu tinjauan**. Menerbitkan = keputusan pemilik.
+- **Masih milik peneliti:** lembar pengode 1 (min. 20 unggahan) dan worksheet C3. Sesudahnya: masukkan kode C3 tertutup,
+  lalu ralat artikel (bagian "Isi unggahan") bila alpha sudah terhitung.
+
 ## Keputusan peneliti (17 Nov 2026)
 
 | Hal | Keputusan |

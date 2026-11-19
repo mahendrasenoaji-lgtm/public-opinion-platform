@@ -745,8 +745,8 @@ input[type=range]::-moz-range-thumb { width:13px; height:13px; border:2px solid 
 .pers-prose ul { padding-left:22px; }
 .pers-prose .tbl { font-size:13px; }
 /* ---- /pers: papan angka, grafik dan tabel di dalam teks ---- */
-.pers-board { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; margin:18px 0 8px; }
-.pers-board > div { background:var(--panel); padding:13px 15px; display:grid; gap:4px; align-content:start; }
+.pers-board { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:1px; background:var(--panel); border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; margin:18px 0 8px; }
+.pers-board > div { background:var(--panel); box-shadow:0 0 0 1px var(--line); padding:13px 15px; display:grid; gap:4px; align-content:start; }
 .pers-board b { font:600 24px/1.1 'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; color:var(--txt); }
 .pers-board span { font-size:12.5px; line-height:1.4; color:var(--txt2); }
 .pers-tbl-wrap { overflow-x:auto; margin:6px 0 14px; }
