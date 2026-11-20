@@ -40,7 +40,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Activity size={18} />
           <div>
             <div className="brand-n">PUBLIC OPINION</div>
-            <div className="brand-s">Intelligence Platform</div>
           </div>
         </div>
         <SideNav />
