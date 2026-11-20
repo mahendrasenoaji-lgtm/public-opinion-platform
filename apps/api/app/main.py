@@ -32,6 +32,7 @@ from app.routers import (
     segments,
     signals,
     surveys,
+    theme_pulls,
     topics,
 )
 
@@ -127,6 +128,7 @@ for r in (
     comm_performance,
     comm_coding,
     comm_sites,
+    theme_pulls,
 ):
     app.include_router(r.router, prefix="/v1")
 app.include_router(publications.router, prefix="/v1")

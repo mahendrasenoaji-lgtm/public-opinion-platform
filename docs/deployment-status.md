@@ -6,7 +6,29 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 19 November 2026
+# 🟢 MULAI DARI SINI — 20 November 2026: "Tarik tema YouTube"
+
+- **Fitur baru di `/sinyal`, panel "Tarik tema YouTube"** (PR branch `sinyal/tarik-tema-youtube`). Isi kata kunci
+  (maks. 5, dipisah koma), tanggal dari–sampai (WIB), jumlah video maksimum (1–300), tekan **Tarik**. Server
+  mengerjakan sendiri: `search.list` (video terbit dalam periode) → `videos.list` (buang yang judul/deskripsinya
+  tidak memuat kata kunci, urutkan paling ramai) → `commentThreads` + balasan, satu halaman per langkah,
+  masuk sebagai konten `youtube_api` biasa (dedup dengan yang sudah ada).
+- **Tanpa migrasi.** Satu pekerjaan = satu baris `data_sources` berkonektor `youtube_theme`, keadaannya di `config`.
+  `collect-all` melewatinya. Kode: `apps/api/app/services/theme_pull.py` (murni), `app/connectors/youtube_theme.py`
+  (API), `app/routers/theme_pulls.py` (endpoint + pekerja), `apps/web/components/ThemePull.tsx`.
+- **Pekerja di dalam proses Render**, satu pekerjaan sekali jalan untuk seluruh server; tiap langkah di-commit
+  sendiri. Selama ada pekerjaan, ia memanggil `RENDER_EXTERNAL_URL/health` tiap 4 menit supaya Render free tidak
+  tidur. Sesudah deploy/restart, pekerjaan dilanjutkan saat daftar dibuka (halaman Sinyal memanggilnya otomatis);
+  server tidak bisa melanjutkan sendiri saat start karena tanpa sesi pengguna ia tidak tahu org untuk RLS.
+- **Kuota habis** → status "Menunggu kuota", lanjut sesudah 08.05 UTC (15.05 WIB).
+- Batas: 3 pekerjaan aktif per proyek; periode maks. 366 hari; maks. 4 halaman pencarian per kata kunci.
+- Diuji: 27 tes murni + 6 tes endpoint (Postgres+RLS), seluruh suite 1171 lulus; uji lokal dengan YouTube tiruan:
+  tombol → selesai sendiri (1.200 komentar), dan server dimatikan di tengah → dilanjutkan, 1.200 tanpa ganda.
+  **Belum diuji dengan YouTube sungguhan di produksi** (memakai kuota dan menulis ke proyek nyata; tunggu pemilik).
+
+---
+
+# 19 November 2026
 
 - **Terbit:** artikel Gibran (`/pers/delapan-hari-pengunduran-diri-gibran-dalam-komentar-youtube-0049dd`, 19 Nov).
   **Ralat:** artikel BBM Bali kini versi 2 (format baru: grafik, batang nada, tabel; + sampel manual 400 komentar),
