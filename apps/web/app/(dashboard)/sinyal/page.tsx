@@ -6,6 +6,8 @@ import { InsufficientData, Provenance } from "@/components/Provenance";
 import { RescoreButton } from "@/components/RescoreButton";
 import { SentimentCorrector } from "@/components/SentimentCorrector";
 import { SourceManager } from "@/components/SourceManager";
+import { ThemePull } from "@/components/ThemePull";
+import type { ThemePull as ThemePullJob } from "./actions";
 import { UploadData } from "@/components/UploadData";
 import { SOURCE } from "@/lib/tokens";
 import { apiOrNullLenient, type Metric, type SignalSource } from "@/lib/api";
@@ -295,6 +297,7 @@ export default async function SinyalPage({
     activity,
     corrections,
     actors,
+    themePulls,
   ] = await Promise.all([
     apiOrNullLenient<SignalSummary>(`/projects/${projectId}/signals/summary${q()}`),
     // Sentimen diminta PER SUMBER (R1). Ringkasan tanpa `source` di atas
@@ -314,6 +317,7 @@ export default async function SinyalPage({
     apiOrNullLenient<Activity>(`/projects/${projectId}/signals/activity${q({ tz: win.zone })}`),
     apiOrNullLenient<CorrectionQuality[]>(`/projects/${projectId}/signals/correction-quality`),
     apiOrNullLenient<Actors>(`/projects/${projectId}/signals/actors${q()}`),
+    apiOrNullLenient<ThemePullJob[]>(`/projects/${projectId}/signals/theme-pulls`),
   ]);
 
   /** Tautan halaman daftar konten yang mempertahankan periode dan filter. */
@@ -1162,13 +1166,18 @@ export default async function SinyalPage({
           )}
         </Panel>
 
+        <Panel kicker="Pengumpulan" title="Tarik tema YouTube">
+          <ThemePull projectId={projectId} initial={themePulls} canManage={canManage} />
+        </Panel>
+
         <Panel kicker="Pengaturan" title="Sumber data terdaftar">
           {!sources ? (
             <InsufficientData reason={BACKEND_TERTINGGAL} />
           ) : (
             <SourceManager
               projectId={projectId}
-              sources={sources}
+              // Pekerjaan "Tarik tema" punya panelnya sendiri di atas.
+              sources={sources.filter((s) => s.connector !== "youtube_theme")}
               connectors={connectors ?? []}
               canManage={canManage}
               canManageTokens={canManageTokens}

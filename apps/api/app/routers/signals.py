@@ -68,7 +68,7 @@ from app.schemas.common import Metric, SignalSource
 from app.services import actors as actors_svc
 from app.services import conversation_report as report_svc
 from app.services import emotion as emotion_svc
-from app.services import news_quotes, rescoring, signal_stats
+from app.services import news_quotes, rescoring, signal_stats, theme_pull
 from app.services import sentiment as sentiment_svc
 from app.services import topics as topics_svc
 from app.services.auth import MAX_COLLECTOR_TOKEN_DAYS, create_collector_token
@@ -1498,7 +1498,13 @@ async def collect_all(
             .all()
         )
 
-    active = [s for s in sources if s.is_active and s.connector != youtube_search.KEY]
+    # `youtube_theme` adalah pekerjaan "Tarik tema" (routers/theme_pulls.py),
+    # bukan sumber yang ditarik ulang tiap run.
+    active = [
+        s
+        for s in sources
+        if s.is_active and s.connector not in (youtube_search.KEY, theme_pull.KEY)
+    ]
     active_ids = [s.id for s in active]
     sources_total = len(sources)
     sources_inactive = sum(1 for s in sources if not s.is_active)

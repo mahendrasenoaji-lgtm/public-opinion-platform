@@ -283,3 +283,115 @@ export async function correctSentiment(
     throw e;
   }
 }
+
+// ------------------------------------------------------- tarik tema ----
+
+export interface ThemeVideo {
+  id: string;
+  title: string;
+  channel: string;
+  comment_count: number;
+  got: number;
+  state: "pending" | "done" | "skipped";
+  note: string | null;
+}
+
+export interface ThemePull {
+  id: string;
+  label: string;
+  queries: string[];
+  start: string;
+  end: string;
+  max_videos: number;
+  include_replies: boolean;
+  comments_until_now: boolean;
+  keyword_filter: boolean;
+  status: "searching" | "details" | "collecting" | "waiting_quota" | "done" | "failed" | "stopped";
+  running: boolean;
+  videos_total: number;
+  videos_done: number;
+  videos_skipped: number;
+  comments_expected: number;
+  received: number;
+  stored: number;
+  outside_window: number;
+  dropped_by_filter: number;
+  units: number;
+  units_remaining_est: number;
+  current_video: string | null;
+  error: string | null;
+  notes: string[];
+  created_at: string | null;
+  updated_at: string | null;
+  finished_at: string | null;
+  resume_at: string | null;
+  videos: ThemeVideo[];
+  method: string;
+  limitations: string[];
+}
+
+export interface ThemeCreate {
+  queries: string;
+  start: string;
+  end: string;
+  max_videos: number;
+  include_replies: boolean;
+  comments_until_now: boolean;
+  keyword_filter: boolean;
+  label?: string;
+}
+
+/**
+ * Tarik tema YouTube: server mencari video di periode itu lalu menarik
+ * komentarnya sendiri di latar belakang (backend routers/theme_pulls.py).
+ * Membuka daftar ini juga melanjutkan pekerjaan yang terhenti karena server
+ * restart -- karena itu panel memanggilnya berkala selama ada yang berjalan.
+ */
+export async function listThemePulls(projectId: string): Promise<Result<ThemePull[]>> {
+  try {
+    const result = await api<ThemePull[]>(`/projects/${projectId}/signals/theme-pulls`);
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+export async function createThemePull(
+  projectId: string,
+  body: ThemeCreate,
+): Promise<Result<ThemePull>> {
+  try {
+    const result = await api<ThemePull>(`/projects/${projectId}/signals/theme-pulls`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+export async function controlThemePull(
+  projectId: string,
+  jobId: string,
+  action: "stop" | "resume",
+): Promise<Result<ThemePull>> {
+  try {
+    const result = await api<ThemePull>(
+      `/projects/${projectId}/signals/theme-pulls/${jobId}/${action}`,
+      { method: "POST" },
+    );
+    revalidatePath("/sinyal");
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+/** Dipanggil sekali sesudah penarikan selesai supaya angka halaman ikut baru. */
+export async function refreshSignals(): Promise<void> {
+  revalidatePath("/sinyal");
+}
