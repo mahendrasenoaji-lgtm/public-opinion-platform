@@ -188,7 +188,6 @@ function PlatformPicker({
             className={value === p.key ? "btn btn-sm" : "btn btn-ghost btn-sm"}
             onClick={() => onChange(p.key)}
             disabled={disabled}
-            title={p.configured ? undefined : `Kunci belum diisi: ${p.env_vars.join(", ")}`}
           >
             {p.label}
             {!p.configured && " · belum aktif"}
