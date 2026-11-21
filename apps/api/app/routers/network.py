@@ -16,8 +16,9 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import case, func, literal, select
+from sqlalchemy import and_, case, func, literal, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import aliased
 
 from app.deps import CurrentUser, Role, TenantSession, require_role
 from app.models.governance import AuditLog
@@ -261,9 +262,54 @@ def _in_window(project_id: UUID, since: datetime, until: datetime) -> list[Any]:
     ]
 
 
-async def _weighted_edges(
+#: Catatan yang ditambahkan bila sebagian relasi berasal dari id utas.
+THREAD_NOTE = (
+    "{n} relasi balasan diturunkan dari id utas YouTube (conversation_id = id komentar "
+    "utama yang dinyatakan API) karena kolom balasan tidak terisi saat data diunggah: "
+    "penulis balasan \u2192 penulis komentar utama di utas yang sama."
+)
+
+
+async def _thread_edges(
     session: AsyncSession, project_id: UUID, since: datetime, until: datetime
 ) -> list[sna.WeightedEdge]:
+    """Relasi balasan dari id utas, untuk konten yang `reply_to_hash`-nya kosong.
+
+    Data yang diunggah lewat JSON (mis. BBM Bali, Gibran) membawa
+    `conversation_id` = id komentar utama (dari `parentId` YouTube) tetapi tidak
+    membawa nama akun yang dibalas. Penulis komentar utama itu ada di tabel yang
+    sama, jadi relasinya bisa dibaca kembali tanpa menebak dari teks. Komentar
+    utama boleh terbit di luar periode; balasannya yang harus di dalam periode.
+    """
+    parent = aliased(Mention)
+    rows = (
+        await session.execute(
+            select(Mention.author_hash, parent.author_hash, func.count())
+            .join(
+                parent,
+                and_(
+                    parent.project_id == Mention.project_id,
+                    parent.connector == Mention.connector,
+                    parent.external_id == Mention.conversation_id,
+                ),
+            )
+            .where(
+                *_in_window(project_id, since, until),
+                Mention.reply_to_hash.is_(None),
+                Mention.conversation_id.is_not(None),
+                Mention.conversation_id != Mention.external_id,
+                parent.author_hash.is_not(None),
+            )
+            .group_by(Mention.author_hash, parent.author_hash)
+        )
+    ).all()
+    return [sna.WeightedEdge(str(a), str(t), "reply", int(c)) for a, t, c in rows]
+
+
+async def _weighted_edges(
+    session: AsyncSession, project_id: UUID, since: datetime, until: datetime
+) -> tuple[list[sna.WeightedEdge], int]:
+    """(relasi teragregasi, jumlah interaksi yang diturunkan dari id utas)."""
     where = _in_window(project_id, since, until)
     edges: list[sna.WeightedEdge] = []
     for col, kind in ((Mention.reply_to_hash, "reply"), (Mention.quote_of_hash, "quote")):
@@ -278,7 +324,13 @@ async def _weighted_edges(
             sna.WeightedEdge(str(a), str(t), kind, int(c))  # type: ignore[arg-type]
             for a, t, c in rows
         )
-    return edges
+    thread = await _thread_edges(session, project_id, since, until)
+    edges.extend(thread)
+    return edges, sum(e.weight for e in thread if e.source != e.target)
+
+
+def _thread_note(derived: int) -> str | None:
+    return THREAD_NOTE.format(n=f"{derived:,}".replace(",", ".")) if derived else None
 
 
 async def _author_stats(
@@ -346,10 +398,13 @@ async def get_sna(
     baca `limitations` dan `notes` sebelum memakainya.
     """
     since, until = window(days, start, end)
-    edges = await _weighted_edges(session, project_id, since, until)
+    edges, derived = await _weighted_edges(session, project_id, since, until)
     # Perhitungan graf memakan CPU beberapa detik pada proyek besar: jalankan di
     # thread supaya permintaan lain (dan pekerja tarik tema) tidak ikut tertahan.
     report = await asyncio.to_thread(sna.analyze, edges)
+    note = _thread_note(derived)
+    if note:
+        report.notes.insert(0, note)
 
     content: dict[int, sna.CommunityContent] = {}
     if report.communities:
@@ -457,7 +512,7 @@ async def export_network(
     DATA_ANALYST; setiap ekspor dicatat di audit log.
     """
     since, until = window(days, start, end)
-    edges = await _weighted_edges(session, project_id, since, until)
+    edges, _derived = await _weighted_edges(session, project_id, since, until)
     report = await asyncio.to_thread(sna.analyze, edges)
     membership = report.membership
     if format == "gexf":

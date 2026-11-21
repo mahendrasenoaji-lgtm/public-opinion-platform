@@ -280,6 +280,34 @@ class TestEndpointSNA:
         assert "a0" not in {a["author_hash"] for a in body["accounts"]}
         assert body["limitations"] and body["method"]
 
+    async def test_relasi_dari_id_utas(self, client) -> None:
+        """Data unggahan JSON: tanpa reply_to_handle, hanya conversation_id = id
+        komentar utama. Relasi balasan harus terbaca dari utasnya."""
+        h, pid = await _project(client)
+        now = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+        items = []
+        for t in range(3):
+            top = f"Ug-top{t}-{uuid.uuid4().hex[:6]}"
+            items.append({"external_id": top, "conversation_id": top, "published_at": now,
+                          "text": f"komentar utama nomor {t} soal harga",
+                          "author_handle": f"pusat{t}",
+                          "url": f"https://www.youtube.com/watch?v=AAAAAAAAAAA&lc={top}"})
+            for i in range(6):
+                rid = f"{top}.r{i}"
+                items.append({"external_id": rid, "conversation_id": top, "published_at": now,
+                              "text": f"balasan {i} untuk utas {t} tentang harga beras",
+                              "author_handle": f"warga{t}_{i}",
+                              "url": f"https://www.youtube.com/watch?v=AAAAAAAAAAA&lc={rid}"})
+        r = await client.post(f"/v1/projects/{pid}/signals/ingest", json={"items": items},
+                              headers=h)
+        assert r.status_code == 200, r.text
+        body = (await client.get(f"/v1/projects/{pid}/network/sna?days=7", headers=h)).json()
+        assert not body["insufficient_data"], body["note"]
+        assert body["summary"]["nodes"] == 21 and body["summary"]["edges"] == 18
+        assert any("id utas" in n for n in body["notes"])
+        top_in = max(a["in_degree"] for a in body["accounts"])
+        assert top_in == 6
+
     async def test_bridges(self, client) -> None:
         h, pid = await _project(client)
         await _seed(client, h, pid)
