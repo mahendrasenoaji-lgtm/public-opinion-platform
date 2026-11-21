@@ -289,7 +289,8 @@ class TestEndpointSNA:
         for t in range(3):
             top = f"Ug-top{t}-{uuid.uuid4().hex[:6]}"
             items.append({"external_id": top, "conversation_id": top, "published_at": now,
-                          "text": f"komentar utama nomor {t} soal harga", "author_handle": f"pusat{t}",
+                          "text": f"komentar utama nomor {t} soal harga",
+                          "author_handle": f"pusat{t}",
                           "url": f"https://www.youtube.com/watch?v=AAAAAAAAAAA&lc={top}"})
             for i in range(6):
                 rid = f"{top}.r{i}"
@@ -297,7 +298,8 @@ class TestEndpointSNA:
                               "text": f"balasan {i} untuk utas {t} tentang harga beras",
                               "author_handle": f"warga{t}_{i}",
                               "url": f"https://www.youtube.com/watch?v=AAAAAAAAAAA&lc={rid}"})
-        r = await client.post(f"/v1/projects/{pid}/signals/ingest", json={"items": items}, headers=h)
+        r = await client.post(f"/v1/projects/{pid}/signals/ingest", json={"items": items},
+                              headers=h)
         assert r.status_code == 200, r.text
         body = (await client.get(f"/v1/projects/{pid}/network/sna?days=7", headers=h)).json()
         assert not body["insufficient_data"], body["note"]
