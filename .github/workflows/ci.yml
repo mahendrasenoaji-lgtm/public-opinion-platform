@@ -74,7 +74,7 @@ jobs:
           # baris ini yang jadi sumber kebenaran untuk dev tools CI, bukan
           # pyproject.toml, meski nama langkahnya sama-sama "install
           # dependencies").
-          pip install pytest pytest-asyncio ruff mypy types-reportlab
+          pip install pytest pytest-asyncio ruff mypy types-reportlab types-networkx
 
       - name: Terapkan schema + RLS (role pop_app dibuat oleh rls.sql sendiri)
         run: |

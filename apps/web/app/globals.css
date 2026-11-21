@@ -803,3 +803,33 @@ a.chip:hover { border-color:var(--line-2); color:var(--txt); }
 .site-actions .is-disabled { opacity:.5; pointer-events:none; }
 .site-lists { flex:1 0 100%; display:grid; gap:8px; justify-items:start; }
 .site-lists .field { width:100%; margin:0; }
+
+/* ── Warna komunitas jaringan (/jaringan, SNA) ────────────────────────────
+ * BUKAN warna sumber (R1): komunitas Louvain adalah kelompok interaksi di
+ * dalam satu sumber (SOSIAL). Karena itu sengaja dijauhkan dari biru survei,
+ * oranye sosial, ungu media, toska digital, dan kuning sensor. Warna selalu
+ * didampingi label "K1…K8" supaya tidak menjadi satu-satunya pembeda.
+ */
+:root {
+  --grp-1:#B8467A; --grp-2:#5E8A12; --grp-3:#8A5A32; --grp-4:#6F6A92;
+  --grp-5:#59661F; --grp-6:#B83A36; --grp-7:#9A7445; --grp-8:#55626F;
+}
+:root[data-theme="dark"] {
+  --grp-1:#E06C9F; --grp-2:#9CCC3D; --grp-3:#C08A5E; --grp-4:#A7A3C2;
+  --grp-5:#A8B85A; --grp-6:#E5605B; --grp-7:#D8B48A; --grp-8:#8D9BA9;
+}
+@media print {
+  :root, :root[data-theme="dark"] {
+    --grp-1:#B8467A; --grp-2:#5E8A12; --grp-3:#8A5A32; --grp-4:#6F6A92;
+    --grp-5:#59661F; --grp-6:#B83A36; --grp-7:#9A7445; --grp-8:#55626F;
+  }
+}
+.netmap { width:100%; height:auto; display:block; background:var(--panel2); border-radius:10px; }
+.netmap .nm-edge { stroke:var(--txt3); }
+.netmap .nm-node { cursor:pointer; stroke:var(--panel); stroke-width:1; }
+.netmap .nm-node:focus-visible { outline:2px solid var(--txt); }
+.nm-legend { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 4px; }
+.nm-swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px; vertical-align:middle; }
+.nm-tip { position:absolute; pointer-events:none; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; font-size:12px; line-height:1.45; box-shadow:0 4px 14px rgba(0,0,0,.12); max-width:260px; z-index:2; }
+.sort-btn { background:none; border:0; padding:0; font:inherit; color:inherit; cursor:pointer; text-transform:inherit; letter-spacing:inherit; }
+.sort-btn[aria-pressed="true"] { text-decoration:underline; }

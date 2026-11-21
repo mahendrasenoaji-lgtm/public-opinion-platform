@@ -6,6 +6,20 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 21 November 2026 (malam): SNA lengkap di `/jaringan`
+
+- Cabang `jaringan/sna-lengkap`: Social Network Analysis lengkap atas permintaan pemilik.
+  Sentralitas (degree masuk/keluar, betweenness, closeness, PageRank, eigenvector), komunitas
+  Louvain + modularity, density/resiprositas/komponen/klaster, nada SOSIAL + kata dominan per
+  komunitas, peta jaringan interaktif (SVG, tata letak dihitung server), graf akun–unggahan,
+  ekspor GEXF/CSV untuk Gephi (Data Analyst ke atas, tercatat di audit log; keputusan default
+  karena pemilik tidak memilih). Panduan membaca: [panduan-sna.md](panduan-sna.md).
+- Dependensi baru `networkx` (requirements.txt + pyproject; `types-networkx` di CI). Tanpa migrasi.
+- Kinerja (graf sintetis, Mac): 80 ribu akun/120 ribu relasi → dipangkas ke 25 ribu akun,
+  ±9–14 dtk, puncak memori proses ±260 MB. Belum diuji pada proyek Gibran di produksi.
+
+---
+
 # 🟢 MULAI DARI SINI — 21 November 2026: Tarik tema teruji + mesin TikTok/Instagram
 
 - **PR #88, #89, #90 MERGED** atas permintaan pemilik (main `32f2909`), CI hijau, Render + Vercel memuat versi baru
