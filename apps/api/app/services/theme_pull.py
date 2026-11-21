@@ -1,4 +1,4 @@
-"""Tarik tema YouTube — logika murni untuk satu pekerjaan penarikan bertahap.
+"""Tarik tema (YouTube, TikTok, Instagram) — logika murni untuk satu pekerjaan penarikan bertahap.
 
 Peneliti mengisi kata kunci + periode, lalu menekan satu tombol. Server lalu
 mengerjakan sendiri, langkah demi langkah:
@@ -25,6 +25,19 @@ Batas yang melekat dan wajib ikut dibaca:
 - Penyaring kata kunci pada judul/deskripsi membuang video di luar tema, tetapi
   juga bisa membuang video relevan yang judulnya tidak menyebut kata kuncinya.
 - Komentar yang sudah dihapus pemilik kanal tidak pernah terlihat.
+
+## Platform lain (21 Nov 2026)
+
+TikTok (Research API) dan Instagram (Graph API, pencarian tagar) memakai
+mesin yang sama. Perbedaannya dikumpulkan di ``PLATFORMS`` di bawah:
+
+- TikTok: hasil pencarian sudah membawa detail video, jadi tahap ``details``
+  tidak memanggil API (detailnya disimpan di ``prefetched``);
+- Instagram: komentar unggahan akun lain tidak bisa diambil API. Keterangan
+  unggahan disimpan saat pencarian, lalu pekerjaan langsung selesai tanpa
+  tahap komentar.
+
+Pekerjaan lama tanpa kunci ``platform`` dianggap YouTube.
 """
 
 from __future__ import annotations
@@ -81,8 +94,112 @@ LIMITATIONS = (
 )
 
 
+YOUTUBE = "youtube"
+TIKTOK = "tiktok"
+INSTAGRAM = "instagram"
+
+
+@dataclass(frozen=True, slots=True)
+class PlatformInfo:
+    key: str
+    label: str
+    #: Nilai `connector` baris mentions yang disimpan pekerjaan ini.
+    store_connector: str
+    #: Variabel environment backend yang wajib diisi.
+    env_vars: tuple[str, ...]
+    method: str
+    limitations: tuple[str, ...]
+    #: Halaman pencarian maksimum per kata kunci.
+    max_search_pages: int
+    #: Unit kuota per halaman pencarian (YouTube 100; lainnya dihitung per permintaan).
+    search_units: int
+    #: Komentar diambil per unggahan? (Instagram: tidak bisa.)
+    collects_comments: bool
+    #: Periode terpanjang ke belakang dari hari ini; None = tanpa batas khusus.
+    max_days_back: int | None
+    #: Apa yang harus diurus pemilik sebelum kunci bisa diisi.
+    access_note: str
+
+
+def platform_of(state: dict[str, Any]) -> str:
+    return str(state.get("platform") or YOUTUBE)
+
+
 class ThemeError(ValueError):
     """Permintaan penarikan tidak sah. Pesannya untuk ditampilkan ke pengguna."""
+
+
+PLATFORMS: dict[str, PlatformInfo] = {
+    YOUTUBE: PlatformInfo(
+        key=YOUTUBE,
+        label="YouTube",
+        store_connector="youtube_api",
+        env_vars=("YOUTUBE_API_KEY",),
+        method=METHOD,
+        limitations=LIMITATIONS,
+        max_search_pages=MAX_SEARCH_PAGES_PER_QUERY,
+        search_units=SEARCH_UNITS,
+        collects_comments=True,
+        max_days_back=None,
+        access_note="Kunci YouTube Data API v3 dari Google Cloud Console (gratis, kuota harian).",
+    ),
+    TIKTOK: PlatformInfo(
+        key=TIKTOK,
+        label="TikTok",
+        store_connector="tiktok_api",
+        env_vars=("TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"),
+        method=(
+            "TikTok Research API resmi: video/query (kata kunci, region_code=ID, "
+            "periode dipecah per jendela ≤30 hari), penyaring kata kunci pada "
+            "deskripsi+tagar, lalu video/comment/list per video"
+        ),
+        limitations=(
+            "Video dipilih mesin pencarian TikTok, bukan sampel acak.",
+            "Research API tidak memberi nama akun komentator: hitungan akun berbeda "
+            "dan graf antar-akun tidak tersedia untuk TikTok.",
+            "Jumlah komentar per video dan permintaan harian dibatasi TikTok.",
+            "Komentar TikTok bersifat self-selected; tidak mewakili penduduk.",
+        ),
+        max_search_pages=12,
+        search_units=1,
+        collects_comments=True,
+        max_days_back=None,
+        access_note=(
+            "Akses Research API hanya untuk peneliti nirlaba yang proyeknya disetujui "
+            "TikTok; per Nov 2026 wilayah yang dilayani masih terbatas (AS/Eropa)."
+        ),
+    ),
+    INSTAGRAM: PlatformInfo(
+        key=INSTAGRAM,
+        label="Instagram",
+        store_connector="instagram_api",
+        env_vars=("INSTAGRAM_ACCESS_TOKEN", "INSTAGRAM_USER_ID"),
+        method=(
+            "Instagram Graph API resmi: ig_hashtag_search lalu recent_media per tagar; "
+            "yang disimpan keterangan (caption) unggahan"
+        ),
+        limitations=(
+            "Hanya tagar, bukan kata kunci bebas; maks. 30 tagar unik per 7 hari per akun.",
+            "Hanya unggahan sekitar 24 jam terakhir; tidak bisa menarik periode lampau.",
+            "Komentar unggahan akun lain tidak bisa diambil; yang tersimpan keterangan "
+            "unggahan, bukan percakapan.",
+            "Nama akun pengunggah tidak dikirim API: hitungan akun berbeda tidak tersedia.",
+        ),
+        max_search_pages=6,
+        search_units=1,
+        collects_comments=False,
+        max_days_back=1,
+        access_note=(
+            "Butuh akun Instagram Business/Creator, aplikasi Meta, dan App Review untuk "
+            "fitur Instagram Public Content Access."
+        ),
+    ),
+}
+
+
+def info(state_or_key: dict[str, Any] | str) -> PlatformInfo:
+    key = state_or_key if isinstance(state_or_key, str) else platform_of(state_or_key)
+    return PLATFORMS.get(key, PLATFORMS[YOUTUBE])
 
 
 @dataclass(frozen=True, slots=True)
@@ -94,6 +211,7 @@ class ThemeRequest:
     include_replies: bool
     comments_until_now: bool
     keyword_filter: bool
+    platform: str = YOUTUBE
 
 
 def split_queries(raw: str) -> tuple[str, ...]:
@@ -116,8 +234,12 @@ def parse_request(
     comments_until_now: bool,
     keyword_filter: bool,
     today: date,
+    platform: str = YOUTUBE,
 ) -> ThemeRequest:
     """Periksa dan normalkan isian formulir. Melempar ThemeError."""
+    if platform not in PLATFORMS:
+        raise ThemeError(f"Platform '{platform}' tidak dikenal.")
+    plat = PLATFORMS[platform]
     qs = split_queries(queries)
     if not qs:
         raise ThemeError("Isi minimal satu kata kunci.")
@@ -134,6 +256,21 @@ def parse_request(
         raise ThemeError(f"Periode paling panjang {MAX_PERIOD_DAYS} hari.")
     if not 1 <= max_videos <= MAX_MAX_VIDEOS:
         raise ThemeError(f"Jumlah video harus 1–{MAX_MAX_VIDEOS}.")
+    if plat.max_days_back is not None and start < today - timedelta(days=plat.max_days_back):
+        raise ThemeError(
+            f"{plat.label} hanya memberi unggahan {plat.max_days_back * 24} jam terakhir; "
+            f"tanggal mulai paling awal {(today - timedelta(days=plat.max_days_back)).isoformat()}."
+        )
+    if platform == INSTAGRAM:
+        tags = []
+        for q in qs:
+            tag = re.sub(r"\s+", "", q.lstrip("#")).lower()
+            if not re.fullmatch(r"\w{1,100}", tag):
+                raise ThemeError(f"'{q}' bukan tagar yang sah (huruf, angka, garis bawah).")
+            tags.append(tag)
+        qs = tuple(dict.fromkeys(tags))
+        # Penyaring kata kunci tidak berarti untuk tagar: unggahan sudah bertagar itu.
+        keyword_filter = False
     return ThemeRequest(
         queries=qs,
         start=start,
@@ -142,6 +279,7 @@ def parse_request(
         include_replies=include_replies,
         comments_until_now=comments_until_now,
         keyword_filter=keyword_filter,
+        platform=platform,
     )
 
 
@@ -161,6 +299,7 @@ def initial_state(req: ThemeRequest, *, label: str, now: datetime) -> dict[str, 
     """Keadaan awal pekerjaan, siap disimpan di kolom JSON."""
     return {
         "label": label,
+        "platform": req.platform,
         "queries": list(req.queries),
         "start": req.start.isoformat(),
         "end": req.end.isoformat(),
@@ -174,6 +313,7 @@ def initial_state(req: ThemeRequest, *, label: str, now: datetime) -> dict[str, 
         "search_page": 0,
         "search_token": None,
         "candidates": [],
+        "prefetched": {},
         "detail_index": 0,
         "videos": [],
         "video_index": 0,
@@ -236,11 +376,26 @@ def candidate_cap(state: dict[str, Any]) -> int:
     return target * 2 if state.get("keyword_filter", True) else target
 
 
+def add_prefetched(state: dict[str, Any], details: list[dict[str, Any]]) -> int:
+    """Pencarian yang sudah membawa detail (TikTok/Instagram): simpan detailnya
+    supaya tahap ``details`` tidak memanggil API lagi."""
+    pre = state.setdefault("prefetched", {})
+    fresh = add_candidates(state, [str(d["id"]) for d in details])
+    for d in details:
+        pre.setdefault(str(d["id"]), d)
+    return fresh
+
+
+def prefetched_details(state: dict[str, Any], ids: list[str]) -> list[dict[str, Any]]:
+    pre = state.get("prefetched") or {}
+    return [pre[i] for i in ids if i in pre]
+
+
 def advance_search(state: dict[str, Any], *, next_token: str | None) -> None:
     """Sesudah satu halaman pencarian: ke halaman berikut, kueri berikut, atau tahap detail."""
     state["search_page"] += 1
     enough = len(state["candidates"]) >= candidate_cap(state)
-    if next_token and state["search_page"] < MAX_SEARCH_PAGES_PER_QUERY and not enough:
+    if next_token and state["search_page"] < info(state).max_search_pages and not enough:
         state["search_token"] = next_token
         return
     state["search_token"] = None
@@ -248,6 +403,17 @@ def advance_search(state: dict[str, Any], *, next_token: str | None) -> None:
     state["query_index"] += 1
     if enough or state["query_index"] >= len(state["queries"]):
         state["status"] = STATUS_DETAILS
+        if not info(state).collects_comments:
+            finish_without_comments(state)
+
+
+def finish_without_comments(state: dict[str, Any]) -> None:
+    """Instagram: kontennya sudah tersimpan saat pencarian; tidak ada tahap komentar."""
+    state["candidates"] = []
+    state["prefetched"] = {}
+    state["status"] = STATUS_DONE
+    if not state.get("received"):
+        state["notes"].append("Tidak ada unggahan bertagar ini dalam periode.")
 
 
 def search_page_size(state: dict[str, Any]) -> int:
@@ -274,6 +440,7 @@ def accept_details(state: dict[str, Any], details: list[dict[str, Any]], batch_l
                 "channel": d.get("channel", "")[:120],
                 "published_at": d.get("published_at"),
                 "comment_count": int(d.get("comment_count") or 0),
+                "url": d.get("url"),
                 "state": VIDEO_PENDING,
                 "got": 0,
                 "note": None,
@@ -288,6 +455,7 @@ def accept_details(state: dict[str, Any], details: list[dict[str, Any]], batch_l
                 v["state"] = VIDEO_SKIPPED
                 v["note"] = "tanpa komentar"
         state["candidates"] = []
+        state["prefetched"] = {}
         state["video_index"] = 0
         state["comment_token"] = None
         state["status"] = STATUS_COLLECTING
@@ -318,14 +486,22 @@ def finish_video(state: dict[str, Any], *, skipped_note: str | None = None) -> N
     settle_video_index(state)
 
 
-def next_quota_reset(now: datetime) -> datetime:
-    """Kapan kuota harian YouTube pasti sudah pulih.
+def next_quota_reset(now: datetime, platform: str = YOUTUBE) -> datetime:
+    """Kapan kuota platform pasti sudah pulih.
+
+    TikTok Research API: batas harian dipulihkan tengah malam UTC → 00.05 UTC.
+    Instagram Graph API: batas laju bergulir per jam → satu jam lagi.
+
+    YouTube:
 
     Kuota dipulihkan tengah malam waktu Pasifik (00.00 PST = 08.00 UTC, 00.00
     PDT = 07.00 UTC). 08.05 UTC berikutnya selalu sesudah keduanya, tanpa
     perlu basis data zona waktu.
     """
-    candidate = now.astimezone(UTC).replace(hour=8, minute=5, second=0, microsecond=0)
+    if platform == INSTAGRAM:
+        return now.astimezone(UTC) + timedelta(hours=1)
+    hour = 0 if platform == TIKTOK else 8
+    candidate = now.astimezone(UTC).replace(hour=hour, minute=5, second=0, microsecond=0)
     if candidate <= now:
         candidate += timedelta(days=1)
     return candidate
@@ -335,7 +511,7 @@ def wait_for_quota(state: dict[str, Any], now: datetime) -> None:
     if state["status"] != STATUS_WAITING_QUOTA:
         state["status_before_wait"] = state["status"]
     state["status"] = STATUS_WAITING_QUOTA
-    state["resume_at"] = next_quota_reset(now).isoformat()
+    state["resume_at"] = next_quota_reset(now, platform_of(state)).isoformat()
 
 
 def quota_ready(state: dict[str, Any], now: datetime) -> bool:

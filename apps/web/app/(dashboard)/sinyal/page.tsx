@@ -1166,7 +1166,7 @@ export default async function SinyalPage({
           )}
         </Panel>
 
-        <Panel kicker="Pengumpulan" title="Tarik tema YouTube">
+        <Panel kicker="Pengumpulan" title="Tarik tema: YouTube, TikTok, Instagram">
           <ThemePull projectId={projectId} initial={themePulls} canManage={canManage} />
         </Panel>
 
