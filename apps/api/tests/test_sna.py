@@ -316,7 +316,7 @@ class TestEndpointSNA:
             actions = (await session.execute(
                 select(AuditLog.metadata_).where(AuditLog.action == "network_export")
             )).scalars().all()
-        assert [m["format"] for m in actions] == ["gexf", "nodes"]
+        assert sorted(m["format"] for m in actions) == ["gexf", "nodes"]
 
     async def test_organisasi_lain_tidak_melihat(self, client) -> None:
         h, pid = await _project(client)
