@@ -276,6 +276,11 @@ def _communities(u: nx.Graph[str]) -> tuple[list[set[str]], float | None]:
     return groups, q
 
 
+def _id(n: int) -> str:
+    """Angka dengan pemisah ribuan Indonesia (titik)."""
+    return f"{n:,}".replace(",", ".")
+
+
 def _top(scores: Mapping[str, float], k: int) -> list[str]:
     return [n for n, _ in sorted(scores.items(), key=lambda t: (-t[1], t[0]))[:k]]
 
@@ -312,7 +317,7 @@ def analyze(
     notes: list[str] = []
     if original_nodes > n:
         notes.append(
-            f"Graf semula {original_nodes:,} akun; dianalisis {n:,} akun dengan interaksi "
+            f"Graf semula {_id(original_nodes)} akun; dianalisis {_id(n)} akun dengan interaksi "
             "terbanyak beserta relasi di antara mereka (batas memori server)."
         )
     u = undirected(g)
@@ -332,8 +337,8 @@ def analyze(
     core = _core(u, max_core_nodes)
     if core.number_of_nodes() < n:
         notes.append(
-            f"Graf besar ({n:,} akun): betweenness, eigenvector, dan koefisien klaster "
-            f"dihitung pada inti {core.number_of_nodes():,} akun ber-degree tertinggi."
+            f"Graf besar ({_id(n)} akun): betweenness, eigenvector, dan koefisien klaster "
+            f"dihitung pada inti {_id(core.number_of_nodes())} akun ber-degree tertinggi."
         )
     k = min(betweenness_samples, core.number_of_nodes())
     if k < core.number_of_nodes():
@@ -356,7 +361,7 @@ def analyze(
             notes.append("Eigenvector tidak konvergen pada graf ini; kolomnya dikosongkan.")
     if eigen and len(core_parts) > 1:
         notes.append(
-            f"Eigenvector dihitung pada komponen terbesar ({lcc.number_of_nodes():,} akun); "
+            f"Eigenvector dihitung pada komponen terbesar ({_id(lcc.number_of_nodes())} akun); "
             "akun di komponen lain ditandai \u2013."
         )
     try:
