@@ -318,6 +318,63 @@ class TestEndpointSNA:
         assert {c["container"] for c in b["top_containers"]} == {"yt:AAAAAAAAAAA", "yt:BBBBBBBBBBB"}
         assert b["overlaps"] and b["overlaps"][0]["shared"] >= 1
 
+    async def test_agregat_sql_sama_dengan_acuan_python(self, client) -> None:
+        h, pid = await _project(client)
+        now = (datetime.now(UTC) - timedelta(days=1)).isoformat()
+        rows: list[tuple[str, str, int]] = []
+        items = []
+        plan = [(f"u{i}", "AAAAAAAAAAA", 1) for i in range(10)]
+        plan += [(f"u{i}", "BBBBBBBBBBB", 2) for i in range(5, 12)]
+        plan += [("u0", "CCCCCCCCCCC", 1)]
+        for author, vid, n in plan:
+            rows.append((author, f"yt:{vid}", n))
+            for k in range(n):
+                items.append({"external_id": f"{author}-{vid}-{k}", "published_at": now,
+                              "text": f"komentar unik {author} {vid} ke {k} soal harga beras",
+                              "author_handle": author,
+                              "url": f"https://www.youtube.com/watch?v={vid}&lc={author}{k}"})
+        r = await client.post(f"/v1/projects/{pid}/signals/ingest", json={"items": items},
+                              headers=h)
+        assert r.status_code == 200, r.text
+        got = (await client.get(f"/v1/projects/{pid}/network/bridges?days=7", headers=h)).json()
+        want = sna.bridges(rows)
+        assert got["accounts"] == want.accounts == 12
+        assert got["containers"] == want.containers == 3
+        assert got["comments"] == want.comments
+        assert got["cross_accounts"] == want.cross_accounts == 6
+        assert [(c["container"], c["commenters"], c["comments"], c["shared_share"])
+                for c in got["top_containers"]] == [
+            (c.container, c.commenters, c.comments, c.shared_share) for c in want.top_containers]
+        assert [(o["a"], o["b"], o["shared"], o["jaccard"]) for o in got["overlaps"]] == [
+            (o.a, o.b, o.shared, o.jaccard) for o in want.overlaps]
+        assert [a["containers"] for a in got["top_cross_accounts"]] == [
+            a.containers for a in want.top_cross_accounts]
+        assert got["computed_at"]
+
+    async def test_permintaan_bersamaan_dihitung_sekali(self, client, monkeypatch) -> None:
+        """Insiden 21 Nov: tiga permintaan bersamaan menghabiskan memori server.
+        Kini permintaan yang sama menunggu hasil perhitungan pertama."""
+        import asyncio
+
+        from app.routers import network
+
+        h, pid = await _project(client)
+        await _seed(client, h, pid)
+        calls = 0
+        real = network._compute_sna
+
+        async def counting(*a, **kw):  # type: ignore[no-untyped-def]
+            nonlocal calls
+            calls += 1
+            return await real(*a, **kw)
+
+        monkeypatch.setattr(network, "_compute_sna", counting)
+        url = f"/v1/projects/{pid}/network/sna?days=7"
+        res = await asyncio.gather(*(client.get(url, headers=h) for _ in range(3)))
+        assert all(r.status_code == 200 for r in res)
+        assert calls == 1
+        assert len({r.json()["computed_at"] for r in res}) == 1
+
     async def test_ekspor_butuh_peran_dan_tercatat(self, client) -> None:
         h, pid = await _project(client)
         await _seed(client, h, pid)
