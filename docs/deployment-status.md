@@ -6,6 +6,21 @@
 
 ---
 
+# ⚠️ 21 November 2026 (larut): insiden memori `/jaringan` + perbaikan
+
+- **Kejadian (±23.05–23.08 WIB):** sesudah PR #93 tayang, `/jaringan` proyek Gibran terpicu tiga kali
+  hampir bersamaan saat uji (dua tab + muat ulang). Tiap permintaan menghitung graf balasan + graf
+  akun–unggahan (±250 ribu pasangan dimuat ke Python) → server Render 512 MB kehabisan memori,
+  `/health` 503 ±2 menit, pulih sendiri. Tidak ada data yang hilang.
+- **Perbaikan (cabang `jaringan/hemat-memori`):** perhitungan jaringan berat dikerjakan satu per satu
+  (`asyncio.Semaphore(1)`), hasil disimpan 10 menit per (org, proyek, parameter periode); graf
+  akun–unggahan kini dihitung di SQL (yang kembali hanya agregat); statistik sentimen hanya untuk
+  akun di komunitas yang ditampilkan. Halaman menampilkan waktu hitung. Tes: agregat SQL = acuan
+  Python; tiga permintaan bersamaan → satu perhitungan.
+- PR #93 (relasi dari id utas) sudah MERGED (f9ca749).
+
+---
+
 # 🟢 MULAI DARI SINI — 21 November 2026 (malam): SNA lengkap di `/jaringan`
 
 - Cabang `jaringan/sna-lengkap`: Social Network Analysis lengkap atas permintaan pemilik.
