@@ -23,6 +23,7 @@ dependencies = [
   "scikit-learn>=1.5",
   "email-validator>=2.2",
   "reportlab>=4.2",
+  "networkx>=3.3",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,8 @@ dev = [
   # persis kelas bug yang sama seperti email-validator yang hilang dari
   # sini sebelumnya, lihat docs/deployment-status.md 2026-08-27).
   "types-reportlab>=4.2",
+  # types-networkx: stub untuk services/sna.py di bawah mypy --strict.
+  "types-networkx>=3.3",
 ]
 
 [tool.pytest.ini_options]

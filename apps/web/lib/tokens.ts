@@ -55,6 +55,26 @@ export const SOURCE = {
 
 export type SignalSource = keyof typeof SOURCE;
 
+/**
+ * Warna komunitas jaringan (SNA, /jaringan). BUKAN warna sumber: semua
+ * komunitas berasal dari satu sumber (SOSIAL). Indeks 0 = komunitas 1.
+ * Komunitas di luar delapan teratas memakai `SURFACE.text3`.
+ */
+export const GROUP = [
+  "var(--grp-1)",
+  "var(--grp-2)",
+  "var(--grp-3)",
+  "var(--grp-4)",
+  "var(--grp-5)",
+  "var(--grp-6)",
+  "var(--grp-7)",
+  "var(--grp-8)",
+] as const;
+
+export function groupColor(community: number): string {
+  return GROUP[community - 1] ?? "var(--txt3)";
+}
+
 export const SURFACE = {
   ink: "var(--ink)",
   panel: "var(--panel)",
