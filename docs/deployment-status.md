@@ -6,6 +6,26 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 21 November 2026: Tarik tema teruji + mesin TikTok/Instagram
+
+- **PR #88, #89, #90 MERGED** atas permintaan pemilik (main `32f2909`), CI hijau, Render + Vercel memuat versi baru
+  (`/v1/signals/theme-platforms` membalas 401 tanpa login).
+  - #89: Next.js 16.4.6, `maplibre-gl` (tidak dipakai, XSS kritis) dihapus → `npm audit` 0 kerentanan.
+  - #90: Tarik tema punya pilihan platform. TikTok (Research API) dan Instagram (Graph API, tagar) **siap, kunci belum
+    diisi**; lihat [panduan-tarik-tema-tiktok-instagram.md](panduan-tarik-tema-tiktok-instagram.md). Akses TikTok
+    Research API per Agustus 2026 hanya untuk peneliti nirlaba di wilayah terbatas (AS/Eropa); Instagram butuh App
+    Review "Instagram Public Content Access".
+- **Uji Tarik tema YouTube sungguhan di produksi: LULUS.** Proyek baru **UJI TARIK TEMA** (khusus uji), kata kunci
+  "harga beras", 18–20 Nov 2026, maks. 5 video → selesai ±30 detik: 5/5 video, 44 komentar tersimpan, 106 unit kuota,
+  1 video dibuang penyaring, 23 komentar di luar periode tidak disimpan. `/sinyal` periode yang sama: 44 konten,
+  40 akun berbeda, tren 5/4/35, panel emosi/aktor terisi.
+- Catatan: tepat sesudah deploy, muatan pertama `/sinyal` sempat menampilkan "Endpoint ini belum tersedia" di beberapa
+  panel (galat sementara dari backend, ditelan `apiOrNullLenient`); muat ulang normal.
+- **Berikutnya:** isi kunci TikTok/Instagram bila akses didapat, lalu uji kecil di UJI TARIK TEMA; kuota Supabase
+  (tenggang egress sampai 10 Des); collector terjadwal masih mati sejak 30 Okt.
+
+---
+
 # 🟢 MULAI DARI SINI — 20 November 2026: "Tarik tema YouTube"
 
 - **Status akhir 20 Nov malam:** PR #86 (subjudul "Intelligence Platform" di sidebar dihapus; judul tab browser
