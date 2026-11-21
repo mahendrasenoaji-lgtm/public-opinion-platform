@@ -8,7 +8,20 @@
 
 # 🟢 MULAI DARI SINI — 20 November 2026: "Tarik tema YouTube"
 
-- **Fitur baru di `/sinyal`, panel "Tarik tema YouTube"** (PR branch `sinyal/tarik-tema-youtube`). Isi kata kunci
+- **Status akhir 20 Nov malam:** PR #86 (subjudul "Intelligence Platform" di sidebar dihapus; judul tab browser
+  tetap) dan PR #87 (Tarik tema) **MERGED** atas permintaan pemilik, main `8860a8a`, CI hijau, Render + Vercel
+  sudah menjalankannya (rute `/v1/projects/{id}/signals/theme-pulls` membalas 401 tanpa login). Tidak ada PR terbuka
+  selain PR serah-terima ini.
+- **Daftar kerja besok:**
+  1. Coba Tarik tema sungguhan di produksi dengan tema kecil (mis. 5 video, 3 hari) pada proyek pilihan pemilik;
+     cek kartu kemajuan, lalu angka di `/sinyal`. Belum pernah dijalankan dengan YouTube asli.
+  2. Cek tampilan panel + sidebar di browser (Chrome gagal merespons 20 Nov, belum dilihat langsung).
+  3. Upgrade Next.js: `next build` lokal memperingatkan 16.4.3 terkena celah keamanan (build tetap jalan).
+     Belum dikerjakan; PR terpisah bila pemilik setuju.
+  4. Ingat kuota Supabase (masa tenggang egress sampai 10 Des): penarikan besar menambah pemakaian.
+- Berkas lokal yang sengaja TIDAK di-commit: deck BBM Bali (`presentasi_bbm_bali_youtube*.pptx`,
+  `skrip/build_pptx_final.js`), pilihan pemilik.
+- **Fitur baru di `/sinyal`, panel "Tarik tema YouTube"** (PR #87). Isi kata kunci
   (maks. 5, dipisah koma), tanggal dari–sampai (WIB), jumlah video maksimum (1–300), tekan **Tarik**. Server
   mengerjakan sendiri: `search.list` (video terbit dalam periode) → `videos.list` (buang yang judul/deskripsinya
   tidak memuat kata kunci, urutkan paling ramai) → `commentThreads` + balasan, satu halaman per langkah,
