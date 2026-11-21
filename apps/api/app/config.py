@@ -32,6 +32,16 @@ class Settings(BaseSettings):
     # pesan yang menyebut env var ini, bukan gagal senyap.
     youtube_api_key: str | None = Field(default=None, alias="YOUTUBE_API_KEY")
     x_bearer_token: str | None = Field(default=None, alias="X_BEARER_TOKEN")
+    # "Tarik tema" TikTok: TikTok Research API (client credentials). Hanya untuk
+    # peneliti nirlaba yang proyeknya disetujui TikTok — lihat
+    # docs/panduan-tarik-tema-tiktok-instagram.md.
+    tiktok_client_key: str | None = Field(default=None, alias="TIKTOK_CLIENT_KEY")
+    tiktok_client_secret: str | None = Field(default=None, alias="TIKTOK_CLIENT_SECRET")
+    # "Tarik tema" Instagram: Instagram Graph API, pencarian tagar. Butuh akun
+    # Instagram Business/Creator + izin "Instagram Public Content Access".
+    instagram_access_token: str | None = Field(default=None, alias="INSTAGRAM_ACCESS_TOKEN")
+    instagram_user_id: str | None = Field(default=None, alias="INSTAGRAM_USER_ID")
+    instagram_graph_version: str = Field(default="v23.0", alias="INSTAGRAM_GRAPH_VERSION")
 
     # Kunci untuk meng-hash identitas akun di mentions (services/ingestion.py).
     # Kosongkan dan nilainya diturunkan dari jwt_secret — lihat author_salt().

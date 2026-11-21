@@ -294,10 +294,28 @@ export interface ThemeVideo {
   got: number;
   state: "pending" | "done" | "skipped";
   note: string | null;
+  url?: string | null;
+}
+
+export type ThemePlatformKey = "youtube" | "tiktok" | "instagram";
+
+/** Platform tarik tema + apakah kuncinya sudah diisi di backend (nilainya tidak pernah ikut). */
+export interface ThemePlatform {
+  key: ThemePlatformKey;
+  label: string;
+  configured: boolean;
+  env_vars: string[];
+  collects_comments: boolean;
+  max_days_back: number | null;
+  access_note: string;
+  method: string;
+  limitations: string[];
 }
 
 export interface ThemePull {
   id: string;
+  /** Pekerjaan sebelum 21 Nov 2026 tidak membawa field ini dari backend lama. */
+  platform?: ThemePlatformKey;
   label: string;
   queries: string[];
   start: string;
@@ -331,6 +349,7 @@ export interface ThemePull {
 }
 
 export interface ThemeCreate {
+  platform: ThemePlatformKey;
   queries: string;
   start: string;
   end: string;
@@ -342,7 +361,7 @@ export interface ThemeCreate {
 }
 
 /**
- * Tarik tema YouTube: server mencari video di periode itu lalu menarik
+ * Tarik tema (YouTube/TikTok/Instagram): server mencari unggahan di periode itu lalu menarik
  * komentarnya sendiri di latar belakang (backend routers/theme_pulls.py).
  * Membuka daftar ini juga melanjutkan pekerjaan yang terhenti karena server
  * restart -- karena itu panel memanggilnya berkala selama ada yang berjalan.
@@ -350,6 +369,16 @@ export interface ThemeCreate {
 export async function listThemePulls(projectId: string): Promise<Result<ThemePull[]>> {
   try {
     const result = await api<ThemePull[]>(`/projects/${projectId}/signals/theme-pulls`);
+    return { ok: true, result };
+  } catch (e) {
+    if (e instanceof ApiError) return { ok: false, error: e.message };
+    throw e;
+  }
+}
+
+export async function listThemePlatforms(): Promise<Result<ThemePlatform[]>> {
+  try {
+    const result = await api<ThemePlatform[]>(`/signals/theme-platforms`);
     return { ok: true, result };
   } catch (e) {
     if (e instanceof ApiError) return { ok: false, error: e.message };

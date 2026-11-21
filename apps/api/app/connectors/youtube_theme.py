@@ -10,7 +10,6 @@ dites tanpa jaringan — membaca respons — ada di fungsi `parse_*` murni.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,23 +17,13 @@ import httpx
 
 from app.config import get_settings
 from app.connectors.base import ConnectorError, CredentialMissing, RawItem
+from app.connectors.theme_common import CommentPage, ItemUnavailable, QuotaExceeded
 from app.connectors.youtube import API_ROOT, REQUEST_TIMEOUT
 
+#: Nama lama dipertahankan: tes dan pemanggil memakai `yt.VideoUnavailable`.
+VideoUnavailable = ItemUnavailable
 
-class QuotaExceeded(ConnectorError):
-    """Kuota harian kunci API habis; pekerjaan harus menunggu pemulihan."""
-
-
-class VideoUnavailable(ConnectorError):
-    """Komentar dimatikan, video dihapus, atau privat — lewati videonya."""
-
-
-@dataclass(frozen=True, slots=True)
-class CommentPage:
-    items: list[RawItem]
-    next_token: str | None
-    #: Unit kuota yang dipakai halaman ini (termasuk pengambilan balasan).
-    units: int
+__all__ = ["CommentPage", "QuotaExceeded", "VideoUnavailable"]
 
 
 def _key() -> str:

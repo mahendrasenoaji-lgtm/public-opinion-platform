@@ -1,4 +1,4 @@
-"""Tarik tema YouTube: satu tombol, server mengerjakan sendiri sampai selesai.
+"""Tarik tema (YouTube, TikTok, Instagram): satu tombol, server mengerjakan sendiri sampai selesai.
 
 Alur dan batasnya dijelaskan di ``app/services/theme_pull.py``. File ini berisi
 endpoint dan pekerja latar belakang.
@@ -31,7 +31,7 @@ import copy
 import logging
 import os
 from datetime import UTC, date, datetime, timedelta
-from typing import Any
+from typing import Any, Literal
 from uuid import UUID
 
 import httpx
@@ -41,9 +41,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
+from app.connectors import instagram_theme as ig
+from app.connectors import tiktok_theme as tt
 from app.connectors import youtube_theme as yt
 from app.connectors.base import ConnectorError, CredentialMissing
-from app.connectors.youtube import YouTubeConnector
+from app.connectors.theme_common import PullRejected
 from app.db import SessionLocal
 from app.deps import CurrentUser, Role, TenantSession, bind_org, require_role
 from app.models.governance import AuditLog
@@ -73,7 +75,19 @@ _one_at_a_time = asyncio.Semaphore(1)
 # ------------------------------------------------------------- skema ----
 
 
+Platform = Literal["youtube", "tiktok", "instagram"]
+
+
+def platform_configured(key: str) -> bool:
+    if key == tp.TIKTOK:
+        return tt.configured()
+    if key == tp.INSTAGRAM:
+        return ig.configured()
+    return bool(get_settings().youtube_api_key)
+
+
 class ThemeCreate(BaseModel):
+    platform: Platform = "youtube"
     queries: str = Field(min_length=1, max_length=700)
     start: date
     end: date
@@ -92,10 +106,12 @@ class ThemeVideoOut(BaseModel):
     got: int
     state: str
     note: str | None
+    url: str | None = None
 
 
 class ThemePullOut(BaseModel):
     id: UUID
+    platform: str
     label: str
     queries: list[str]
     start: date
@@ -128,6 +144,18 @@ class ThemePullOut(BaseModel):
     limitations: list[str] = Field(default_factory=lambda: list(tp.LIMITATIONS))
 
 
+class ThemePlatformOut(BaseModel):
+    key: str
+    label: str
+    configured: bool
+    env_vars: list[str]
+    collects_comments: bool
+    max_days_back: int | None
+    access_note: str
+    method: str
+    limitations: list[str]
+
+
 def _dt(raw: object) -> datetime | None:
     if not raw:
         return None
@@ -140,8 +168,12 @@ def _dt(raw: object) -> datetime | None:
 def _out(source: DataSource) -> ThemePullOut:
     s: dict[str, Any] = source.config or {}
     p = tp.progress(s)
+    plat = tp.info(s)
     return ThemePullOut(
         id=source.id,
+        platform=plat.key,
+        method=plat.method,
+        limitations=list(plat.limitations),
         label=str(s.get("label") or ", ".join(s.get("queries") or [])),
         queries=list(s.get("queries") or []),
         start=date.fromisoformat(s["start"]),
@@ -178,6 +210,7 @@ def _out(source: DataSource) -> ThemePullOut:
                 got=int(v["got"]),
                 state=v["state"],
                 note=v.get("note"),
+                url=v.get("url"),
             )
             for v in s.get("videos") or []
         ],
@@ -215,7 +248,7 @@ async def _run(job_id: UUID, org_id: UUID) -> None:
         async with _one_at_a_time:
             keepalive = asyncio.create_task(_keepalive())
             try:
-                async with yt.client() as http:
+                async with httpx.AsyncClient(timeout=30.0) as http:
                     while True:
                         delay = await run_step(job_id, org_id, http)
                         if delay is None:
@@ -260,7 +293,7 @@ async def run_step(job_id: UUID, org_id: UUID, http: httpx.AsyncClient) -> float
         except yt.QuotaExceeded:
             tp.wait_for_quota(state, now)
             state["notes"] = _note(state, f"Kuota habis {now:%d %b %H.%M} UTC; lanjut otomatis.")
-        except CredentialMissing as e:
+        except (CredentialMissing, PullRejected) as e:
             state["stage"] = state["status"]
             state["status"], state["error"] = tp.STATUS_FAILED, str(e)
         except ConnectorError as e:
@@ -311,6 +344,10 @@ async def _advance(
     http: httpx.AsyncClient,
 ) -> None:
     st = state["status"]
+    platform = tp.platform_of(state)
+    if st == tp.STATUS_SEARCHING and platform != tp.YOUTUBE:
+        await _search_other(session, source, state, http, platform)
+        return
     if st == tp.STATUS_SEARCHING:
         lo, hi = tp.window_utc(date.fromisoformat(state["start"]), date.fromisoformat(state["end"]))
         query = state["queries"][state["query_index"]]
@@ -329,9 +366,12 @@ async def _advance(
 
     if st == tp.STATUS_DETAILS:
         batch = tp.next_detail_batch(state)
-        details = await yt.video_details(http, batch) if batch else []
-        if batch:
-            state["units"] += 1
+        if platform != tp.YOUTUBE:
+            details = tp.prefetched_details(state, batch)
+        else:
+            details = await yt.video_details(http, batch) if batch else []
+            if batch:
+                state["units"] += 1
         tp.accept_details(state, details, len(batch))
         return
 
@@ -341,12 +381,21 @@ async def _advance(
             return
         video = state["videos"][state["video_index"]]
         try:
-            page = await yt.comment_page(
-                http,
-                video_id=video["id"],
-                page_token=state.get("comment_token"),
-                include_replies=bool(state.get("include_replies")),
-            )
+            if platform == tp.TIKTOK:
+                page = await tt.comment_page(
+                    http,
+                    video_id=video["id"],
+                    video_url_=video.get("url") or tt.video_url(None, video["id"]),
+                    page_token=state.get("comment_token"),
+                    include_replies=bool(state.get("include_replies")),
+                )
+            else:
+                page = await yt.comment_page(
+                    http,
+                    video_id=video["id"],
+                    page_token=state.get("comment_token"),
+                    include_replies=bool(state.get("include_replies")),
+                )
         except yt.VideoUnavailable as e:
             tp.finish_video(state, skipped_note=str(e))
             return
@@ -366,6 +415,42 @@ async def _advance(
         return
 
 
+async def _search_other(
+    session: AsyncSession,
+    source: DataSource,
+    state: dict[str, Any],
+    http: httpx.AsyncClient,
+    platform: str,
+) -> None:
+    """Satu halaman pencarian TikTok/Instagram; detail ikut, jadi langsung disimpan."""
+    start, end = date.fromisoformat(state["start"]), date.fromisoformat(state["end"])
+    lo, hi = tp.window_utc(start, end)
+    query = state["queries"][state["query_index"]]
+    if platform == tp.TIKTOK:
+        page = await tt.search_page(
+            http, query=query, start=start, end=end, lo=lo, hi=hi,
+            page_token=state.get("search_token"),
+            max_results=tp.search_page_size(state),
+        )
+    else:
+        page = await ig.search_page(
+            http, query=query, lo=lo, hi=hi,
+            page_token=state.get("search_token"),
+            max_results=tp.search_page_size(state),
+        )
+    state["units"] += page.units
+    room = max(0, int(state["max_videos"]) - len(state["candidates"]))
+    details = page.details[:room] if not tp.info(state).collects_comments else page.details
+    tp.add_prefetched(state, details)
+    if page.items:
+        keep = {str(d["id"]) for d in details}
+        items = [i for i in page.items if i.external_id in keep]
+        state["received"] += len(items)
+        if items:
+            state["stored"] += await _save(session, source, items)
+    tp.advance_search(state, next_token=page.next_token)
+
+
 async def _save(session: AsyncSession, source: DataSource, items: list[Any]) -> int:
     # Impor di sini: signals.py besar dan mengimpor banyak modul; menariknya di
     # tingkat modul membuat urutan impor router rapuh.
@@ -375,7 +460,7 @@ async def _save(session: AsyncSession, source: DataSource, items: list[Any]) -> 
         session,
         org_id=source.org_id,
         project_id=source.project_id,
-        connector=YouTubeConnector.key,
+        connector=tp.info(source.config or {}).store_connector,
         source=ModelSignalSource.SOCIAL,
         items=[
             IncomingItem(
@@ -448,6 +533,28 @@ def _start_after_commit(job_id: UUID, org_id: UUID) -> None:
     asyncio.get_running_loop().create_task(later())
 
 
+@router.get("/signals/theme-platforms", response_model=list[ThemePlatformOut])
+async def list_theme_platforms(user: CurrentUser) -> list[ThemePlatformOut]:
+    """Platform tarik tema dan apakah kuncinya sudah diisi di deployment ini.
+
+    Nilai kunci tidak pernah ikut, hanya ada/tidaknya.
+    """
+    return [
+        ThemePlatformOut(
+            key=p.key,
+            label=p.label,
+            configured=platform_configured(p.key),
+            env_vars=list(p.env_vars),
+            collects_comments=p.collects_comments,
+            max_days_back=p.max_days_back,
+            access_note=p.access_note,
+            method=p.method,
+            limitations=list(p.limitations),
+        )
+        for p in tp.PLATFORMS.values()
+    ]
+
+
 @router.get("/projects/{project_id}/signals/theme-pulls", response_model=list[ThemePullOut])
 async def list_theme_pulls(
     project_id: UUID, session: TenantSession, user: CurrentUser
@@ -473,10 +580,12 @@ async def list_theme_pulls(
 async def create_theme_pull(
     project_id: UUID, body: ThemeCreate, session: TenantSession, user: CurrentUser
 ) -> ThemePullOut:
-    if not get_settings().youtube_api_key:
+    plat = tp.PLATFORMS[body.platform]
+    if not platform_configured(plat.key):
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "YOUTUBE_API_KEY belum diset di backend; tarik tema tidak bisa jalan.",
+            f"{' dan '.join(plat.env_vars)} belum diset di backend; "
+            f"tarik tema {plat.label} belum bisa jalan.",
         )
     now = datetime.now(UTC)
     today = (now + timedelta(hours=tp.WIB_HOURS)).date()
@@ -490,6 +599,7 @@ async def create_theme_pull(
             comments_until_now=body.comments_until_now,
             keyword_filter=body.keyword_filter,
             today=today,
+            platform=body.platform,
         )
     except tp.ThemeError as e:
         raise HTTPException(422, str(e)) from e
@@ -523,6 +633,7 @@ async def create_theme_pull(
             entity_id=row.id,
             metadata_={
                 "project_id": str(project_id),
+                "platform": req.platform,
                 "queries": list(req.queries),
                 "start": req.start.isoformat(),
                 "end": req.end.isoformat(),
