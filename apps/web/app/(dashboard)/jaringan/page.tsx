@@ -61,6 +61,7 @@ interface SnaOut {
   method: string;
   limitations: string[];
   min_scored: number;
+  computed_at: string;
 }
 
 interface BridgesOut {
@@ -79,6 +80,14 @@ interface BridgesOut {
 }
 
 const nf = new Intl.NumberFormat("id-ID");
+const wibTime = (iso: string) =>
+  new Date(iso).toLocaleString("id-ID", {
+    timeZone: "Asia/Jakarta",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  }) + " WIB";
 const pct = (v: number) => `${(v * 100).toLocaleString("id-ID", { maximumFractionDigits: 1 })}%`;
 
 function containerLabel(c: string): string {
@@ -118,6 +127,12 @@ export default async function JaringanPage({
       <PageHeader kicker="Jaringan Interaksi (SNA)" title={name} isDemo={isDemo} />
       <div className="body">
         <PeriodBar win={win} />
+        {data?.computed_at && (
+          <p className="field-hint" style={{ margin: "-4px 0 12px" }}>
+            Dihitung {wibTime(data.computed_at)}. Graf besar butuh beberapa detik, jadi hasilnya
+            disimpan hingga 10 menit; konten yang baru masuk tampil sesudahnya.
+          </p>
+        )}
 
         {/* Kata yang dipakai di halaman ini: "posisi struktural", bukan
             "pengaruh", "kendali", atau "buzzer" — CLAUDE.md §3. */}

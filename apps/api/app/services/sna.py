@@ -682,30 +682,36 @@ class BridgeReport:
     )
 
 
-def bridges(
-    rows: Iterable[tuple[str, str, int]],
-    *,
-    top: int = 15,
-    overlap_top: int = 12,
-) -> BridgeReport:
-    """``rows`` = (author_hash, container, jumlah komentar). Fungsi murni."""
-    by_container: dict[str, set[str]] = {}
-    comments_c: Counter[str] = Counter()
-    by_author: dict[str, set[str]] = {}
-    comments_a: Counter[str] = Counter()
-    total = 0
-    for author, container, count in rows:
-        if not author or not container or count <= 0:
-            continue
-        by_container.setdefault(container, set()).add(author)
-        by_author.setdefault(author, set()).add(container)
-        comments_c[container] += count
-        comments_a[author] += count
-        total += count
-    accounts, containers = len(by_author), len(by_container)
-    if containers < 2 or accounts < MIN_ACCOUNTS:
+@dataclass(frozen=True, slots=True)
+class BridgeAggregates:
+    """Agregat graf akun–unggahan, cukup kecil untuk dihitung di SQL.
+
+    ``containers``: (unggahan, akun berbeda, komentar) untuk SEMUA unggahan.
+    ``cross_per_container``: akun lintas unggahan per unggahan (cukup unggahan
+    teratas). ``pair_shared``: akun yang sama untuk pasangan unggahan teratas.
+    ``top_cross``: (akun, unggahan berbeda, komentar), sudah urut.
+    """
+
+    containers: list[tuple[str, int, int]]
+    accounts: int
+    cross_accounts: int
+    cross_per_container: Mapping[str, int]
+    pair_shared: list[tuple[str, str, int]]
+    top_cross: list[tuple[str, int, int]]
+
+
+#: Unggahan teratas yang ditampilkan, dan yang dibandingkan berpasangan.
+BRIDGE_TOP = 15
+BRIDGE_OVERLAP_TOP = 12
+
+
+def bridges_from_aggregates(agg: BridgeAggregates, *, top: int = BRIDGE_TOP) -> BridgeReport:
+    """Rakit laporan akun–unggahan dari agregat. Fungsi murni."""
+    total = sum(n for _, _, n in agg.containers)
+    containers = len(agg.containers)
+    if containers < 2 or agg.accounts < MIN_ACCOUNTS:
         return BridgeReport(
-            accounts=accounts,
+            accounts=agg.accounts,
             containers=containers,
             comments=total,
             cross_accounts=0,
@@ -713,45 +719,81 @@ def bridges(
             insufficient_data=True,
             note=(
                 "Perlu komentar dari minimal 2 unggahan dan "
-                f"{MIN_ACCOUNTS} akun; baru {containers} unggahan, {accounts} akun."
+                f"{MIN_ACCOUNTS} akun; baru {containers} unggahan, {agg.accounts} akun."
             ),
         )
-    cross = {a for a, cs in by_author.items() if len(cs) >= 2}
-    ranked = sorted(by_container, key=lambda c: (-len(by_container[c]), c))
+    ranked = sorted(agg.containers, key=lambda t: (-t[1], t[0]))
+    size = {c: n for c, n, _ in agg.containers}
     infos = [
         ContainerInfo(
             container=c,
             url=container_url(c),
-            commenters=len(by_container[c]),
-            comments=comments_c[c],
-            shared_share=round(len(by_container[c] & cross) / len(by_container[c]), 4),
+            commenters=n,
+            comments=k,
+            shared_share=round(agg.cross_per_container.get(c, 0) / n, 4) if n else 0.0,
         )
-        for c in ranked[:top]
+        for c, n, k in ranked[:top]
     ]
-    cross_ranked = sorted(cross, key=lambda a: (-len(by_author[a]), -comments_a[a], a))
-    overlaps: list[Overlap] = []
-    head = ranked[:overlap_top]
-    for i, a in enumerate(head):
-        for b in head[i + 1 :]:
-            shared = len(by_container[a] & by_container[b])
-            if shared == 0:
-                continue
-            union = len(by_container[a] | by_container[b])
-            overlaps.append(Overlap(a=a, b=b, shared=shared, jaccard=round(shared / union, 4)))
+    overlaps = [
+        Overlap(a=a, b=b, shared=sh, jaccard=round(sh / (size[a] + size[b] - sh), 4))
+        for a, b, sh in agg.pair_shared
+        if sh > 0 and a in size and b in size
+    ]
     overlaps.sort(key=lambda o: (-o.jaccard, -o.shared, o.a, o.b))
     return BridgeReport(
-        accounts=accounts,
+        accounts=agg.accounts,
         containers=containers,
         comments=total,
-        cross_accounts=len(cross),
-        cross_share=round(len(cross) / accounts, 4),
+        cross_accounts=agg.cross_accounts,
+        cross_share=round(agg.cross_accounts / agg.accounts, 4),
         top_containers=infos,
         top_cross_accounts=[
-            CrossAccount(author_hash=a, containers=len(by_author[a]), comments=comments_a[a])
-            for a in cross_ranked[:top]
+            CrossAccount(author_hash=a, containers=c, comments=k) for a, c, k in agg.top_cross[:top]
         ],
         overlaps=overlaps[:20],
     )
+
+
+def bridges(
+    rows: Iterable[tuple[str, str, int]],
+    *,
+    top: int = BRIDGE_TOP,
+    overlap_top: int = BRIDGE_OVERLAP_TOP,
+) -> BridgeReport:
+    """Versi Python dari agregat SQL di routers/network.py, untuk tes dan data kecil.
+
+    ``rows`` = (author_hash, container, jumlah komentar). Definisi tiap angka di
+    sini menjadi acuan bagi kueri SQL-nya.
+    """
+    by_container: dict[str, set[str]] = {}
+    comments_c: Counter[str] = Counter()
+    by_author: dict[str, set[str]] = {}
+    comments_a: Counter[str] = Counter()
+    for author, container, count in rows:
+        if not author or not container or count <= 0:
+            continue
+        by_container.setdefault(container, set()).add(author)
+        by_author.setdefault(author, set()).add(container)
+        comments_c[container] += count
+        comments_a[author] += count
+    cross = {a for a, cs in by_author.items() if len(cs) >= 2}
+    ranked = sorted(by_container, key=lambda c: (-len(by_container[c]), c))
+    head = ranked[:overlap_top]
+    pairs = [
+        (a, b, len(by_container[a] & by_container[b]))
+        for i, a in enumerate(head)
+        for b in head[i + 1 :]
+    ]
+    cross_ranked = sorted(cross, key=lambda a: (-len(by_author[a]), -comments_a[a], a))
+    agg = BridgeAggregates(
+        containers=[(c, len(by_container[c]), comments_c[c]) for c in by_container],
+        accounts=len(by_author),
+        cross_accounts=len(cross),
+        cross_per_container={c: len(by_container[c] & cross) for c in ranked[:top]},
+        pair_shared=pairs,
+        top_cross=[(a, len(by_author[a]), comments_a[a]) for a in cross_ranked[:top]],
+    )
+    return bridges_from_aggregates(agg, top=top)
 
 
 # ---------------------------------------------------------- ekspor ----

@@ -8,15 +8,18 @@ keluar dari endpoint ini adalah `author_hash`, bukan nama akun.
 from __future__ import annotations
 
 import asyncio
+import time
+from collections.abc import Awaitable, Callable
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel
-from sqlalchemy import and_, case, func, literal, select
+from sqlalchemy import Text, and_, any_, bindparam, case, func, literal, select
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import aliased
 
@@ -139,6 +142,39 @@ SNA_SOURCE = ModelSignalSource.SOCIAL
 TERM_AUTHORS_PER_COMMUNITY = 60
 TERM_TEXT_LIMIT = 6000
 
+# --- perlindungan memori (insiden 21 Nov 2026) ---
+#
+# Tiga permintaan /network/sna proyek Gibran yang hampir bersamaan membuat
+# server Render (512 MB) kehabisan memori dan di-restart (/health 503 ±2 menit).
+# Karena itu: (1) perhitungan berat jaringan dikerjakan SATU per satu untuk
+# seluruh proses, dan (2) hasilnya disimpan sebentar supaya membuka ulang
+# halaman tidak menghitung ulang. Kunci cache memuat org_id: cache ini melewati
+# RLS, jadi tidak boleh ada jalan bagi organisasi lain memakai entri yang sama.
+_heavy = asyncio.Semaphore(1)
+_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
+CACHE_TTL_SECONDS = 600
+CACHE_MAX_ENTRIES = 24
+
+
+async def _cached(key: tuple[Any, ...], compute: Callable[[], Awaitable[Any]]) -> Any:
+    """Kunci = parameter PERMINTAAN (days/start/end), bukan jendela terhitung:
+    jendela "N hari terakhir" berakhir di saat ini dan berbeda tiap milidetik,
+    sehingga permintaan yang sama tidak akan pernah bertemu di cache."""
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
+        return hit[1]
+    async with _heavy:
+        hit = _cache.get(key)
+        if hit and time.monotonic() - hit[0] < CACHE_TTL_SECONDS:
+            return hit[1]
+        value = await compute()
+        _cache[key] = (time.monotonic(), value)
+        if len(_cache) > CACHE_MAX_ENTRIES:
+            stale = sorted(_cache, key=lambda k: _cache[k][0])
+            for old in stale[: len(_cache) - CACHE_MAX_ENTRIES]:
+                _cache.pop(old, None)
+        return value
+
 
 class AccountMetricsOut(BaseModel):
     author_hash: str
@@ -214,6 +250,8 @@ class SNAOut(BaseModel):
     method: str
     limitations: list[str]
     min_scored: int = sna.MIN_SCORED
+    #: Kapan angka ini dihitung; hasil disimpan hingga CACHE_TTL_SECONDS.
+    computed_at: datetime
 
 
 class ContainerOut(BaseModel):
@@ -251,6 +289,7 @@ class BridgesOut(BaseModel):
     note: str | None
     method: str
     limitations: list[str]
+    computed_at: datetime
 
 
 def _in_window(project_id: UUID, since: datetime, until: datetime) -> list[Any]:
@@ -334,8 +373,16 @@ def _thread_note(derived: int) -> str | None:
 
 
 async def _author_stats(
-    session: AsyncSession, project_id: UUID, since: datetime, until: datetime
+    session: AsyncSession,
+    project_id: UUID,
+    since: datetime,
+    until: datetime,
+    authors: list[str],
 ) -> dict[str, sna.AuthorStats]:
+    """Agregat sentimen per akun, hanya untuk ``authors`` (anggota komunitas yang
+    ditampilkan) — dikirim sebagai SATU parameter array, bukan ribuan parameter."""
+    if not authors:
+        return {}
     s = Mention.sentiment
     rows = (
         await session.execute(
@@ -348,7 +395,11 @@ async def _author_stats(
                 func.count(case((s.between(NEGATIVE_THRESHOLD, POSITIVE_THRESHOLD), 1))),
                 func.count(case((s > POSITIVE_THRESHOLD, 1))),
             )
-            .where(*_in_window(project_id, since, until), Mention.source == SNA_SOURCE)
+            .where(
+                *_in_window(project_id, since, until),
+                Mention.source == SNA_SOURCE,
+                Mention.author_hash == any_(bindparam("authors", authors, type_=ARRAY(Text))),
+            )
             .group_by(Mention.author_hash)
         )
     ).all()
@@ -398,17 +449,33 @@ async def get_sna(
     baca `limitations` dan `notes` sebelum memakainya.
     """
     since, until = window(days, start, end)
+
+    async def compute() -> SNAOut:
+        return await _compute_sna(session, project_id, since, until)
+
+    result: SNAOut = await _cached(
+        ("sna", user.org_id, project_id, days, start, end), compute
+    )
+    return result
+
+
+async def _compute_sna(
+    session: AsyncSession, project_id: UUID, since: datetime, until: datetime
+) -> SNAOut:
     edges, derived = await _weighted_edges(session, project_id, since, until)
     # Perhitungan graf memakan CPU beberapa detik pada proyek besar: jalankan di
     # thread supaya permintaan lain (dan pekerja tarik tema) tidak ikut tertahan.
     report = await asyncio.to_thread(sna.analyze, edges)
+    del edges
     note = _thread_note(derived)
     if note:
         report.notes.insert(0, note)
 
     content: dict[int, sna.CommunityContent] = {}
     if report.communities:
-        stats = await _author_stats(session, project_id, since, until)
+        stats = await _author_stats(
+            session, project_id, since, until, list(report.membership)
+        )
         authors: list[str] = []
         for c in report.communities:
             members = [a for a, cid in report.membership.items() if cid == c.id]
@@ -446,6 +513,7 @@ async def get_sna(
         notes=report.notes,
         method=report.method,
         limitations=report.limitations,
+        computed_at=datetime.now(UTC),
     )
 
 
@@ -461,21 +529,122 @@ async def get_bridges(
     """Graf akun–unggahan: unggahan dengan komentator terbanyak, akun lintas
     unggahan, dan tumpang-tindih komentator antar-unggahan."""
     since, until = window(days, start, end)
+
+    async def compute() -> BridgesOut:
+        return await _compute_bridges(session, project_id, since, until)
+
+    result: BridgesOut = await _cached(
+        ("bridges", user.org_id, project_id, days, start, end), compute
+    )
+    return result
+
+
+async def _compute_bridges(
+    session: AsyncSession, project_id: UUID, since: datetime, until: datetime
+) -> BridgesOut:
+    """Agregat akun–unggahan dihitung di Postgres (definisinya = sna.bridges).
+
+    Dulu seluruh pasangan (akun, unggahan) dimuat ke Python — ±250 ribu baris
+    untuk proyek Gibran. Kini yang kembali hanya angka per unggahan, pasangan
+    unggahan teratas, dan akun lintas unggahan teratas.
+    """
     yt = func.substring(Mention.url, r"[?&]v=([A-Za-z0-9_-]{11})")
     tt = func.substring(Mention.url, r"tiktok\.com/.*/?video/([0-9]+)")
     container = func.coalesce(literal("yt:") + yt, literal("tt:") + tt)
-    rows = (
-        await session.execute(
-            select(Mention.author_hash, container.label("c"), func.count())
-            .where(
-                *_in_window(project_id, since, until),
-                Mention.source == SNA_SOURCE,
-                Mention.url.is_not(None),
-            )
-            .group_by(Mention.author_hash, "c")
+    where = [
+        *_in_window(project_id, since, until),
+        Mention.source == SNA_SOURCE,
+        Mention.url.is_not(None),
+    ]
+    raw = (
+        select(Mention.author_hash.label("a"), container.label("c"))
+        .where(*where)
+        .subquery("raw")
+    )
+    pairs = (
+        select(raw.c.a, raw.c.c, func.count().label("n"))
+        .where(raw.c.c.is_not(None))
+        .group_by(raw.c.a, raw.c.c)
+        .cte("pairs")
+    )
+    per_author = (
+        select(
+            pairs.c.a,
+            func.count().label("k"),
+            func.sum(pairs.c.n).label("n"),
         )
-    ).all()
-    report = sna.bridges((str(a), str(c), int(n)) for a, c, n in rows if c)
+        .group_by(pairs.c.a)
+        .cte("per_author")
+    )
+
+    containers = [
+        (str(c), int(k), int(n))
+        for c, k, n in (
+            await session.execute(
+                select(pairs.c.c, func.count(), func.sum(pairs.c.n)).group_by(pairs.c.c)
+            )
+        ).all()
+    ]
+    accounts, cross_accounts = (
+        await session.execute(
+            select(
+                func.count(),
+                func.count(case((per_author.c.k >= 2, 1))),
+            ).select_from(per_author)
+        )
+    ).one()
+    ranked = [c for c, _, _ in sorted(containers, key=lambda t: (-t[1], t[0]))]
+    top = ranked[: sna.BRIDGE_TOP]
+    head = ranked[: sna.BRIDGE_OVERLAP_TOP]
+
+    cross_per: dict[str, int] = {}
+    pair_shared: list[tuple[str, str, int]] = []
+    top_cross: list[tuple[str, int, int]] = []
+    if top:
+        cross_per = {
+            str(c): int(n)
+            for c, n in (
+                await session.execute(
+                    select(pairs.c.c, func.count())
+                    .join(per_author, per_author.c.a == pairs.c.a)
+                    .where(per_author.c.k >= 2, pairs.c.c.in_(top))
+                    .group_by(pairs.c.c)
+                )
+            ).all()
+        }
+        x, y = pairs.alias("x"), pairs.alias("y")
+        pair_shared = [
+            (str(a), str(b), int(n))
+            for a, b, n in (
+                await session.execute(
+                    select(x.c.c, y.c.c, func.count())
+                    .join(y, and_(y.c.a == x.c.a, y.c.c > x.c.c))
+                    .where(x.c.c.in_(head), y.c.c.in_(head))
+                    .group_by(x.c.c, y.c.c)
+                )
+            ).all()
+        ]
+        top_cross = [
+            (str(a), int(k), int(n))
+            for a, k, n in (
+                await session.execute(
+                    select(per_author.c.a, per_author.c.k, per_author.c.n)
+                    .where(per_author.c.k >= 2)
+                    .order_by(per_author.c.k.desc(), per_author.c.n.desc(), per_author.c.a)
+                    .limit(sna.BRIDGE_TOP)
+                )
+            ).all()
+        ]
+    report = sna.bridges_from_aggregates(
+        sna.BridgeAggregates(
+            containers=containers,
+            accounts=int(accounts),
+            cross_accounts=int(cross_accounts),
+            cross_per_container=cross_per,
+            pair_shared=pair_shared,
+            top_cross=top_cross,
+        )
+    )
     return BridgesOut(
         accounts=report.accounts,
         containers=report.containers,
@@ -489,6 +658,7 @@ async def get_bridges(
         note=report.note,
         method=report.method,
         limitations=report.limitations,
+        computed_at=datetime.now(UTC),
     )
 
 
@@ -512,16 +682,17 @@ async def export_network(
     DATA_ANALYST; setiap ekspor dicatat di audit log.
     """
     since, until = window(days, start, end)
-    edges, _derived = await _weighted_edges(session, project_id, since, until)
-    report = await asyncio.to_thread(sna.analyze, edges)
-    membership = report.membership
-    if format == "gexf":
-        body = await asyncio.to_thread(sna.to_gexf, edges, membership)
-        media, ext = "application/gexf+xml", "gexf"
-    else:
-        nodes_csv, edges_csv = await asyncio.to_thread(sna.to_csv, edges, membership)
-        body = nodes_csv if format == "nodes" else edges_csv
-        media, ext = "text/csv; charset=utf-8", "csv"
+    async with _heavy:
+        edges, _derived = await _weighted_edges(session, project_id, since, until)
+        report = await asyncio.to_thread(sna.analyze, edges)
+        membership = report.membership
+        if format == "gexf":
+            body = await asyncio.to_thread(sna.to_gexf, edges, membership)
+            media, ext = "application/gexf+xml", "gexf"
+        else:
+            nodes_csv, edges_csv = await asyncio.to_thread(sna.to_csv, edges, membership)
+            body = nodes_csv if format == "nodes" else edges_csv
+            media, ext = "text/csv; charset=utf-8", "csv"
     session.add(
         AuditLog(
             org_id=user.org_id,
