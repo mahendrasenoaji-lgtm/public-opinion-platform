@@ -6,6 +6,28 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 22 November 2026 (malam): PR #94 merged + diuji di produksi
+
+- **PR #94** (`jaringan/hemat-memori`: semaphore + cache 10 menit + graf akun–unggahan di SQL) **MERGED**
+  atas permintaan pemilik ("kerjakan pr 94"), merge commit `6583b61`. Semua cek CI lulus. Deploy Render
+  **success 19.22 WIB** (dipantau lewat GitHub Deployments, environment `main - pop-api`).
+- **Uji produksi (satu tab, Chrome pemilik):**
+
+  | Proyek | Akun di graf | Relasi | Komunitas | Modularity |
+  |---|---|---|---|---|
+  | PENGUNDURAN DIRI GIBRAN (30 hari terakhir) | 24.045 dari 41.626 (dipangkas) | 33.361 | 747 | 0,801 |
+  | KELANGKAAN BBM BALI (11–20 Okt) | 4.431 | 4.058 | 657 | 0,932 |
+
+  `/health` 200 di setiap pengecekan (19.35–19.37 WIB). Gibran dihitung dua kali (19.24 dan 19.36, karena
+  cache 10 menit habis) tanpa gangguan. Graf balasan BBM Bali yang dulu 0 relasi kini terisi (efek PR #93).
+- **Larangan membuka `/jaringan` Gibran di produksi dicabut.** Tetap disarankan satu tab untuk proyek besar.
+- Proyek aktif dikembalikan ke PENGUNDURAN DIRI GIBRAN sesudah uji.
+- Catatan: Render free tier bisa tidur; `/health` pertama sempat ±27 detik (cold start), bukan gangguan.
+- Bagian lain sesi ini tidak menyentuh repo ini: artikel JMKI Gibran (repo privat `artikel-jmki-gibran`)
+  memakai angka dari skrip lokalnya sendiri.
+
+---
+
 # ⚠️ 21 November 2026 (larut): insiden memori `/jaringan` + perbaikan
 
 - **Kejadian (±23.05–23.08 WIB):** sesudah PR #93 tayang, `/jaringan` proyek Gibran terpicu tiga kali
