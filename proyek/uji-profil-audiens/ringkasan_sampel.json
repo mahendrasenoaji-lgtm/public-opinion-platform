@@ -1,0 +1,39 @@
+{
+  "seed": 20261124,
+  "model_version": "profil-id-1",
+  "proyek": {
+    "gibran": {
+      "akun": 165294,
+      "komentar": 292345,
+      "populasi": {
+        "A": 19,
+        "B": 260,
+        "C": 514,
+        "D": 165294
+      },
+      "sampel": {
+        "A": 19,
+        "B": 60,
+        "C": 25,
+        "D": 100
+      }
+    },
+    "bbm_bali": {
+      "akun": 22803,
+      "komentar": 36319,
+      "populasi": {
+        "A": 2,
+        "B": 138,
+        "C": 24,
+        "D": 22803
+      },
+      "sampel": {
+        "A": 2,
+        "B": 40,
+        "C": 15,
+        "D": 40
+      }
+    }
+  },
+  "total_sampel": 301
+}

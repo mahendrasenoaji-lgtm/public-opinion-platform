@@ -1,0 +1,5 @@
+# Berisi teks komentar per akun / keluaran sistem per akun: hanya lokal.
+lembar_penilai_*.xlsx
+kunci_sistem.csv
+adjudikasi.csv
+skrip/__pycache__/
