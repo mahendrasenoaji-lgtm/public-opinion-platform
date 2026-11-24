@@ -11,6 +11,7 @@ from app.middleware.observability import RequestLoggingMiddleware
 from app.middleware.ratelimit import RateLimitMiddleware
 from app.routers import (
     alerts,
+    audience,
     auth,
     brief,
     comm_coding,
@@ -53,6 +54,7 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
 
 def install_middleware(app: FastAPI, *, rate_limit_enabled: bool) -> None:
     """Pasang middleware pada urutan yang benar.
@@ -122,6 +124,7 @@ for r in (
     influence,
     impact,
     alerts,
+    audience,
     network,
     reports,
     metrics,
@@ -129,6 +132,7 @@ for r in (
     comm_coding,
     comm_sites,
     theme_pulls,
+    audience,
 ):
     app.include_router(r.router, prefix="/v1")
 app.include_router(publications.router, prefix="/v1")

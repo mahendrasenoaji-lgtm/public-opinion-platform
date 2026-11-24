@@ -156,7 +156,7 @@ CACHE_TTL_SECONDS = 600
 CACHE_MAX_ENTRIES = 24
 
 
-async def _cached(key: tuple[Any, ...], compute: Callable[[], Awaitable[Any]]) -> Any:
+async def cached_heavy(key: tuple[Any, ...], compute: Callable[[], Awaitable[Any]]) -> Any:
     """Kunci = parameter PERMINTAAN (days/start/end), bukan jendela terhitung:
     jendela "N hari terakhir" berakhir di saat ini dan berbeda tiap milidetik,
     sehingga permintaan yang sama tidak akan pernah bertemu di cache."""
@@ -453,7 +453,7 @@ async def get_sna(
     async def compute() -> SNAOut:
         return await _compute_sna(session, project_id, since, until)
 
-    result: SNAOut = await _cached(
+    result: SNAOut = await cached_heavy(
         ("sna", user.org_id, project_id, days, start, end), compute
     )
     return result
@@ -533,7 +533,7 @@ async def get_bridges(
     async def compute() -> BridgesOut:
         return await _compute_bridges(session, project_id, since, until)
 
-    result: BridgesOut = await _cached(
+    result: BridgesOut = await cached_heavy(
         ("bridges", user.org_id, project_id, days, start, end), compute
     )
     return result

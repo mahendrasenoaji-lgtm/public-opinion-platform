@@ -1,7 +1,7 @@
 # Progres
 
 Satu tempat untuk melihat **apa yang sudah jadi, apa yang belum, dan apa yang
-menahannya.** Diperbarui 2026-11-10: halaman baru **Laporan Percakapan** (`/laporan`, tanya-jawab 11 pertanyaan ala laporan pemantauan isu, bisa dicetak) dan leksikon emosi `emosi-id-2` (cakupan 5% menjadi 26% pada komentar BBM Bali); rincian di blok 10 November (sore) `docs/deployment-status.md`. Hari yang sama sebelumnya: halaman Sinyal mendapat periode tanggal tetap,
+menahannya.** Diperbarui 2026-11-24: halaman **Profil Audiens** (`/audiens`, P11 tahap 1: estimasi gender/umur/minat agregat, tanpa migrasi, PR terbuka); cakupan gender/umur pada data nyata sangat kecil, lihat `docs/benchmark-nolimit.md` P11. Sebelumnya 2026-11-10: halaman baru **Laporan Percakapan** (`/laporan`, tanya-jawab 11 pertanyaan ala laporan pemantauan isu, bisa dicetak) dan leksikon emosi `emosi-id-2` (cakupan 5% menjadi 26% pada komentar BBM Bali); rincian di blok 10 November (sore) `docs/deployment-status.md`. Hari yang sama sebelumnya: halaman Sinyal mendapat periode tanggal tetap,
 kartu emosi, engagement dan jam ramai, serta koreksi sentimen manual per konten (label
 manusia menang atas penilaian ulang, tercatat di audit log, tanpa migrasi). Teruji
 terhadap Postgres lokal dengan RLS aktif dan dicoba di browser lokal; **belum live
