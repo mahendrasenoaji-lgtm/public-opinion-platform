@@ -6,7 +6,12 @@
 
 ---
 
-# 🟢 MULAI DARI SINI — 24 November 2026: P11 Profil Audiens (PR terbuka, belum digabung)
+# 🟢 MULAI DARI SINI — 24 November 2026: P11 Profil Audiens (PR #96 MERGED + live)
+
+- **PR #96 MERGED** atas permintaan pemilik, merge commit `8e9d977`. CI `main` hijau; Vercel produksi
+  dan Render `pop-api` sukses ±11.20 WIB. Rute `/v1/projects/{id}/audience` terdaftar (401 tanpa login),
+  `/health` 200. `/audiens` dibuka sekali di produksi (proyek PANGAN, tanpa komentar sosial → "data tidak cukup").
+- Perbaikan kecil sesudahnya: waktu "Dihitung …" di `/audiens` kini WIB (sebelumnya UTC).
 
 - Pemeriksaan awal: `main` = `99b1bf7`, CI hijau, tidak ada PR terbuka, API produksi `/health` 200
   (cold start ±70 dtk). Berkas lokal pemilik (deck pptx, `apps/web/AGENTS.md`) tetap tidak disentuh.
@@ -27,7 +32,7 @@
 - **Temuan penting (lihat `docs/benchmark-nolimit.md` P11):** pada Gibran hanya 13 dari 165 ribu
   akun yang gendernya bisa diestimasi dari teks. Fitur jujur tetapi hampir kosong untuk
   gender/umur; minat lebih terisi tetapi rawan kata topik ("martabak", "motor").
-- **Menunggu pemilik:** (1) OK merge PR P11; (2) apakah nama tampilan akun boleh disimpan untuk
+- **Menunggu pemilik:** (1) ~~OK merge PR P11~~ selesai; (2) apakah nama tampilan akun boleh disimpan untuk
   estimasi gender (konsekuensi UU PDP + ketentuan YouTube API) — tanpa itu cakupan tetap ±0,01%;
   (3) set uji berlabel ±300 akun (dua penilai) sebelum angka dipakai untuk promosi.
 - Butir lama yang tetap terbuka: kunci TikTok/Instagram, kuota Supabase (tenggang 10 Des),
