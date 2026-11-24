@@ -46,6 +46,7 @@ const NAV_GROUPS: readonly NavGroup[] = [
       ["/tema", "Tema"],
       ["/narrative", "Peta Narasi"],
       ["/jaringan", "Jaringan Interaksi"],
+      ["/audiens", "Profil Audiens"],
     ],
   },
   {

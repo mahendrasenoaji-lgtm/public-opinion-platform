@@ -6,6 +6,35 @@
 
 ---
 
+# 🟢 MULAI DARI SINI — 24 November 2026: P11 Profil Audiens (PR terbuka, belum digabung)
+
+- Pemeriksaan awal: `main` = `99b1bf7`, CI hijau, tidak ada PR terbuka, API produksi `/health` 200
+  (cold start ±70 dtk). Berkas lokal pemilik (deck pptx, `apps/web/AGENTS.md`) tetap tidak disentuh.
+- Butir yang sudah diizinkan tapi belum dikerjakan: **P11** (estimasi gender/umur/minat, izin 8 Nov).
+  Dibangun di cabang `audiens/p11-estimasi`:
+  - `apps/api/app/services/profiling.py` (`profil-id-1`, fungsi murni, 23 tes) dan
+    `apps/api/app/routers/audience.py` → `GET /v1/projects/{id}/audience?days|start&end&exclude=`
+    (6 tes Postgres+RLS, termasuk isolasi tenant). Hanya SOCIAL, hanya agregat, tanpa hash akun.
+  - Halaman `/audiens` ("Profil Audiens" di menu Sinyal): ubin cakupan, gender, umur, piramida
+    (sel < 5 disembunyikan), minat + penanda + form "Kecualikan kata topik", sentimen per segmen
+    (≥ 30 konten bernilai DAN ≥ 10 akun), Provenance, batasan.
+  - **Tanpa migrasi.** Tidak ada estimasi yang disimpan. Perhitungan memakai semaphore + cache
+    10 menit yang sama dengan `/jaringan` (`cached_heavy`, diganti nama dari `_cached`), jadi
+    tidak pernah berjalan bersamaan dengan SNA. Lintasan 1 baca teks per 5.000 baris (di thread),
+    lintasan 2 sentimen per akun bertanda lewat agregat SQL.
+  - Diuji: seluruh suite backend 1244 lulus (Postgres lokal), vitest 108, `tsc`, `next build`;
+    dilihat di Chrome lokal dengan 36.319 komentar BBM Bali asli (2,2 dtk).
+- **Temuan penting (lihat `docs/benchmark-nolimit.md` P11):** pada Gibran hanya 13 dari 165 ribu
+  akun yang gendernya bisa diestimasi dari teks. Fitur jujur tetapi hampir kosong untuk
+  gender/umur; minat lebih terisi tetapi rawan kata topik ("martabak", "motor").
+- **Menunggu pemilik:** (1) OK merge PR P11; (2) apakah nama tampilan akun boleh disimpan untuk
+  estimasi gender (konsekuensi UU PDP + ketentuan YouTube API) — tanpa itu cakupan tetap ±0,01%;
+  (3) set uji berlabel ±300 akun (dua penilai) sebelum angka dipakai untuk promosi.
+- Butir lama yang tetap terbuka: kunci TikTok/Instagram, kuota Supabase (tenggang 10 Des),
+  collector terjadwal mati sejak 30 Okt, `ANTHROPIC_API_KEY` di Render (P0), P5 (label manusia).
+
+---
+
 # 🟢 MULAI DARI SINI — 22 November 2026 (malam): PR #94 merged + diuji di produksi
 
 - **PR #94** (`jaringan/hemat-memori`: semaphore + cache 10 menit + graf akun–unggahan di SQL) **MERGED**

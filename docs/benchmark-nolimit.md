@@ -144,6 +144,23 @@ risiko. Ukuran: **S** ≤ 1 sesi, **M** 2–3 sesi, **L** > 3 sesi.
 
 ### Tahap D — segmentasi audiens untuk promosi (diputuskan 2026-11-08)
 
+> **Status 2026-11-24 — tahap 1 dibangun (cabang `audiens/p11-estimasi`).** Halaman
+> `/audiens` + `GET /projects/{id}/audience`, `services/profiling.py` (`profil-id-1`).
+> **Tanpa tabel dan tanpa migrasi:** estimasi dihitung saat dibaca, hanya agregat yang
+> keluar, tidak ada profil per akun yang disimpan (jadi retensi/koreksi/hapus belum
+> diperlukan; ekspor per akun belum dibangun). Nama tampilan tidak disimpan platform, jadi
+> kamus nama -> gender tidak mungkin; yang dipakai hanya pernyataan diri orang pertama
+> ("saya ibu…", "gue anak SMA", "umur saya 52 tahun") dan kosakata minimal dua komentar
+> (minat). Analis bisa mengecualikan kata topik (`?kecuali=martabak`).
+>
+> **Hasil pada data nyata (CSV di repo, Mac):** Gibran 292.377 komentar / 165.316 akun →
+> gender diketahui **13 akun**, umur 6 akun, ±31 detik, puncak memori profiler ±2 MB.
+> BBM Bali 36.319 / 22.803 akun → gender 1 akun; minat otomotif 84 akun (kebanyakan
+> "motor"/"mobil", kata topik). Artinya: **dari teks komentar saja, gender/umur hampir
+> selalu "tidak diketahui"**; halaman menampilkannya jujur ("data tidak cukup"). Pengungkit
+> utama yang tersisa adalah nama tampilan akun (perlu disimpan → keputusan pemilik, ada
+> konsekuensi UU PDP) atau sumber lain. Set uji berlabel ±300 akun belum ada.
+
 **P11 — Estimasi gender, kelompok umur, dan minat per akun** (padanan People
 Panel NoLimit). Ukuran **M–L**. Disetujui pemilik produk untuk data promosi
 yang tersegmen; pengecualian sempit tercatat di CLAUDE.md §3.
@@ -190,7 +207,7 @@ git pull
 open docs/benchmark-nolimit.md           # dokumen ini
 ```
 
-P1–P4 dan P6 tahap pertama selesai (lihat status 10 November di bagian 3). Lanjut
-dari **P11**; P5 butuh label manusia lebih dulu. Urutan kerja umum
+P1–P4 dan P6 tahap pertama selesai (lihat status 10 November di bagian 3). P11 tahap 1
+dibangun 24 November (lihat status di bagian P11); P5 butuh label manusia lebih dulu. Urutan kerja umum
 tetap: `docs/deployment-status.md` (blok MULAI DARI SINI) → `CLAUDE.md` →
 dokumen ini.
