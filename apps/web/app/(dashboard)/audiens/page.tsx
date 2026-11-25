@@ -380,7 +380,7 @@ export default async function AudiensPage({
                 ))}
               </ul>
               <p className="proj-s">
-                Dihitung {new Date(data.computed_at).toLocaleString("id-ID")}; hasil disimpan
+                Dihitung {new Date(data.computed_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} WIB; hasil disimpan
                 10 menit. Ambang keyakinan {data.min_confidence.toLocaleString("id-ID")}.
               </p>
             </Panel>
