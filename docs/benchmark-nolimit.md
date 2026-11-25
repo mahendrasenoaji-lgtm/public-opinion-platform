@@ -159,7 +159,8 @@ risiko. Ukuran: **S** ≤ 1 sesi, **M** 2–3 sesi, **L** > 3 sesi.
 > "motor"/"mobil", kata topik). Artinya: **dari teks komentar saja, gender/umur hampir
 > selalu "tidak diketahui"**; halaman menampilkannya jujur ("data tidak cukup"). Pengungkit
 > utama yang tersisa adalah nama tampilan akun (perlu disimpan → keputusan pemilik, ada
-> konsekuensi UU PDP) atau sumber lain. Set uji berlabel ±300 akun belum ada.
+> konsekuensi UU PDP) atau sumber lain. Set uji berlabel 301 akun (berstrata, dua penilai, buta)
+> disiapkan 24 Nov di `proyek/uji-profil-audiens/` — menunggu dua penilai manusia.
 
 **P11 — Estimasi gender, kelompok umur, dan minat per akun** (padanan People
 Panel NoLimit). Ukuran **M–L**. Disetujui pemilik produk untuk data promosi
